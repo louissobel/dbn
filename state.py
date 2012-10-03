@@ -39,7 +39,22 @@ class DBNCommandSet(Immutable):
         return DBNCommandSet()
     
     def Line(self, state, blX, blY, trX, trY):
+        print blX
+        print blY
+        print trX
+        print trY
+        blX = utils.pixel_to_coord(blX, 'x')
+        blY = utils.pixel_to_coord(blY, 'y')
+        trX = utils.pixel_to_coord(trX, 'x')
+        trY = utils.pixel_to_coord(trY, 'y')
+        
         print "draw line from %d,%d to %d,%d" % (blX, blY, trX, trY)
+        
+        points = list(utils.bresenham_line(blX, blY, trX, trY))
+        pixel_list = [(x, y, state.pen_color) for x, y in points]
+        
+        
+        state.image = state.image.set_pixels(pixel_list)
     
     def Paper(self, state, value):
         color = utils.scale_100(value)
@@ -125,8 +140,27 @@ class DBNImage(Immutable):
     
     def query_pixel(self, x, y):
         return self._image_array[x, y]
+    
+    def __set_pixel(self, x, y, value):
+        if x > 100:
+            return False
+        if x < 0:
+            return False
         
+        if y > 100:
+            return False
+        if y < 0:
+            return False
+            
+        self._image_array[x, y] = value
+    
     @Immutable.mutates
     def set_pixel(self, x, y, value):
-        self._image_array[x, y] = value
+        self.__set_pixel(x, y, value)
+        
+    @Immutable.mutates
+    def set_pixels(self, pixel_iterator):
+        for x, y, value in pixel_iterator:
+            self.__set_pixel(x, y, value)
+            
 

@@ -25,9 +25,16 @@ Set [5 5] 50
 """
 
 good_test = """
-Paper 0
+Paper 20
 Set [50 50] 100
-Paper 50
+Set [5 5] 100
+Pen 100
+Set A 50
+Line 0 0 100 100
+Pen 75
+Line 0 0 100 A
+Pen 50
+Line 0 0 100 (100 + A)
 """
 
 arithmetic_test_string = """
