@@ -1,13 +1,10 @@
 from ast import *
 
-
-
 class DBNParser:
     
     def __init__(self):
         pass
-        
-        
+              
     def parse_until_next(self, tokens, token_type):
         """
         will return a list of tokens unit the next
@@ -29,7 +26,7 @@ class DBNParser:
         assumes that there is already a score of 1 (one open)
         """
         if left_type == right_type:
-            raise ValueError("louis, why is left_type = right_type?")
+            raise ValueError("louis, why is left_type == right_type?")
         
         score = 1 # will return once 0
         out_tokens = []
@@ -44,12 +41,9 @@ class DBNParser:
             
             out_tokens.append(next_token)
         return out_tokens
-                
-                
-        
+                 
     def parse(self, tokens):
         return self.parse_block(tokens[:])
-        
         
     def parse_block(self, tokens):
         
@@ -62,7 +56,12 @@ class DBNParser:
             # word
             # command
             # newline
-            if peek_token.type == 'WORD':
+            if peek_token.type == 'SET':
+                set_tokens = self.parse_until_next(tokens, 'NEWLINE')
+                set_node = self.parse_set(set_tokens)
+                node.add_child(set_node)
+            
+            elif peek_token.type == 'WORD':
                 # then we treat it as a command
                 # special handling for repeat, questions, and Command would be here
                 command_tokens = self.parse_until_next(tokens, 'NEWLINE')
@@ -89,7 +88,22 @@ class DBNParser:
             raise ValueError("Expected a WORD, but got a %s while parsing command" % command_token.type)
         
         args = self.parse_args(tokens)
-        return DBNCommandNode(command_token.value, args)          
+        return DBNCommandNode(command_token.value, args)
+        
+    def parse_set(self, tokens):
+        """
+        set is special... because first arg can only be DBNBracketNode
+        """
+        set_token = tokens.pop(0)
+        args = self.parse_args(tokens)
+        
+        if len(args) != 2:
+            raise ValueError("Must have two args to Set")
+        
+        if not isinstance(args[0], (DBNBracketNode, DBNWordNode)):
+            raise ValueError("First argument to set must be [] or variable")
+        
+        return DBNSetNode(args[0], args[1])
                 
     def parse_args(self, tokens):
         """
@@ -229,7 +243,6 @@ class DBNParser:
 
         return nodes_and_ops[0] # a DBNBinaryOpNode
                                 
-        
     def parse_word(self, token):
         """
         token is just one token
