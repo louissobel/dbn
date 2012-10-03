@@ -39,16 +39,11 @@ class DBNCommandSet(Immutable):
         return DBNCommandSet()
     
     def Line(self, state, blX, blY, trX, trY):
-        print blX
-        print blY
-        print trX
-        print trY
+
         blX = utils.pixel_to_coord(blX, 'x')
         blY = utils.pixel_to_coord(blY, 'y')
         trX = utils.pixel_to_coord(trX, 'x')
         trY = utils.pixel_to_coord(trY, 'y')
-        
-        print "draw line from %d,%d to %d,%d" % (blX, blY, trX, trY)
         
         points = list(utils.bresenham_line(blX, blY, trX, trY))
         pixel_list = [(x, y, state.pen_color) for x, y in points]
@@ -72,7 +67,9 @@ class DBNCommandSet(Immutable):
         if isinstance(lval, utils.DBNDot):
             x_coord = utils.pixel_to_coord(lval.x, 'x')
             y_coord = utils.pixel_to_coord(lval.y, 'y')
-            state.image = state.image.set_pixel(x_coord, y_coord, rval)
+            color = utils.scale_100(rval)
+            state.image = state.image.set_pixel(x_coord, y_coord, color)
+        
         elif isinstance(lval, utils.DBNVariable):
             state.env[lval.name] = rval
         else:
@@ -151,7 +148,7 @@ class DBNImage(Immutable):
             return False
         if y < 0:
             return False
-            
+    
         self._image_array[x, y] = value
     
     @Immutable.mutates

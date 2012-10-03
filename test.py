@@ -53,8 +53,15 @@ dbn_ast = parser.parse(tokens)
 dbn_ast.pprint()
 
 state = DBNInterpreterState()
+first_state = state
 state = dbn_ast.apply(state)
 print state.env
+
+print state is first_state
 output.draw_window(state.image._image)
+output.draw_window(first_state.image._image)
+
+
+
 
 
