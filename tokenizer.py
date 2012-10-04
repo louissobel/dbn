@@ -21,6 +21,7 @@ GROUPERS = r'%s|%s|%s|%s|%s|%s' % (
 )
 
 SET = r'(Set)'
+REPEAT = r'(Repeat)'
 WORD = r'([A-z_][\w\d]*)'
 NUMBER = r'(\d+)'
 NEWLINE = r'\n'
@@ -32,11 +33,12 @@ COMMENT = r'//(.+)%s' % NEWLINE
 WHITESPACE = r"\s+"
 EVERYTHING_ELSE = r"%s|." % WHITESPACE
 
-TOKENS = r'(%s|%s|%s|%s|%s|%s|%s|%s)' % (
+TOKENS = r'(%s|%s|%s|%s|%s|%s|%s|%s|%s)' % (
     COMMENT,
     OPERATORS,
     GROUPERS,
     SET,
+    REPEAT,
     WORD,
     NUMBER,
     NEWLINE,
@@ -55,6 +57,7 @@ class DBNToken:
     CLOSEBRACE = re.compile(CLOSEBRACE)
 
     SET_PATTERN = re.compile(SET)
+    REPEAT_PATTERN = re.compile(REPEAT)
     WORD_PATTERN = re.compile(WORD)
     NUMBER_PATTERN = re.compile(NUMBER)
     NEWLINE_PATTERN = re.compile(NEWLINE)
@@ -72,6 +75,7 @@ class DBNToken:
         (CLOSEBRACE, 'CLOSEBRACE'),
 
         (SET_PATTERN, 'SET'),
+        (REPEAT_PATTERN, 'REPEAT'),
         (WORD_PATTERN, 'WORD'),
         (NUMBER_PATTERN, 'NUMBER'),
         (NEWLINE_PATTERN, 'NEWLINE'),

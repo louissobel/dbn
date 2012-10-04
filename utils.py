@@ -1,10 +1,22 @@
 
 
+def clip(val, lower, upper):
+    if val > upper:
+        return upper
+    
+    if val < lower:
+        return lower
+        
+    return val
+    
+def clip_255(val):
+    return clip(val, 0, 255)
+
 def scale_100(val):
     #takes the value given, between 0 - 100,
     # and scales it from 0 - 255
-    return 255 - int(val * (255.0/100))
-    
+    scaled_val = 255 - int(val * (255.0/100))
+    return clip_255(scaled_val)
 
 def pixel_to_coord(pixel, direction):
     if direction == 'x':

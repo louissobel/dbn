@@ -37,6 +37,14 @@ Pen 50
 Line 0 0 100 (100 + A)
 """
 
+repeat_test = """
+Repeat X 1 100 {
+    Repeat A 0 X {
+        Set [X A] ((100 * A) / X)
+    }
+}
+"""
+
 arithmetic_test_string = """
 Set A (5 + 4 * 9)
 """
@@ -44,7 +52,7 @@ Set A (5 + 4 * 9)
 tokenizer = DBNTokenizer()
 parser = DBNParser()
 
-tokens = tokenizer.tokenize(good_test)
+tokens = tokenizer.tokenize(repeat_test)
 
 for token in tokens:
     print token
@@ -57,9 +65,7 @@ first_state = state
 state = dbn_ast.apply(state)
 print state.env
 
-print state is first_state
 output.draw_window(state.image._image)
-output.draw_window(first_state.image._image)
 
 
 

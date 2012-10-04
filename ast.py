@@ -75,12 +75,47 @@ class DBNSetNode(DBNBaseNode):
         return state
 
     def __str__(self):
-        return "(%s %s)" % (self.command_name, ' '.join([str(a) for a in self.args]))
+        return "(Set %s)" % (' '.join([str(a) for a in self.args]))
 
     def pprint(self, depth=0, indent=4):
         print "%s(Set" % ((' ' * depth * indent),)
         self.left.pprint(depth=depth+1, indent=indent)
         self.right.pprint(depth=depth+1, indent=indent)
+        print "%s)" % (' ' * depth * indent)
+        
+class DBNRepeatNode(DBNBaseNode):
+    def __init__(self, var, start, end, body):
+        self.var = var
+        self.start = start
+        self.end = end
+        self.body = body
+        
+    def apply(self, state):
+        variable = self.var.evaluate_lazy(state)
+        
+        start_val = self.start.evaluate(state)
+        end_val = self.end.evaluate(state)
+        
+        # body is a DBNBlockNode
+        
+        if start_val > end_val:
+            start_val, end_val = end_val, start_val
+        
+        for variable_value in range(start_val, end_val + 1): #+1 because it is end inclusive
+            state = state.set_variable(variable.name, variable_value)
+            state = self.body.apply(state)
+        
+        return state
+        
+    def __str__(self):
+        return "(Repeat %s %s %s %s)" % [str(t) for t in (self.var, self.start, self.end, self.body)]
+    
+    def pprint(self, depth=0, indent=4):
+        print "%s(Repeat" % ((' ' * depth * indent),)
+        self.var.pprint(depth=depth+1, indent=indent)
+        self.start.pprint(depth=depth+1, indent=indent)
+        self.end.pprint(depth=depth+1, indent=indent)
+        self.body.pprint(depth=depth+1, indent=indent)
         print "%s)" % (' ' * depth * indent)
               
 class DBNBracketNode(DBNBaseNode):

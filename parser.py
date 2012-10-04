@@ -60,6 +60,12 @@ class DBNParser:
                 set_tokens = self.parse_until_next(tokens, 'NEWLINE')
                 set_node = self.parse_set(set_tokens)
                 node.add_child(set_node)
+                
+            elif peek_token.type == 'REPEAT':
+                arg_tokens = self.parse_until_next(tokens, 'OPENBRACE')
+                body_tokens = self.parse_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
+                repeat_node = self.parse_repeat(arg_tokens, body_tokens)
+                node.add_child(repeat_node)
             
             elif peek_token.type == 'WORD':
                 # then we treat it as a command
@@ -105,6 +111,47 @@ class DBNParser:
         
         return DBNSetNode(args[0], args[1])
                 
+    def parse_repeat(self, arg_tokens, body_tokens):
+        """
+        parses a repeat
+        """
+        repeat_token = arg_tokens.pop(0)
+        
+        # the newline before the block is optional.
+        # if it there, we need to remove it
+        # if it is not there, we are OK
+        try:
+            last_arg_token = arg_tokens[-1]
+            if last_arg_token.type == 'NEWLINE':
+                # then we pop it away
+                arg_tokens.pop()
+            else:
+                # we do nothing
+                pass
+                
+        except IndexError:
+            raise ValueError("arg_tokens passed to parse_repeat cannot be empty")
+        
+
+        args = self.parse_args(arg_tokens)
+        
+        # wee need three!
+        if len(args) != 3:
+            raise ValueError("there must be three arguments (besides the block) to repeat!")
+        
+        # the first one must be a word
+        if not isinstance(args[0], DBNWordNode):
+            raise ValueError("first argument to repeat must be a Word!")
+        
+        body = self.parse_block(body_tokens)
+        
+        var = args[0]
+        start = args[1]
+        end = args[2]
+        
+        return DBNRepeatNode(var, start, end, body)
+        
+        
     def parse_args(self, tokens):
         """
         tokens is a series of tokens that represents some arguments
