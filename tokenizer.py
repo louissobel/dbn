@@ -1,173 +1,144 @@
 import re
 
-class DBNTokenClassifier:
-    
-    def __init__(self):
-        self.pattern_list = []
-        
-    
-
-OPERATORS = r'([*-/+])'
-
-OPENPAREN = r'(\()'
-OPENBRACKET = r'(\[)'
-OPENBRACE = r'({)'
-CLOSEPAREN = r'(\))'
-CLOSEBRACKET = r'(\])'
-CLOSEBRACE = r'(})'
-
-GROUPERS = r'%s|%s|%s|%s|%s|%s' % (
-    OPENPAREN,
-    OPENBRACKET,
-    OPENBRACE,
-    CLOSEPAREN,
-    CLOSEBRACKET,
-    CLOSEBRACE,
-)
-
-SET = r'(Set)'
-REPEAT = r'(Repeat)'
-WORD = r'([A-z_][\w\d]*)'
-NUMBER = r'(\d+)'
-NEWLINE = r'\n'
-
-
-COMMENT = r'//(.+)'
-
-
-WHITESPACE = r"\s+"
-EVERYTHING_ELSE = r"%s|." % WHITESPACE
-
-# TODO clean this up
-TOKENS = r'(%s|%s|%s|%s|%s|%s|%s|%s|%s)' % (
-    COMMENT,
-    OPERATORS,
-    GROUPERS,
-    SET,
-    REPEAT,
-    WORD,
-    NUMBER,
-    NEWLINE,
-    EVERYTHING_ELSE,
-)
-
-
 class DBNToken:
-    COMMENT_PATTERN = re.compile(COMMENT)
-    OPERATOR_PATTERN = re.compile(OPERATORS)
-
-    OPENPAREN_PATTERN = re.compile(OPENPAREN)
-    OPENBRACKET_PATTERN = re.compile(OPENBRACKET)
-    OPENBRACE_PATTERN = re.compile(OPENBRACE)
-    CLOSEPAREN_PATTERN = re.compile(CLOSEPAREN)
-    CLOSEBRACKET = re.compile(CLOSEBRACKET)
-    CLOSEBRACE = re.compile(CLOSEBRACE)
-
-    SET_PATTERN = re.compile(SET)
-    REPEAT_PATTERN = re.compile(REPEAT)
-    WORD_PATTERN = re.compile(WORD)
-    NUMBER_PATTERN = re.compile(NUMBER)
-    NEWLINE_PATTERN = re.compile(NEWLINE)
-    WHITESPACE_PATTERN = re.compile(WHITESPACE)
-    
-    tokenizer_pattern_type = [
-        (COMMENT_PATTERN, 'COMMENT'),
-        (OPERATOR_PATTERN, 'OPERATOR'),
-
-        (OPENPAREN_PATTERN, 'OPENPAREN'),
-        (OPENBRACKET_PATTERN, 'OPENBRACKET'),
-        (OPENBRACE_PATTERN, 'OPENBRACE'),
-        (CLOSEPAREN_PATTERN, 'CLOSEPAREN'),
-        (CLOSEBRACKET, 'CLOSEBRACKET'),
-        (CLOSEBRACE, 'CLOSEBRACE'),
-
-        (SET_PATTERN, 'SET'),
-        (REPEAT_PATTERN, 'REPEAT'),
-        (WORD_PATTERN, 'WORD'),
-        (NUMBER_PATTERN, 'NUMBER'),
-        (NEWLINE_PATTERN, 'NEWLINE'),
-        (WHITESPACE_PATTERN, 'WHITESPACE')
-    ]
-    
-    
-    def __init__(self, token_match, line_no, char_no):
+    """
+    data encapsulation of a token
+    """
+    def __init__(self, type_, value, line_no, char_no, raw):
         """
-        token_match is the MatchObject returned by the regex
-        line_no is that line on which it occurs
-        char_no is the
+        saves the given arguments as like-named attributes
+        - type_ is value returned by the tokenizers classify method
+        - value is the value of the token
+        - line_no is the line on which the token appears
+        - char_no is the character of that line
+        - raw is the raw string that birthed this token
         """
-        #token
-        self.string = token_match.group(0)
+        self.type = type_
+        self.value = value
+        
         self.line_no = line_no
         self.char_no = char_no
         
-        self.type = 'UNKNOWN'
-        self.value = self.string
-        self.tokenize()
-        
-    def tokenize(self):
-        """
-        sets the type of the token
-        
-        COMMENT
-        OPERATOR *+/-
-
-        OPENGROUP [({
-        CLOSEGROUP })]
-        
-        WORD
-        NUMBER
-        NEWLINE
-        
-        WHITESPACE        
-        """
-        
-        t = self.string
-        for tokenizer_pattern, token_type in self.tokenizer_pattern_type:
-            match = tokenizer_pattern.match(t)
-            if match:
-                self.type = token_type
-                try:
-                    self.value = match.group(1)
-                except IndexError:
-                    self.value = ''
-                break
-
- 
+        self.raw = raw
+    
     def __str__(self):
          return "%d:%d> %s %s" % (self.line_no, self.char_no, self.type, self.value)
-         
 
 class DBNTokenizer:
-    
-    
-    TOKENIZER_PATTERN = re.compile(TOKENS)
-    
-    def __init__(self):
-        pass
-        
-        
-    def tokenize(self, string):
 
-        # for keeping track of where in the file we are
-        line_no = 0
-        line_start_char_no = 0
+    def __init__(self):
+        """
+        initializes the tokenizer to a newborn state,
+        then registers the DBNTokenTypes
+        """
+        self.type_re_pairs = []
+        self.raw_patterns = []
         
-        token_string_iter = self.TOKENIZER_PATTERN.finditer(string)
+        # comment, whitespace garbage first
+        self.register('COMMENT',      r'//(.+)')
+        self.register('WHITESPACE',   r'[^\S\n]+')
         
-        token_list = []
+        # operators next
+        self.register('OPERATOR',     r'([*-/+])')
+
+        # the groupers
+        self.register('OPENPAREN',    r'(\()')
+        self.register('OPENBRACKET',  r'(\[)')
+        self.register('OPENBRACE',    r'({)')
+        self.register('CLOSEPAREN',   r'(\))')
+        self.register('CLOSEBRACKET', r'(\])')
+        self.register('CLOSEBRACE',   r'(})')
+
+        # then keywords
+        self.register('SET',          r'(Set)')
+        self.register('REPEAT',       r'(Repeat)')
+
+        # then literals
+        self.register('WORD',         r'([A-z_][\w\d]*)')
+        self.register('NUMBER',       r'(\d+)')
+        
+        # then newline (command seperator)
+        self.register('NEWLINE',      r'\n')
+        
+        # then everything else... we need this to catch illegal tokens
+        self.register(None,           r".")
+        
+    def register(self, type_, type_pattern):
+        """
+        registers the token with type string type_
+        and the pattern string type_pattern
+        
+        if type_ is None, then it will not be registered as
+        a token type for classification purposes
+        """
+        self.raw_patterns.append(type_pattern)
+        
+        if type_ is not None:
+            type_re = re.compile(type_pattern)
+            type_re_pair = (type_, type_re)
+            self.type_re_pairs.append(type_re_pair)
+        
+        return self
+        
+    def classify(self, token_string):
+        """
+        given a string matching a token, returns
+        a tuple of its (type_, value)
+        we try token types in the order they were registered
+        """
+        for type_, type_re in self.type_re_pairs:
+            match = type_re.match(token_string)
+            if match:
+                try:
+                    value = match.group(1)
+                except IndexError:
+                    value = ''
+                return (type_, value)
+        
+        raise ValueError("No matching token type for token %s" % token_string)
+        
+    def token_re(self):
+        """
+        returns a re matching all token types (in order)
+        """
+        token_pattern = "|".join(self.raw_patterns)
+        return re.compile(token_pattern)
+
+    def tokenizeiter(self, string):
+        """
+        returns a generator that will yield tokens!
+        """
+        
+        # for keeping track of where we are in the file
+        line_no = 1
+        line_start_char_no = 0 # the absolute character number at which the current line begins
+
+        token_re = self.token_re()
+        token_string_iter = token_re.finditer(string)
+        
         for token_match in token_string_iter:
-            token = DBNToken(token_match, line_no, token_match.start() - line_start_char_no)
-            
-            if token.type == 'COMMENT' or token.type == 'NEWLINE':
+            token_string = token_match.group(0) # the whole matching string
+            token_char_no = token_match.start() - line_start_char_no + 1 # plus 1 for indexing
+            try:
+                token_type, token_value = self.classify(token_string)
+            except ValueError as e:
+                raise ValueError(str(e) + " at %d:%d" % (line_no, token_char_no))
+            token = DBNToken(token_type, token_value, line_no, token_char_no, token_string)
+
+
+            if token.type == 'NEWLINE':
                 line_no += 1
                 line_start_char_no = token_match.end()
-            
-            if token.type == 'UNKNOWN':
-                raise ValueError('unknown token at line %d char %d' % (token.line_no, token.char_no))
-            
-            
+
             if not token.type == 'WHITESPACE' and not token.type == 'COMMENT':
-                token_list.append(token)
-                
-        return token_list
+                yield token
+        
+        raise StopIteration
+        
+    def tokenize(self, string):
+        return list(self.tokenizeiter(string))     
+
+
+         
+
+
