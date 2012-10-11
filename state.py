@@ -14,6 +14,11 @@ class Immutable:
         """
         def inner_function(self, *args, **kwargs):
             out = self._copy()
+            
+            # lets do this... attach self to out as predecessor
+            if hasattr(out, 'previous'):
+                out.previous = self
+            
             retval = function(out, *args, **kwargs)
             if not retval:
                 return out
@@ -21,6 +26,7 @@ class Immutable:
                 return retval #trusting them...
             
         return inner_function
+        
 
 class DBNCommandSet(Immutable):
     """
@@ -72,6 +78,7 @@ class DBNCommandSet(Immutable):
         
         elif isinstance(lval, utils.DBNVariable):
             state.env[lval.name] = rval
+        
         else:
             raise ValueError("Unknown lvalue! %s" % str(lval))
             
@@ -88,6 +95,7 @@ class DBNInterpreterState(Immutable):
     """        
     
     def __init__(self, create=True):
+        self.previous = None
         if create:
             self.image = DBNImage(color=255)
             self.pen_color = 0

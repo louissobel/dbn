@@ -98,10 +98,12 @@ class DBNRepeatNode(DBNBaseNode):
         
         # body is a DBNBlockNode
         
-        if start_val > end_val:
-            start_val, end_val = end_val, start_val
+        if end_val > start_val:
+            repeat_range = range(start_val, end_val + 1)
+        else:
+            repeat_range = reversed(range(end_val, start_val+1))
         
-        for variable_value in range(start_val, end_val + 1): #+1 because it is end inclusive
+        for variable_value in repeat_range: #+1 because it is end inclusive
             state = state.set_variable(variable.name, variable_value)
             state = self.body.apply(state)
         
@@ -117,7 +119,15 @@ class DBNRepeatNode(DBNBaseNode):
         self.end.pprint(depth=depth+1, indent=indent)
         self.body.pprint(depth=depth+1, indent=indent)
         print "%s)" % (' ' * depth * indent)
-              
+     
+################################################################
+###  These nodes are fundamentally different in that they
+###  are stateless expressions. They do not mutate and they
+###  expose evaluate or evaluate lazy interface, rather than apply         
+###
+###
+
+
 class DBNBracketNode(DBNBaseNode):
     
     def __init__(self, left, right):

@@ -1,19 +1,42 @@
 // This is a comment, because I can
 
-Paper 70
+Paper 0
 
 Pen 5
-Line 40 50 70 35
-Line 20 30 50 15
-Line 70 35 50 15
-Line 40 50 20 30
-Line 40 50 50 70
-Line 70 35 50 70
-Line 20 30 50 70
+//Line 40 50 70 35
+//Line 20 30 50 15
+//Line 70 35 50 15
+//Line 40 50 20 30
+//Line 40 50 50 70
+//Line 70 35 50 70
+//Line 20 30 50 70
 
 Set A 5
-Set color 0
+Set color 50
 Set [(0 + A) (0 + A)] color
-Set [(100 - A) (0 + A)] color
+Set [(100 - A) (0 + A)] color // foo
 Set [(0 + A) (100 - A)] color
 Set [(100 - A) (100 - A)] color
+
+
+Repeat A 0 100 {
+	Pen (10 + A * A / 40)
+	Line 0 A 100 (100 + A)
+}
+
+Repeat A 0 100 {
+	Pen (10 + A * A / 40)
+	Line A 0 (100 + A) 100
+}
+
+Repeat L 0 3 {
+	Repeat A (L * 10) 100 {
+		Set [A (A + L * 10)] (10 + A * A / 40)
+	}
+}
+
+Repeat L 0 3 {
+	Repeat A (L * 10) 100 {
+		Set [(A + L * 10) A] (10 + A * A / 40)
+	}
+}

@@ -63,9 +63,8 @@ dbn_ast.pprint()
 state = DBNInterpreterState()
 first_state = state
 state = dbn_ast.apply(state)
-print state.env
-
 output.draw_window(state.image._image)
+
 
 
 

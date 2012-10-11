@@ -1,6 +1,11 @@
 import re
 
-
+class DBNTokenClassifier:
+    
+    def __init__(self):
+        self.pattern_list = []
+        
+    
 
 OPERATORS = r'([*-/+])'
 
@@ -27,12 +32,13 @@ NUMBER = r'(\d+)'
 NEWLINE = r'\n'
 
 
-COMMENT = r'//(.+)%s' % NEWLINE
+COMMENT = r'//(.+)'
 
 
 WHITESPACE = r"\s+"
 EVERYTHING_ELSE = r"%s|." % WHITESPACE
 
+# TODO clean this up
 TOKENS = r'(%s|%s|%s|%s|%s|%s|%s|%s|%s)' % (
     COMMENT,
     OPERATORS,
@@ -44,6 +50,7 @@ TOKENS = r'(%s|%s|%s|%s|%s|%s|%s|%s|%s)' % (
     NEWLINE,
     EVERYTHING_ELSE,
 )
+
 
 class DBNToken:
     COMMENT_PATTERN = re.compile(COMMENT)
