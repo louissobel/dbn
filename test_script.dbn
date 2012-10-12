@@ -2,22 +2,6 @@
 
 Paper 0
 
-Pen 5
-//Line 40 50 70 35
-//Line 20 30 50 15
-//Line 70 35 50 15
-//Line 40 50 20 30
-//Line 40 50 50 70
-//Line 70 35 50 70
-//Line 20 30 50 70
-
-Set A 5
-Set color 50
-Set [(0 + A) (0 + A)] color
-Set [(100 - A) (0 + A)] color // foo
-Set [(0 + A) (100 - A)] color
-Set [(100 - A) (100 - A)] color
-
 
 Repeat A 0 100 {
 	Pen (10 + A * A / 40)
