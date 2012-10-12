@@ -1,5 +1,3 @@
- - standardize pop vs peek for tokens
- - write a basic DBNF
  - replace _copy methods with proper copy interface
  - tests.
     - tokenizer
