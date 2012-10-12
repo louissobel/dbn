@@ -1,0 +1,9 @@
+ - Get rid of DBNParser
+ - standardize pop vs peek for tokens
+ - write a basic DBNF
+ - replace _copy methods with proper copy interface
+ - tests.
+    - tokenizer
+    - parse trees
+    - state stuff
+    - basic ast transformations of tests

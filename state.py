@@ -38,7 +38,6 @@ class DBNCommandSet(Immutable):
             'Line' : self.Line,
             'Paper' : self.Paper,
             'Pen' : self.Pen,
-            'Set' : self.Set,
         }
         
     def _copy(self):
@@ -64,23 +63,6 @@ class DBNCommandSet(Immutable):
     def Pen(self, state, value):
         color = utils.scale_100(value)
         state.pen_color = color
-    
-    def Set(self, state, lval, rval):
-        
-        if isinstance(rval, utils.DBNDot):
-            rval = state.image.query_pixel(DBNDot.x, DBNDot.y)
-        
-        if isinstance(lval, utils.DBNDot):
-            x_coord = utils.pixel_to_coord(lval.x, 'x')
-            y_coord = utils.pixel_to_coord(lval.y, 'y')
-            color = utils.scale_100(rval)
-            state.image = state.image.set_pixel(x_coord, y_coord, color)
-        
-        elif isinstance(lval, utils.DBNVariable):
-            state.env[lval.name] = rval
-        
-        else:
-            raise ValueError("Unknown lvalue! %s" % str(lval))
             
     def run(self, state, command_string, args):
         return self.dispatch[command_string](state, *args)
@@ -120,6 +102,21 @@ class DBNInterpreterState(Immutable):
     @Immutable.mutates  
     def set_variable(self, var, to):
         self.env[var] = to
+    
+    @Immutable.mutates 
+    def set(self, lval, rval):
+        
+        if isinstance(lval, utils.DBNDot):
+            x_coord = utils.pixel_to_coord(lval.x, 'x')
+            y_coord = utils.pixel_to_coord(lval.y, 'y')
+            color = utils.scale_100(rval)
+            self.image = self.image.set_pixel(x_coord, y_coord, color)
+
+        elif isinstance(lval, utils.DBNVariable):
+            self.env[lval.name] = rval
+        
+        else:
+            raise ValueError("Unknown lvalue! %s" % str(lval))
 
     @Immutable.mutates
     def run_command(self, command_string, args):
@@ -158,6 +155,7 @@ class DBNImage(Immutable):
             return False
     
         self._image_array[x, y] = value
+        return True
     
     @Immutable.mutates
     def set_pixel(self, x, y, value):

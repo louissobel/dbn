@@ -71,7 +71,7 @@ class DBNSetNode(DBNBaseNode):
     def apply(self, state):
         left = self.left.evaluate_lazy(state)
         right = self.right.evaluate(state)
-        state = state.run_command("Set", [left, right])
+        state = state.set(left, right)
         return state
 
     def __str__(self):

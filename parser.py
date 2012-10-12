@@ -1,3 +1,8 @@
+"""
+a module that implements the parsing classes
+"""
+
+
 from ast import *
 
 class DBNParser:
@@ -26,7 +31,7 @@ class DBNParser:
         assumes that there is already a score of 1 (one open)
         """
         if left_type == right_type:
-            raise ValueError("louis, why is left_type == right_type?")
+            raise AssertionError("louis, why is left_type == right_type?")
         
         score = 1 # will return once 0
         out_tokens = []
@@ -69,7 +74,6 @@ class DBNParser:
             
             elif peek_token.type == 'WORD':
                 # then we treat it as a command
-                # special handling for repeat, questions, and Command would be here
                 command_tokens = self.parse_until_next(tokens, 'NEWLINE')
                 
                 #print [str(s) for s in command_tokens]

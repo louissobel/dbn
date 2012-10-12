@@ -9,10 +9,11 @@ def draw_window(image):
     tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
     #tkinter_image = ImageTk.PhotoImage(test_image)
 
-    w = Tkinter.Canvas(master, width=300, height=300, bg='maroon')
+    w = Tkinter.Canvas(master, width=302, height=302)
     w.pack()
 
-    w.create_image((150,150), image=tkinter_image, anchor='center')
+    w.create_rectangle(49, 49, 252, 252)
+    w.create_image((151,151), image=tkinter_image, anchor='center')
     w.image = tkinter_image
 
     master.mainloop()
