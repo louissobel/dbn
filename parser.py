@@ -1,148 +1,84 @@
 """
 a module that implements the parsing classes
 """
-
-
 from ast import *
 
           
-def parse_until_next(tokens, token_type):
-    """
-    will return a list of tokens unit the next
-    one of type token_type or the end of the list
-    """
-    out_tokens = []
-    while tokens:
-        next_token = tokens.pop(0)
-        if next_token.type == token_type:
-            break
-        else:
-            out_tokens.append(next_token)
-    return out_tokens
-    
-def parse_until_balanced(tokens, left_type, right_type):
-    """
-    will parse until a balance is found
-    
-    assumes that there is already a score of 1 (one open)
-    """
-    if left_type == right_type:
-        raise AssertionError("louis, why is left_type == right_type?")
-    
-    score = 1 # will return once 0
-    out_tokens = []
-    while tokens:
-        next_token = tokens.pop(0)
-        if next_token.type == right_type:
-            score -= 1
-            if score == 0:
-                break
-        elif next_token.type == left_type:
-            score += 1
-        
-        out_tokens.append(next_token)
-    return out_tokens
-             
-def parse(tokens):
-    return parse_block(tokens[:])
-    
 def parse_block(tokens):
+    """
+    parses a block of statements
+    currently handles:
     
-    # only a couple of options.
-    # actually, only option is that is is a command
-    # also, we are assuming that the closing bracket is not included        
+    set
+    repeat
+    word \implies command
+    """    
     node = DBNBlockNode()
-    while tokens:        
-        peek_token = tokens[0]
-        # word
-        # command
-        # newline
-        if peek_token.type == 'SET':
-            set_tokens = parse_until_next(tokens, 'NEWLINE')
+    while tokens:
+        first_token = tokens.pop(0)
+
+        if first_token.type == 'SET':
+            set_tokens = collect_until_next(tokens, 'NEWLINE')
             set_node = parse_set(set_tokens)
             node.add_child(set_node)
             
-        elif peek_token.type == 'REPEAT':
-            arg_tokens = parse_until_next(tokens, 'OPENBRACE')
-            body_tokens = parse_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
+        elif first_token.type == 'REPEAT':
+            arg_tokens = collect_until_next(tokens, 'OPENBRACE')
+            body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
             repeat_node = parse_repeat(arg_tokens, body_tokens)
             node.add_child(repeat_node)
         
-        elif peek_token.type == 'WORD':
-            # then we treat it as a command
-            command_tokens = parse_until_next(tokens, 'NEWLINE')
-            
-            #print [str(s) for s in command_tokens]
-            
-            command_node = parse_command(command_tokens)
+        elif first_token.type == 'WORD':
+            # then we treat it as a command :/
+            arg_tokens = collect_until_next(tokens, 'NEWLINE')            
+            command_node = parse_command(first_token, arg_tokens)
             node.add_child(command_node)
             
-        elif peek_token.type == 'NEWLINE':
+        elif first_token.type == 'NEWLINE':
             # then it is just an extra blank new line...
             # and we throw it away
-            tokens.pop(0)
+            pass
             
         else:
-            raise ValueError('I dont know how to parse a %s in a block' % str(peek_token))
+            raise ValueError('I dont know how to parse a %s in a block' % str(first_token))
     
     return node
 
-def parse_command(tokens):
-    command_token = tokens.pop(0)
-    
-    if not command_token.type == 'WORD':
-        raise ValueError("Expected a WORD, but got a %s while parsing command" % command_token.type)
-    
-    args = parse_args(tokens)
+def parse_command(command_token, arg_tokens):
+    """
+    parses a command
+    """
+    # should i assert that the command token be a Word?
+    # if i dont, I assume that all code paths to here do that for me.
+    # fine. im making that assumption
+    args = parse_args(arg_tokens)    
     return DBNCommandNode(command_token.value, args)
     
-def parse_set(tokens):
+def parse_set(arg_tokens):
     """
-    set is special... because first arg can only be DBNBracketNode
+    parses a Set
     """
-    set_token = tokens.pop(0)
-    args = parse_args(tokens)
+    args = parse_args(arg_tokens)
+    valid, error = assert_args(args, length=2, match=((DBNBracketNode, DBNWordNode), ) )
+    if not valid:
+        raise ValueError("Bad arguments parsing Set: %s" % error)
     
-    if len(args) != 2:
-        raise ValueError("Must have two args to Set")
+    lvalue = args[0]
+    rvalue = args[1]
     
-    if not isinstance(args[0], (DBNBracketNode, DBNWordNode)):
-        raise ValueError("First argument to set must be [] or variable")
-    
-    return DBNSetNode(args[0], args[1])
+    return DBNSetNode(lvalue, rvalue)
             
 def parse_repeat(arg_tokens, body_tokens):
     """
-    parses a repeat
+    parses a Repeat
     """
-    repeat_token = arg_tokens.pop(0)
-    
-    # the newline before the block is optional.
-    # if it there, we need to remove it
-    # if it is not there, we are OK
-    try:
-        last_arg_token = arg_tokens[-1]
-        if last_arg_token.type == 'NEWLINE':
-            # then we pop it away
-            arg_tokens.pop()
-        else:
-            # we do nothing
-            pass
-            
-    except IndexError:
-        raise ValueError("arg_tokens passed to parse_repeat cannot be empty")
-    
+    strip_newline(arg_tokens) # newline between args and bracket is optional
 
     args = parse_args(arg_tokens)
-    
-    # wee need three!
-    if len(args) != 3:
-        raise ValueError("there must be three arguments (besides the block) to repeat!")
-    
-    # the first one must be a word
-    if not isinstance(args[0], DBNWordNode):
-        raise ValueError("first argument to repeat must be a Word!")
-    
+    valid, error = assert_args(args, length = 3, match=(DBNWordNode, ))
+    if not valid:
+        raise ValueError("bad arguments while parsing Repeat: %s" % error)
+        
     body = parse_block(body_tokens)
     
     var = args[0]
@@ -150,7 +86,23 @@ def parse_repeat(arg_tokens, body_tokens):
     end = args[2]
     
     return DBNRepeatNode(var, start, end, body)
-    
+
+def parse_bracket(tokens):
+    """
+    ok, so tokens is everything in the brackets
+
+    pretty simple... call parse args on tokens, then make sure that
+    there are only two, then store left, right
+    """
+    args = parse_args(tokens)
+    valid, error = assert_args(args, length=2)
+    if not valid:
+        raise ValueError("Bad bracket contents: %s" % error)
+        
+    left = args[0]
+    right = args[1]
+
+    return DBNBracketNode(left, right) 
     
 def parse_args(tokens):
     """
@@ -161,12 +113,11 @@ def parse_args(tokens):
     
     returns a list of arguments
     """ 
-    
     arg_list = []
     while tokens:
         first_token = tokens.pop(0)
         
-        # i know how to handle NUMBER, WORD, OPENGROUP ( and OPENGROUP [
+        # i know how to handle NUMBER, WORD, OPENPAREN and OPENBRACKET
         if first_token.type == 'NUMBER':
             arg_list.append(parse_number(first_token))
         
@@ -174,45 +125,30 @@ def parse_args(tokens):
             arg_list.append(parse_word(first_token))
             
         elif first_token.type == 'OPENPAREN':
-            arithmetic_tokens = parse_until_balanced(tokens, 'OPENPAREN', 'CLOSEPAREN')
+            arithmetic_tokens = collect_until_balanced(tokens, 'OPENPAREN', 'CLOSEPAREN')
             arg_list.append(parse_arithmetic(arithmetic_tokens))
         
         elif first_token.type == 'OPENBRACKET':
-            bracket_tokens = parse_until_balanced(tokens, 'OPENBRACKET', 'CLOSEBRACKET')
+            bracket_tokens = collect_until_balanced(tokens, 'OPENBRACKET', 'CLOSEBRACKET')
             arg_list.append(parse_bracket(bracket_tokens))
             
         else:
             raise ValueError("I don't know how to handle token type %s while parsing args!" % first_token.type)
             
     return arg_list
-
-def parse_bracket(tokens):
-    """
-    ok, so tokens is everything in the brackets
-    
-    pretty simple... call parse args on tokens, then make sure that
-    there are only two, then store left, right
-    """
-    args = parse_args(tokens)
-    if len(args) > 2:
-        raise ValueError("Too many arguments inside of a bracket, only 2!")
-    
-    if len(args) < 2:
-        raise ValueError("Too few arguments inside of a bracket.. must have 2!")
-    
-    # so we know its 2
-    left = args[0]
-    right = args[1]
-    
-    return DBNBracketNode(left, right)
     
 def parse_arithmetic(tokens):
+    """
+    mega function to parse a set of tokens representing 'arithmatic'
+    
+    so algorithm:
+    we walk down to precedence levels, looking for things.
+    if we find one, look for its left,
+    and its right, combine them!
+    """
     PRECEDENCE = ['*', '/', '-', '+'] # ok?
     
-    # so algorithm:
-    # we walk down to precedence levels, looking for things.
-    # if we find one, look for its left,
-    # and its right, combine them!
+    # first build a list of nodes, separated by operation tokens
     nodes_and_ops = []
     while tokens:
         first_token = tokens.pop(0)
@@ -223,39 +159,41 @@ def parse_arithmetic(tokens):
             nodes_and_ops.append(parse_number(first_token))
         
         elif first_token.type == 'OPENPAREN':
-            arithmetic_tokens = parse_until_balanced(tokens, 'OPENPAREN', 'CLOSEPAREN')
+            arithmetic_tokens = collect_until_balanced(tokens, 'OPENPAREN', 'CLOSEPAREN')
             nodes_and_ops.append(parse_arithmetic(arithmetic_tokens))
         
         elif first_token.type == 'OPENBRACKET':
-            bracket_tokens = parse_until_balanced(tokens, 'OPENBRACKET', 'CLOSEBRACKET')
+            bracket_tokens = collect_until_balanced(tokens, 'OPENBRACKET', 'CLOSEBRACKET')
             nodes_and_ops.append(parse_bracket(bracket_tokens))
             
         elif first_token.type == 'OPERATOR':
             nodes_and_ops.append(first_token.value)
-            
     
+    # now we take multiple passes over that list, reducing
+    # it by making binary operations, until it only has one
+    # root binary operation node
     while len(nodes_and_ops) > 1:
-        #look down the precedence chain
-        #find a location where it occurs
-        active_operation = ''
-        active_index = 0
+        #look down the operator precedence chain
+        #find a location where that operator occurs
+        active_operation = None
+        active_index = None  # of the nodes_and_ops list
         for operation in PRECEDENCE:
             active_operation = operation
-            active_index = 0
             found = False
-            while active_index < len(nodes_and_ops):
-                if nodes_and_ops[active_index] == operation:
+            for index, node_or_op in enumerate(nodes_and_ops):
+                if node_or_op == active_operation:
                     found = True
-                    break
-                active_index += 1
+                    active_index = index
             if found:
                 break
                 
         # so now we now where we have to do our thing
-        # index
+        # active index is the index in node_or_op where
+        # the operation that we are going to compress is found
         left_index = active_index - 1
         right_index = active_index + 1
         
+        # some structural validation...
         try:
             left_node = nodes_and_ops[left_index]
         except IndexError:
@@ -266,13 +204,14 @@ def parse_arithmetic(tokens):
         except IndexError:
             raise ValueError("There is no node! to the right of the %s operation" % active_operation)
         
+        # some semanitc? validation...
         if isinstance(left_node, basestring):
             raise ValueError("The node to the left is not a node, but a string! %s" % left_node)
             
         if isinstance(right_node, basestring):
             raise ValueError("The node to the right is not a node, but a string! %s" % right_node)
             
-        # ok but here, we know that they are both nodes
+        # ok but here, we know that they are both nodes (and they both exist!)
         new_node = DBNBinaryOpNode(active_operation, left_node, right_node)
         
         new_nodes_and_ops = []
@@ -301,8 +240,94 @@ def parse_number(token):
     token is just one token
     """
     return DBNNumberNode(token.value)
+
+
+def collect_until_next(tokens, token_type):
+    """
+    will return a list of tokens unit the next
+    one of type token_type or the end of the list
     
+    throws away the terminating token of type token_type
+    """
+    out_tokens = []
+    while tokens:
+      next_token = tokens.pop(0)
+      if next_token.type == token_type:
+          break
+      else:
+          out_tokens.append(next_token)
+    return out_tokens
+
+def collect_until_balanced(tokens, left_type, right_type):
+    """
+    will parse until a balance is found
+
+    assumes that there is already a score of 1 (one open)
     
+    throws away the final right_type token
+    """
+    if left_type == right_type:
+      raise AssertionError("louis, why is left_type == right_type?")
+
+    score = 1 # will return once 0
+    out_tokens = []
+    while tokens:
+      next_token = tokens.pop(0)
+      if next_token.type == right_type:
+          score -= 1
+          if score == 0:
+              break
+      elif next_token.type == left_type:
+          score += 1
+
+      out_tokens.append(next_token)
+    return out_tokens    
+
+def assert_args(args, length=None, match=None):
+    """
+    makes sure the given argument list matches the given constraints
+    
+    length - the number of arguments. if None, can be any length
+    matching - a tuple of single nodes, tuples, or NoneTypes
+               the argument list must match this restriction
+               if a position is None, then
+    """
+    if length is not None:
+        if len(args) != length:
+            return (False, "length (%d) does not equal %d" % (len(args), length,) )
+    
+    matched = 0
+    if match is not None:
+        for constraint, (arg_index, arg) in zip(match, enumerate(args)):
+            if constraint is None:
+                pass
+            
+            elif isinstance(constraint, tuple):
+                matched += 1
+                if not isinstance(arg, constraint):
+                    return (False, "arg %d is not a %s" % (arg_index, ', nor a '.join(c.display_name for c in constraint)))
+                
+            elif issubclass(constraint, DBNBaseNode):
+                matched += 1
+                if not isinstance(arg, constraint):
+                    return (False, "arg %d is not a %s" % (arg_index, constraint.display_name))
+                    
+            else:
+                raise ValueError("BAD CONSTRAINT, LOUIS")
+    
+    return (True, None)
+    
+def strip_newline(tokens):
+    """
+    from the given token set.
+    mutates.
+    """
+    last_token = tokens[-1]
+    if last_token.type == 'NEWLINE':
+        tokens.pop()
+    return tokens
+    
+
 class DBNParser:
     def parse(self, tokens):
         return parse_block(tokens)
