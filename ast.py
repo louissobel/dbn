@@ -8,6 +8,8 @@ class DBNBaseNode:
      
 class DBNBlockNode(DBNBaseNode):
     
+    display_name = 'block'
+    
     def __init__(self):
         self.children = []
         
@@ -37,6 +39,8 @@ class DBNBlockNode(DBNBaseNode):
         
 class DBNCommandNode(DBNBaseNode):
     
+    display_name = 'command'
+    
     def __init__(self, command_name, args):
         self.command_name = command_name
         self.args = args
@@ -63,6 +67,8 @@ class DBNSetNode(DBNBaseNode):
     """
     takes care of the special handling for Set
     """
+    
+    display_name = 'set'
 
     def __init__(self, left, right):
         self.left = left
@@ -84,6 +90,9 @@ class DBNSetNode(DBNBaseNode):
         print "%s)" % (' ' * depth * indent)
         
 class DBNRepeatNode(DBNBaseNode):
+    
+    display_name = 'repeat'
+    
     def __init__(self, var, start, end, body):
         self.var = var
         self.start = start
@@ -130,6 +139,8 @@ class DBNRepeatNode(DBNBaseNode):
 
 class DBNBracketNode(DBNBaseNode):
     
+    display_name = 'dot'
+    
     def __init__(self, left, right):
         self.left = left
         self.right = right
@@ -157,6 +168,8 @@ class DBNBracketNode(DBNBaseNode):
         print "%s)" % (' ' * depth * indent)
             
 class DBNBinaryOpNode(DBNBaseNode):
+    
+    display_name = 'operation'
     
     def __init__(self, operation, left, right):
         self.operation = operation
@@ -188,6 +201,8 @@ class DBNBinaryOpNode(DBNBaseNode):
                 
 class DBNNumberNode(DBNBaseNode):
     
+    display_name = 'number'
+    
     def __init__(self, numberstring):
         self.numberstring = numberstring
         
@@ -201,6 +216,8 @@ class DBNNumberNode(DBNBaseNode):
         print "%s%s" % ((' ' * depth * indent), str(self))
                
 class DBNWordNode(DBNBaseNode):
+    
+    display_name = 'word'
     
     def __init__(self, wordstring):
         self.wordstring = wordstring
