@@ -1,5 +1,7 @@
 """
-whoo ast trees
+This module has the classes
+for all the nodes in the AST
+of a dbn program
 """
 import utils
 
