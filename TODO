@@ -1,4 +1,3 @@
- - replace using the raw value of the WORD token to command with using a DBNWordNode and lazy_evaluate
  - tests.
     - tokenizer
     - parse trees
