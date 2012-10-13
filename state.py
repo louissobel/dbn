@@ -1,6 +1,9 @@
+import copy
+
 from PIL import Image
 
 import utils
+
 
 class Immutable:
     
@@ -12,16 +15,16 @@ class Immutable:
         """
         decorator for first duplicating
         """
-        def inner_function(self, *args, **kwargs):
-            out = self._copy()
+        def inner_function(old, *args, **kwargs):
+            new = copy.copy(old)
             
             # lets do this... attach self to out as predecessor
-            if hasattr(out, 'previous'):
-                out.previous = self
+            if hasattr(new, 'previous'):
+                new.previous = old
             
-            retval = function(out, *args, **kwargs)
+            retval = function(new, *args, **kwargs)
             if not retval:
-                return out
+                return new
             else:
                 return retval #trusting them...
             
@@ -30,7 +33,7 @@ class Immutable:
 
 class DBNCommandSet(Immutable):
     """
-    For now, just the built ins (Line, Paper, Pen, Set)
+    For now, just the built ins (Line, Paper, Pen)
     """
     
     def __init__(self):
@@ -40,8 +43,8 @@ class DBNCommandSet(Immutable):
             'Pen' : self.Pen,
         }
         
-    def _copy(self):
-        return DBNCommandSet()
+    def __copy__(self):
+        return DBNCommandSet() # because the builtins come builtin
     
     def Line(self, state, blX, blY, trX, trY):
 
@@ -50,9 +53,8 @@ class DBNCommandSet(Immutable):
         trX = utils.pixel_to_coord(trX, 'x')
         trY = utils.pixel_to_coord(trY, 'y')
         
-        points = list(utils.bresenham_line(blX, blY, trX, trY))
-        pixel_list = [(x, y, state.pen_color) for x, y in points]
-        
+        points = utils.bresenham_line(blX, blY, trX, trY)
+        pixel_list = ((x, y, state.pen_color) for x, y in points)
         
         state.image = state.image.set_pixels(pixel_list)
     
@@ -84,15 +86,15 @@ class DBNInterpreterState(Immutable):
             self.env = {}
             self.commands = DBNCommandSet()
                     
-    def _copy(self):
+    def __copy__(self):
         new = DBNInterpreterState(create=False)
         
         # copy all the attributes over
         # this should be sufficient for now
-        new.image = self.image._copy()
-        new.pen_color = self.pen_color
-        new.env = dict(self.env)
-        new.commands = self.commands._copy()
+        new.image = copy.copy(self.image)
+        new.pen_color = self.pen_color # an integer, so no need to copy
+        new.env = copy.copy(self.env)
+        new.commands = copy.copy(self.commands)
         
         return new
         
@@ -105,7 +107,11 @@ class DBNInterpreterState(Immutable):
     
     @Immutable.mutates 
     def set(self, lval, rval):
+        """
+        sets lval to rval
         
+        lval can be a DBNDot or a DBNVariable
+        """     
         if isinstance(lval, utils.DBNDot):
             x_coord = utils.pixel_to_coord(lval.x, 'x')
             y_coord = utils.pixel_to_coord(lval.y, 'y')
@@ -125,16 +131,16 @@ class DBNInterpreterState(Immutable):
 
 class DBNImage(Immutable):
     """
-    Primitive implemented wrapper around pil image
+    Primitive wrapper around pil image
     
-    in PIL representionat, not DBN (255, upper left origin, etc)
+    in PIL represention, not DBN (255, upper left origin, etc)
     """
     def __init__(self, color=255, create=True):
         if create:
             self._image = Image.new('L', (101, 101), color)
             self._image_array = self._image.load()
         
-    def _copy(self):
+    def __copy__(self):
          new = DBNImage(create=False)
          new._image = self._image.copy()
          new._image_array = new._image.load()

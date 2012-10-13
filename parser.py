@@ -30,8 +30,9 @@ def parse_block(tokens):
         
         elif first_token.type == 'WORD':
             # then we treat it as a command :/
-            arg_tokens = collect_until_next(tokens, 'NEWLINE')            
-            command_node = parse_command(first_token, arg_tokens)
+            arg_tokens = collect_until_next(tokens, 'NEWLINE')
+            command_name_node = parse_word(first_token)         
+            command_node = parse_command(command_name_node, arg_tokens)
             node.add_child(command_node)
             
         elif first_token.type == 'NEWLINE':
@@ -44,15 +45,16 @@ def parse_block(tokens):
     
     return node
 
-def parse_command(command_token, arg_tokens):
+def parse_command(command_node, arg_tokens):
     """
     parses a command
     """
-    # should i assert that the command token be a Word?
-    # if i dont, I assume that all code paths to here do that for me.
-    # fine. im making that assumption
+    # lets just assert that command node is a word
+    valid, error = assert_node(command_node, matches=DBNWordNode)
+    if not valid:
+        raise ValueError("First argument to parse_command must be a command node!")
     args = parse_args(arg_tokens)    
-    return DBNCommandNode(command_token.value, args)
+    return DBNCommandNode(command_node.wordstring, args) # eeks, digging into the node here
     
 def parse_set(arg_tokens):
     """
@@ -145,6 +147,9 @@ def parse_arithmetic(tokens):
     we walk down to precedence levels, looking for things.
     if we find one, look for its left,
     and its right, combine them!
+    
+    would love to make this recrusive to match the rest of how I parse.
+    but. I'd also love to be an astronaut
     """
     PRECEDENCE = ['*', '/', '-', '+'] # ok?
     
@@ -302,19 +307,44 @@ def assert_args(args, length=None, match=None):
             if constraint is None:
                 pass
             
-            elif isinstance(constraint, tuple):
+            elif isinstance(constraint, tuple) or issubclass(constraint, DBNBaseNode):
                 matched += 1
-                if not isinstance(arg, constraint):
-                    return (False, "arg %d is not a %s" % (arg_index, ', nor a '.join(c.display_name for c in constraint)))
-                
-            elif issubclass(constraint, DBNBaseNode):
-                matched += 1
-                if not isinstance(arg, constraint):
-                    return (False, "arg %d is not a %s" % (arg_index, constraint.display_name))
+                return assert_node(arg, matches=constraint, node_name ="arg %d" % arg_index)
                     
             else:
                 raise ValueError("BAD CONSTRAINT, LOUIS")
     
+    return (True, None)
+    
+def assert_node(node, matches=None, node_name=None):
+    """
+    asserts that the given node is one of the given types
+    (types can be a tuple or just one type)
+    raises a louiserror if types is bad,
+    returns False if the node is bad
+    returns true otherwise
+    """
+    if node_name is None:
+        node_name = node.display_name
+    
+    if matches is None:
+        pass
+
+    elif isinstance(matches, tuple):
+        # lets make sure every type in the tuple is a subclass of BaseNode
+        if not all(issubclass(t, DBNBaseNode) for t in matches):
+            raise ValueError("Louis... bad type in contraint tuple!")
+        
+        if not isinstance(node, matches):
+            return (False, "%s is not a %s" % (node_name, ', nor a '.join(c.display_name for c in matches)))
+    
+    elif issubclass(matches, DBNBaseNode):
+        if not isinstance(node, matches):
+            return (False, "%s is not a %s" % (node_name, constraint.display_name))
+    
+    else:
+        raise ValueError("Bad constraint type!")
+        
     return (True, None)
     
 def strip_newline(tokens):

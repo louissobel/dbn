@@ -228,7 +228,10 @@ class DBNWordNode(DBNBaseNode):
     def evaluate(self, state):
         return state.lookup_variable(self.wordstring)
         
-    def evaluate_lazy(self, state):
+    def evaluate_lazy(self, state=None):
+        """
+        state is optional here, because we don't need it!
+        """
         return utils.DBNVariable(self.wordstring)
         
     def pprint(self, depth=0, indent=4):
