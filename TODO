@@ -1,5 +1,4 @@
  - tests.
-    - tokenizer
     - parse trees
     - state stuff
     - basic ast transformations
