@@ -1,0 +1,14 @@
+// basic test of commands.
+// no nesting. no recursion
+
+
+Command Rectangle L B R T {
+  Line L B R B
+  Line R B R T
+  Line R T L T
+  Line L T L B
+}
+
+Paper 0
+Pen 100
+Rectangle 30 40 70 60

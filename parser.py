@@ -12,6 +12,7 @@ def parse_block(tokens):
     set
     repeat
     question
+    Command (procedure)
     word \implies command
     """    
     block_nodes = []
@@ -35,6 +36,12 @@ def parse_block(tokens):
             question_name = first_token.value
             question_node = parse_question(question_name, arg_tokens, body_tokens)
             block_nodes.append(question_node)
+            
+        elif first_token.type == 'COMMAND':
+            arg_tokens = collect_until_next(tokens, 'OPENBRACE')
+            body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
+            
+            define_command_node = parse_define_command(arg_tokens, body_tokens)
         
         elif first_token.type == 'WORD':
             # then we treat it as a command :/
@@ -106,7 +113,36 @@ def parse_question(question_name, arg_tokens, body_tokens):
     lvalue, rvalue = args
     
     return DBNQuestionNode(question_name, lvalue, rvalue, body)
+
+def parse_define_command(arg_tokens, body_tokens):
+    """
+    parses a command definition!
+    """
+    # arg tokens MUST ALL BE WORDS. so we can bypass the normal parsing route.
+    args = []
+    for index, arg_token in arg_tokens:
+        if not arg_token.type == 'WORD':
+            raise ValueError(
+                "Every argument to Command must be a WORD. arg %d is a %s" %
+                (index, arg_token.type)
+            )
+        args.append(parse_word(arg_token))
+        
+    # we must have at least one!
+    if not args:
+        raise ValueError("There must be at least one argument to Command!")
     
+    command_name = args[0]
+    formal_args = args[1:]
+    
+    body = parse_block(body_tokens)
+    
+    # ah.. ok.. lets not allow any commands within commands.
+    # if there is one.s
+    
+    
+    
+
 def parse_bracket(tokens):
     """
     ok, so tokens is everything in the brackets
