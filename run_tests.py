@@ -3,8 +3,14 @@ import unittest
 
 
 suite = unittest.TestLoader().loadTestsFromModule(tokenizer_tests)
-unittest.TextTestRunner(verbosity=2).run(suite)
 
+runner = unittest.TextTestRunner(verbosity=2)
+
+runner.run(suite)
+
+
+suite = unittest.TestLoader().loadTestsFromModule(parser_tests)
+runner.run(suite)
 
 
 
