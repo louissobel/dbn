@@ -14,11 +14,8 @@ class DBNBlockNode(DBNBaseNode):
 
     display_name = 'block'
 
-    def __init__(self):
-        self.children = []
-
-    def add_child(self, node):
-        self.children.append(node)
+    def __init__(self, *args):
+        self.children = args
 
     def apply(self, state):
         """
@@ -44,7 +41,7 @@ class DBNCommandNode(DBNBaseNode):
 
     display_name = 'command'
 
-    def __init__(self, command_name, args):
+    def __init__(self, command_name, *args):
         self.command_name = command_name
         self.args = args
 
@@ -88,7 +85,7 @@ class DBNSetNode(DBNBaseNode):
         return state
 
     def __str__(self):
-        return "(Set %s)" % (' '.join([str(a) for a in self.args]))
+        return "(Set %s %s)" % (self.left, self.right)
 
     def pprint(self, depth=0, indent=4):
         print "%s(Set" % ((' ' * depth * indent),)
@@ -126,8 +123,7 @@ class DBNRepeatNode(DBNBaseNode):
         return state
 
     def __str__(self):
-        return "(Repeat %s %s %s %s)" % \
-            (str(t) for t in (self.var, self.start, self.end, self.body))
+        return "(Repeat %s %s %s %s)" % (self.var, self.start, self.end, self.body)
 
     def pprint(self, depth=0, indent=4):
         print "%s(Repeat" % ((' ' * depth * indent),)
@@ -136,7 +132,45 @@ class DBNRepeatNode(DBNBaseNode):
         self.end.pprint(depth=depth + 1, indent=indent)
         self.body.pprint(depth=depth + 1, indent=indent)
         print "%s)" % (' ' * depth * indent)
-
+        
+class DBNQuestionNode(DBNBaseNode):
+    
+    display_name = 'question'
+    
+    def __init__(self, question_name, lvalue, rvalue, body):
+        self.question_name = question_name
+        self.lvalue = lvalue
+        self.rvalue = rvalue
+        self.body = body
+        
+    def apply(self, state):
+        left = self.lvalue.evaluate(state)
+        right = self.rvalue.evaluate(state)
+        
+        questions = {
+            'Same': lambda l,r: l == r,
+            'NotSame': lambda l,r: l != r,
+            'Smaller': lambda l,r: l < r,
+            'NotSmaller': lambda l,r: l >= r,
+        }
+        
+        do_branch = questions[self.question_name](left, right)
+        if do_branch:
+            state = self.body.apply(state)
+        
+        return state
+        
+    def __str__(self):
+        return "(%s %s %s %s)" % (self.question_name, self.lvalue, self.rvalue, self.body)
+        
+    def pprint(self, depth=0, indent=4):
+        print "%s(%s" % ((' ' * depth * indent), self.question_name)
+        self.lvalue.pprint(depth=depth + 1, indent=indent)
+        self.rvalue.pprint(depth=depth + 1, indent=indent)
+        self.body.pprint(depth=depth + 1, indent=indent)
+        print "%s)" % (' ' * depth * indent)
+    
+    
 ################################################################
 ###  These nodes are fundamentally different in that they
 ###  are stateless expressions. They do not mutate and they
