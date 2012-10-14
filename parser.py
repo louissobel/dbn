@@ -1,7 +1,7 @@
 """
 a module that implements the parsing classes
 """
-from ast import *
+from dbnast import *
 
           
 def parse_block(tokens):
@@ -11,29 +11,37 @@ def parse_block(tokens):
     
     set
     repeat
+    question
     word \implies command
     """    
-    node = DBNBlockNode()
+    block_nodes = []
     while tokens:
         first_token = tokens.pop(0)
 
         if first_token.type == 'SET':
             set_tokens = collect_until_next(tokens, 'NEWLINE')
             set_node = parse_set(set_tokens)
-            node.add_child(set_node)
+            block_nodes.append(set_node)
             
         elif first_token.type == 'REPEAT':
             arg_tokens = collect_until_next(tokens, 'OPENBRACE')
             body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
             repeat_node = parse_repeat(arg_tokens, body_tokens)
-            node.add_child(repeat_node)
+            block_nodes.append(repeat_node)
+            
+        elif first_token.type == 'QUESTION':
+            arg_tokens = collect_until_next(tokens, 'OPENBRACE')
+            body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
+            question_name = first_token.value
+            question_node = parse_question(question_name, arg_tokens, body_tokens)
+            block_nodes.append(question_node)
         
         elif first_token.type == 'WORD':
             # then we treat it as a command :/
             arg_tokens = collect_until_next(tokens, 'NEWLINE')
-            command_name_node = parse_word(first_token)         
-            command_node = parse_command(command_name_node, arg_tokens)
-            node.add_child(command_node)
+            command_name = first_token.value        
+            command_node = parse_command(command_name, arg_tokens)
+            block_nodes.append(command_node)
             
         elif first_token.type == 'NEWLINE':
             # then it is just an extra blank new line...
@@ -43,18 +51,14 @@ def parse_block(tokens):
         else:
             raise ValueError('I dont know how to parse a %s in a block' % str(first_token))
     
-    return node
+    return DBNBlockNode(*block_nodes)
 
-def parse_command(command_node, arg_tokens):
+def parse_command(command_name, arg_tokens):
     """
     parses a command
     """
-    # lets just assert that command node is a word
-    valid, error = assert_node(command_node, matches=DBNWordNode)
-    if not valid:
-        raise ValueError("First argument to parse_command must be a command node!")
     args = parse_args(arg_tokens)    
-    return DBNCommandNode(command_node.wordstring, args) # eeks, digging into the node here
+    return DBNCommandNode(command_name, *args) # eeks, digging into the node here
     
 def parse_set(arg_tokens):
     """
@@ -65,8 +69,7 @@ def parse_set(arg_tokens):
     if not valid:
         raise ValueError("Bad arguments parsing Set: %s" % error)
     
-    lvalue = args[0]
-    rvalue = args[1]
+    lvalue, rvalue = args
     
     return DBNSetNode(lvalue, rvalue)
             
@@ -77,18 +80,33 @@ def parse_repeat(arg_tokens, body_tokens):
     strip_newline(arg_tokens) # newline between args and bracket is optional
 
     args = parse_args(arg_tokens)
-    valid, error = assert_args(args, length = 3, match=(DBNWordNode, ))
+    valid, error = assert_args(args, length=3, match=(DBNWordNode, ))
     if not valid:
         raise ValueError("bad arguments while parsing Repeat: %s" % error)
         
     body = parse_block(body_tokens)
     
-    var = args[0]
-    start = args[1]
-    end = args[2]
+    var, start, end = args
     
     return DBNRepeatNode(var, start, end, body)
-
+    
+def parse_question(question_name, arg_tokens, body_tokens):
+    """
+    parses a question!
+    """
+    strip_newline(arg_tokens)
+    
+    args = parse_args(arg_tokens)
+    valid, error = assert_args(args, length=2)
+    if not valid:
+        raise ValueError("bad arguments while parsing question %s: " % (question_name, error))
+        
+    body = parse_block(body_tokens)
+    
+    lvalue, rvalue = args
+    
+    return DBNQuestionNode(question_name, lvalue, rvalue, body)
+    
 def parse_bracket(tokens):
     """
     ok, so tokens is everything in the brackets
