@@ -59,6 +59,7 @@ class DBNTokenizer:
         # then keywords
         self.register('SET',          r'(Set)')
         self.register('REPEAT',       r'(Repeat)')
+        self.register('QUESTION',     r'(Same|NotSame|Smaller|NotSmaller)\?'),
 
         # then literals
         self.register('WORD',         r'([A-z_][\w\d]*)')
