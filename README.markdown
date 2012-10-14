@@ -16,4 +16,4 @@ Currently, the supported statements are
  - `Set`
  - `Repeat`
  
-try `python dbn.py test_script.dbn` to see an example.
+try `python dbn.py tests_dbns/test_question.dbn` to see an example
