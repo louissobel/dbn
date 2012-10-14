@@ -25,6 +25,7 @@ teststring2 = """//comment
 Set Repeat 98
 house
 goose //foo
+Same?
 *"""
 
 teststring3 = """Set [0 9] A
@@ -80,7 +81,7 @@ Paper 6
 tokenizer_test_cases = [
     ("*", ['OPERATOR']),
     (teststring1, ['WORD', 'OPENPAREN']),
-    (teststring2, ['NEWLINE', 'SET', 'REPEAT', 'NUMBER', 'NEWLINE', 'WORD', 'NEWLINE', 'WORD', 'NEWLINE', 'OPERATOR']),
+    (teststring2, ['NEWLINE', 'SET', 'REPEAT', 'NUMBER', 'NEWLINE', 'WORD', 'NEWLINE', 'WORD', 'NEWLINE', 'QUESTION', 'NEWLINE', 'OPERATOR']),
     (teststring3, expected3),
 ]
 
