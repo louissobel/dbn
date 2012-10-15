@@ -61,6 +61,7 @@ class DBNTokenizer:
         self.register('REPEAT',       r'(Repeat)')
         self.register('QUESTION',     r'(Same|NotSame|Smaller|NotSmaller)\?'),
         self.register('COMMAND',      r'(Command)'),
+        self.register('LOAD',         r'Load (.+)'),
 
         # then literals
         self.register('WORD',         r'([A-z_][\w\d]*)')

@@ -1,0 +1,8 @@
+/// this file will be loaded
+
+
+Command DoubleLine A B {
+  Line 0 A 100 B
+  Line 0 (A + 10) 100 (B + 10)
+}
+

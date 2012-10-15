@@ -5,6 +5,9 @@ of a dbn program
 """
 import utils
 
+# loads for Load
+from tokenizer import DBNTokenizer
+from parser import DBNParser
 
 VERBOSE = False
 
@@ -265,7 +268,35 @@ class DBNPythonNode(DBNBaseNode):
     def pprint(self, depth=0, indent=4):
         print "%s%s" % ((' ' * depth * indent), str(self))
         
+
+class DBNLoadNode(DBNBaseNode):
+    """
+    a Load
+    """
+
+    display_name = 'load'
     
+    def __init__(self, loadpath):
+        self.path = loadpath
+        
+    def apply(self, state):
+        
+        try:
+            f_handle = open(self.path, 'r')
+        except IOError:
+            raise ValueError("Unable to open file for loading: %s" % self.path)
+        
+        dbn_content = f_handle.read()
+        # I really should have this refactored somehwerre else, but oh well
+        tokenizer = DBNTokenizer()
+        parser = DBNParser()
+        
+        root_node = parser.parse(tokenizer.tokenize(dbn_content))
+        state = root_node.apply(state)
+        
+        return state
+        
+        
 ################################################################
 ###  These nodes are fundamentally different in that they
 ###  are stateless expressions. They do not mutate and they

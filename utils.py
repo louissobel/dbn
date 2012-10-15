@@ -1,5 +1,4 @@
 
-
 def clip(val, lower, upper):
     if val > upper:
         return upper

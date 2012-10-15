@@ -4,15 +4,18 @@ a module that implements the parsing classes
 from dbnast import *
 
           
-def parse_block(tokens, commands_allowed=False):
+def parse_block(tokens, top_level=False):
     """
     parses a block of statements
     currently handles:
+    
+    Load, Command only allowed when top_level is True
     
     set
     repeat
     question
     Command (procedure) (if commands_allowed)
+    load
     word \implies command
     """    
     block_nodes = []
@@ -37,11 +40,21 @@ def parse_block(tokens, commands_allowed=False):
             question_node = parse_question(question_name, arg_tokens, body_tokens)
             block_nodes.append(question_node)
             
-        elif first_token.type == 'COMMAND' and commands_allowed:
-            arg_tokens = collect_until_next(tokens, 'OPENBRACE')
-            body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
-            define_command_node = parse_define_command(arg_tokens, body_tokens)
-            block_nodes.append(define_command_node)
+        elif first_token.type == 'COMMAND':
+            if top_level:
+                arg_tokens = collect_until_next(tokens, 'OPENBRACE')
+                body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
+                define_command_node = parse_define_command(arg_tokens, body_tokens)
+                block_nodes.append(define_command_node)
+            else:
+                raise ValueError("Command keyowrd only allowed at top level")
+            
+        elif first_token.type == 'LOAD':
+            if top_level:
+                load_node = parse_load(first_token)
+                block_nodes.append(load_node)
+            else:
+                raise ValueError("Load keyword only allowed at top level")
         
         elif first_token.type == 'WORD':
             # then we treat it as a command :/
@@ -141,8 +154,14 @@ def parse_define_command(arg_tokens, body_tokens):
     return DBNCommandDefinitionNode(command_name, formal_args, body)
     
     
+def parse_load(load_token):
+    """
+    parses a Load statement
+    """
+    load_path = load_token.value
+    return DBNLoadNode(load_path)
     
-
+    
 def parse_bracket(tokens):
     """
     ok, so tokens is everything in the brackets
@@ -414,4 +433,4 @@ def strip_newline(tokens):
 
 class DBNParser:
     def parse(self, tokens):
-        return parse_block(tokens, commands_allowed=True)
+        return parse_block(tokens, top_level=True)

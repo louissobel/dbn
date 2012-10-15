@@ -72,6 +72,20 @@ expected3 = [
     'CLOSEBRACE',
 ]
 
+test_string_load = """6
+Load horse
+Cow
+"""
+
+expected_load = [
+    'NUMBER',
+    'NEWLINE',
+    'LOAD',
+    'NEWLINE',
+    'WORD',
+    'NEWLINE',
+]
+
 bad_input = """
 Pen 0
 Paper 6
@@ -83,6 +97,7 @@ tokenizer_test_cases = [
     (teststring1, ['WORD', 'OPENPAREN']),
     (teststring2, ['NEWLINE', 'SET', 'REPEAT', 'NUMBER', 'NEWLINE', 'WORD', 'NEWLINE', 'WORD', 'NEWLINE', 'QUESTION', 'NEWLINE', 'OPERATOR']),
     (teststring3, expected3),
+    (test_string_load, expected_load),
 ]
 
 def tokenizer_tester(string):
