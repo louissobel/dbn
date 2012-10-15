@@ -5,13 +5,10 @@ from PIL import Image
 import utils
 
 
-#BUILTIN_PROCS = builtins.BUILTIN_PROCS
+RECURSION_LIMIT = 50
 
 
 class Immutable:
-    
-    def _copy(self):
-        raise NotImplementedError
     
     @staticmethod
     def mutates(function):
@@ -60,11 +57,28 @@ class DBNEnvironment(object):
     def __init__(self, parent=None):
         self.parent = parent
         self._inner = {}
-        
-    def __copy__(self):
+    
+    def __copy_without_parent(self):
         new = DBNEnvironment()
         new._inner = copy.copy(self._inner)
-        new.parent = copy.copy(self.parent)  # copy.copy(None) is None
+        return new
+        
+    def __copy__(self):
+        new = self.__copy_without_parent()
+        
+        # id like to just call this, but it halves our usable stack depth!
+        #new.parent = copy.copy(self.parent)
+        # so fuu... make it an iteration? thats OK, but clutters the interface
+        # ! not if we use deep copy too!
+        # that's probably what I should do throughout the code,
+        # but for now, I'm just going to hack it.
+        current_old = self
+        current_new = new
+        while current_old.parent is not None:
+            current_new.parent = current_old.parent.__copy_without_parent()
+            current_new = current_new.parent
+            current_old = current_old.parent
+        
         return new
     
     def __len__(self):
@@ -122,6 +136,8 @@ class DBNInterpreterState(Immutable):
             self.pen_color = 0
             self.env = DBNEnvironment()
             self.commands = DBNProcedureSet()
+            
+            self.stack_depth = 0
                     
     def __copy__(self):
         new = DBNInterpreterState(create=False)
@@ -132,6 +148,8 @@ class DBNInterpreterState(Immutable):
         new.pen_color = self.pen_color # an integer, so no need to copy
         new.env = copy.copy(self.env)
         new.commands = copy.copy(self.commands)
+        
+        new.stack_depth = self.stack_depth
         
         return new
         
@@ -175,11 +193,17 @@ class DBNInterpreterState(Immutable):
 
     @Immutable.mutates
     def push(self):
-        self.env = self.env.push()
+        if self.stack_depth >= RECURSION_LIMIT:
+            raise ValueError("Recursion too deep! %d" % self.stack_depth)
+        else:
+            self.env = self.env.push()
+            print self.stack_depth
+            self.stack_depth += 1
         
     @Immutable.mutates
     def pop(self):
         self.env = self.env.pop()
+        self.stack_depth -= 1
              
 
 class DBNImage(Immutable):

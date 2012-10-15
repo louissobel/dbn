@@ -1,0 +1,16 @@
+// basic test of commands.
+// using environment lookup
+
+
+Command Rectangle L B {
+  Line L B R B
+  Line R B R T
+  Line R T L T
+  Line L T L B
+}
+
+Paper 0
+Pen 100
+Set R 70
+Set T 60
+Rectangle 30 40

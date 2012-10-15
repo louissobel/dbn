@@ -6,6 +6,8 @@ of a dbn program
 import utils
 
 
+VERBOSE = False
+
 class DBNBaseNode:
     pass
 
@@ -156,18 +158,19 @@ class DBNCommandNode(DBNBaseNode):
         # args cannot mutate
         evaluated_args = [arg.evaluate(state) for arg in self.args]
 
-        print self.command_name
-        
         proc = state.lookup_command(self.command_name)
+        if proc is None:
+            raise ValueError("Command %s not found!" % self.command_name)
+
 
         # get the arg count of proc.. it has to be equal to length of evaluated args
         if proc.arg_count != len(evaluated_args):
             raise ValueError("%s requires %d arguments, but %d given" % \
                 (self.command_name, proc.arg_count, len(evaluated_args)))
-                
+        
         state = state.push()
         state = state.set_variables(**dict(zip(proc.formal_args, evaluated_args)))
-        state = proc.apply(state)
+        state = proc.body.apply(state)
         state = state.pop()
         return state
 
@@ -223,6 +226,13 @@ class DBNProcedureNode(DBNBaseNode):
         self.body = body        
     
     def apply(self, state):
+        """
+        tempted to remove this method,
+        it creates unnesesary stack frames for recursion
+        and, honestly, why must this implement this?
+        all it does is delegate the call to body, which
+        any reasonable caller can do just as well.
+        """
         state = self.body.apply(state)
         return state
         
