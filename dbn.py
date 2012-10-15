@@ -3,7 +3,7 @@ from optparse import OptionParser
 
 from tokenizer import DBNTokenizer
 from parser import DBNParser
-from state import DBNInterpreterState
+from dbnstate import DBNInterpreterState
 import output
 
 option_parser = OptionParser()
@@ -32,6 +32,7 @@ if VERBOSE:
     dbn_ast.pprint()
 
 state = DBNInterpreterState()
+
 state = dbn_ast.apply(state)
 
 

@@ -37,43 +37,6 @@ class DBNBlockNode(DBNBaseNode):
         print "%s)" % (' ' * depth * indent)
 
 
-class DBNCommandNode(DBNBaseNode):
-
-    display_name = 'command'
-
-    def __init__(self, command_name, *args):
-        self.command_name = command_name
-        self.args = args
-
-    def add_arg(self, node):
-        self.args.append(node)
-
-    def apply(self, state):
-        # args cannot mutate
-        evaluated_args = [arg.evaluate(state) for arg in self.args]
-        
-        proc = state.lookup_command(self.command_name)
-        
-        # get the arg count of proc.. it has to be equal to length of evaluated args
-        if proc.arg_count != len(evaluated_args):
-            
-        
-        state = state.run_command(self.command_name, evaluated_args)
-        return state
-
-    def __str__(self):
-        return "(%s %s)" % (
-            self.command_name,
-            ' '.join([str(a) for a in self.args])
-        )
-
-    def pprint(self, depth=0, indent=4):
-        print "%s(%s" % ((' ' * depth * indent), self.command_name)
-        for arg in self.args:
-            arg.pprint(depth=depth + 1, indent=indent)
-        print "%s)" % (' ' * depth * indent)
-
-
 class DBNSetNode(DBNBaseNode):
     """
     takes care of the special handling for Set
@@ -176,7 +139,50 @@ class DBNQuestionNode(DBNBaseNode):
         self.rvalue.pprint(depth=depth + 1, indent=indent)
         self.body.pprint(depth=depth + 1, indent=indent)
         print "%s)" % (' ' * depth * indent)
-    
+
+
+class DBNCommandNode(DBNBaseNode):
+
+    display_name = 'command'
+
+    def __init__(self, command_name, *args):
+        self.command_name = command_name
+        self.args = args
+
+    def add_arg(self, node):
+        self.args.append(node)
+
+    def apply(self, state):
+        # args cannot mutate
+        evaluated_args = [arg.evaluate(state) for arg in self.args]
+
+        print self.command_name
+        
+        proc = state.lookup_command(self.command_name)
+
+        # get the arg count of proc.. it has to be equal to length of evaluated args
+        if proc.arg_count != len(evaluated_args):
+            raise ValueError("%s requires %d arguments, but %d given" % \
+                (self.command_name, proc.arg_count, len(evaluated_args)))
+                
+        state = state.push()
+        state = state.set_variables(**dict(zip(proc.formal_args, evaluated_args)))
+        state = proc.apply(state)
+        state = state.pop()
+        return state
+
+    def __str__(self):
+        return "(%s %s)" % (
+            self.command_name,
+            ' '.join([str(a) for a in self.args])
+        )
+
+    def pprint(self, depth=0, indent=4):
+        print "%s(%s" % ((' ' * depth * indent), self.command_name)
+        for arg in self.args:
+            arg.pprint(depth=depth + 1, indent=indent)
+        print "%s)" % (' ' * depth * indent)
+
 
 class DBNCommandDefinitionNode(DBNBaseNode):
     
@@ -188,7 +194,7 @@ class DBNCommandDefinitionNode(DBNBaseNode):
         self.command_body = command_body
         
     def apply(self, state):
-        proc = DBNProcedure(self.args, self.command_body)
+        proc = DBNProcedureNode(self.args, self.command_body)        
         state = state.add_command(self.name, proc)
         return state
         
@@ -204,7 +210,7 @@ class DBNCommandDefinitionNode(DBNBaseNode):
         
         
 
-class DBNProcedure(DBNBaseNode):
+class DBNProcedureNode(DBNBaseNode):
     """
     never created by the parser, only by the evaluation of a command definition node!
     """
@@ -225,11 +231,32 @@ class DBNProcedure(DBNBaseNode):
         
     def pprint(self, depth=0, indent=4):
         print "%s(proc" % ((' ' * depth * indent),)
-        print "%s(%s)" % ((' ' * (depth+1) * indent), ','.join(self.args))
+        print "%s(%s)" % ((' ' * (depth+1) * indent), ','.join(self.formal_args))
         self.body.pprint(depth=depth + 1, indent=indent)
         print "%s)" % (' ' * depth * indent)
         
+  
+class DBNPythonNode(DBNBaseNode):
+    """
+    also, never created by the parser, only by me
+    """
+    
+    display_name = 'python'
+    
+    def __init__(self, function):
+        self.function = function
         
+    def apply(self, state):
+        state = self.function(state)
+        return state
+    
+    def __str__(self):
+        return "([Native Code])"  # heh
+        
+    def pprint(self, depth=0, indent=4):
+        print "%s%s" % ((' ' * depth * indent), str(self))
+        
+    
 ################################################################
 ###  These nodes are fundamentally different in that they
 ###  are stateless expressions. They do not mutate and they

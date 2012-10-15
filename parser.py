@@ -41,6 +41,7 @@ def parse_block(tokens, commands_allowed=False):
             arg_tokens = collect_until_next(tokens, 'OPENBRACE')
             body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
             define_command_node = parse_define_command(arg_tokens, body_tokens)
+            block_nodes.append(define_command_node)
         
         elif first_token.type == 'WORD':
             # then we treat it as a command :/
@@ -119,7 +120,7 @@ def parse_define_command(arg_tokens, body_tokens):
     """
     # arg tokens MUST ALL BE WORDS. so we can bypass the normal parsing route.
     args = []
-    for index, arg_token in arg_tokens:
+    for index, arg_token in enumerate(arg_tokens):
         if not arg_token.type == 'WORD':
             raise ValueError(
                 "Every argument to Command must be a WORD. arg %d is a %s" %
@@ -413,4 +414,4 @@ def strip_newline(tokens):
 
 class DBNParser:
     def parse(self, tokens):
-        return parse_block(tokens)
+        return parse_block(tokens, commands_allowed=True)
