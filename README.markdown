@@ -17,5 +17,6 @@ Currently, the supported statements are
  - `Repeat`
  - `Command`
  
-(that's everything through chapter )
+(that's everything through chapter 12 except `Load`)
+
 try `python dbn.py tests_dbns/test_question.dbn` to see an example
