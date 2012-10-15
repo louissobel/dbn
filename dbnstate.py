@@ -21,6 +21,8 @@ class Immutable:
             # lets do this... attach self to out as predecessor
             if hasattr(new, 'previous'):
                 new.previous = old
+            if hasattr(old, 'next'):
+                old.next = new
             
             retval = function(new, *args, **kwargs)
             if not retval:
@@ -131,6 +133,7 @@ class DBNInterpreterState(Immutable):
     
     def __init__(self, create=True):
         self.previous = None
+        self.next = None
         if create:
             self.image = DBNImage(color=255)
             self.pen_color = 0

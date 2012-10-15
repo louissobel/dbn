@@ -8,6 +8,8 @@ import output
 
 option_parser = OptionParser()
 option_parser.add_option('-v', '--verbose', action="store_true", dest="verbose", help="verbose!", default=False)
+option_parser.add_option('-a', '--animate', action="store_true", dest="animate", help="animate!", default=False)
+
 
 (options, args) = option_parser.parse_args()
 
@@ -35,6 +37,15 @@ state = DBNInterpreterState()
 
 state = dbn_ast.apply(state)
 
-
-
-output.draw_window(state.image._image)
+if options.animate:
+    # rewind the state
+    first = state
+    index = 0
+    while first.previous is not None:
+        print index
+        index += 1
+        first = first.previous
+        
+    output.animate_state(first, 'next')
+else:
+    output.draw_window(state.image._image)
