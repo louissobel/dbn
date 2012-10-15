@@ -4,7 +4,7 @@ a module that implements the parsing classes
 from dbnast import *
 
           
-def parse_block(tokens):
+def parse_block(tokens, commands_allowed=False):
     """
     parses a block of statements
     currently handles:
@@ -12,7 +12,7 @@ def parse_block(tokens):
     set
     repeat
     question
-    Command (procedure)
+    Command (procedure) (if commands_allowed)
     word \implies command
     """    
     block_nodes = []
@@ -37,10 +37,9 @@ def parse_block(tokens):
             question_node = parse_question(question_name, arg_tokens, body_tokens)
             block_nodes.append(question_node)
             
-        elif first_token.type == 'COMMAND':
+        elif first_token.type == 'COMMAND' and commands_allowed:
             arg_tokens = collect_until_next(tokens, 'OPENBRACE')
             body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
-            
             define_command_node = parse_define_command(arg_tokens, body_tokens)
         
         elif first_token.type == 'WORD':
@@ -126,7 +125,7 @@ def parse_define_command(arg_tokens, body_tokens):
                 "Every argument to Command must be a WORD. arg %d is a %s" %
                 (index, arg_token.type)
             )
-        args.append(parse_word(arg_token))
+        args.append(arg_token.value)
         
     # we must have at least one!
     if not args:
@@ -138,7 +137,7 @@ def parse_define_command(arg_tokens, body_tokens):
     body = parse_block(body_tokens)
     
     # ah.. ok.. lets not allow any commands within commands.
-    # if there is one.s
+    return DBNCommandDefinitionNode(command_name, formal_args, body)
     
     
     

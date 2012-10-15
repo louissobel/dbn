@@ -51,6 +51,13 @@ class DBNCommandNode(DBNBaseNode):
     def apply(self, state):
         # args cannot mutate
         evaluated_args = [arg.evaluate(state) for arg in self.args]
+        
+        proc = state.lookup_command(self.command_name)
+        
+        # get the arg count of proc.. it has to be equal to length of evaluated args
+        if proc.arg_count != len(evaluated_args):
+            
+        
         state = state.run_command(self.command_name, evaluated_args)
         return state
 
@@ -170,7 +177,59 @@ class DBNQuestionNode(DBNBaseNode):
         self.body.pprint(depth=depth + 1, indent=indent)
         print "%s)" % (' ' * depth * indent)
     
+
+class DBNCommandDefinitionNode(DBNBaseNode):
     
+    display_name = 'command_definition'
+    
+    def __init__(self, name, args, command_body):
+        self.name = name
+        self.args = args
+        self.command_body = command_body
+        
+    def apply(self, state):
+        proc = DBNProcedure(self.args, self.command_body)
+        state = state.add_command(self.name, proc)
+        return state
+        
+    def __str__(self):
+        return "(define %s (%s) %s)" % (self.name, ','.join(self.args), self.command_body)
+        
+    def pprint(self, depth=0, indent=4):
+        print "%s(define" % ((' ' * depth * indent),)
+        print "%s(%s)" % ((' ' * (depth+1) * indent), self.name)
+        print "%s(%s)" % ((' ' * (depth+1) * indent), ','.join(self.args))
+        self.command_body.pprint(depth=depth + 1, indent=indent)
+        print "%s)" % (' ' * depth * indent)
+        
+        
+
+class DBNProcedure(DBNBaseNode):
+    """
+    never created by the parser, only by the evaluation of a command definition node!
+    """
+    
+    display_name = 'procedure'
+    
+    def __init__(self, formal_args, body):
+        self.formal_args = formal_args
+        self.arg_count = len(formal_args)
+        self.body = body        
+    
+    def apply(self, state):
+        state = self.body.apply(state)
+        return state
+        
+    def __str__(self):
+        return "(proc (%s) %s)" % (','.join(self.formal_args), self.body)
+        
+    def pprint(self, depth=0, indent=4):
+        print "%s(proc" % ((' ' * depth * indent),)
+        print "%s(%s)" % ((' ' * (depth+1) * indent), ','.join(self.args))
+        self.body.pprint(depth=depth + 1, indent=indent)
+        print "%s)" % (' ' * depth * indent)
+        
+        
 ################################################################
 ###  These nodes are fundamentally different in that they
 ###  are stateless expressions. They do not mutate and they
