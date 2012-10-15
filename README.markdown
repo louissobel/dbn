@@ -15,5 +15,7 @@ Currently, the supported statements are
  - `Pen`
  - `Set`
  - `Repeat`
+ - `Command`
  
+(that's everything through chapter )
 try `python dbn.py tests_dbns/test_question.dbn` to see an example
