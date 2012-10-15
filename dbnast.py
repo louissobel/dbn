@@ -162,7 +162,6 @@ class DBNCommandNode(DBNBaseNode):
         if proc is None:
             raise ValueError("Command %s not found!" % self.command_name)
 
-
         # get the arg count of proc.. it has to be equal to length of evaluated args
         if proc.arg_count != len(evaluated_args):
             raise ValueError("%s requires %d arguments, but %d given" % \
