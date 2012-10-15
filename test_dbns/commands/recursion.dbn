@@ -10,12 +10,14 @@ Command Rectangle L B R T {
 }
 
 Command RectInRect L B R T S {
-    Rectangle L B R T
 
-    Smaller? L R {
+    Smaller? B T {
+      Smaller? L R {
+        Rectangle L B R T
         RectInRect (L + S) (B + S) (R - S) (T - S) S
+      }
     }
 }
 
 Paper 0
-RectInRect 30 40 60 70 3
+RectInRect 30 40 70 60 3

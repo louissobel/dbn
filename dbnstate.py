@@ -197,7 +197,6 @@ class DBNInterpreterState(Immutable):
             raise ValueError("Recursion too deep! %d" % self.stack_depth)
         else:
             self.env = self.env.push()
-            print self.stack_depth
             self.stack_depth += 1
         
     @Immutable.mutates
