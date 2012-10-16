@@ -40,10 +40,7 @@ state = dbn_ast.apply(state)
 if options.animate:
     # rewind the state
     first = state
-    index = 0
     while first.previous is not None:
-        print index
-        index += 1
         first = first.previous
         
     output.animate_state(first, 'next')

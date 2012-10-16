@@ -11,27 +11,26 @@ def animate_state(state, direction):
     w = Tkinter.Canvas(master, width=302, height=302)
     w.pack()
     
-    image = state.image._image
-    tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
 
     w.create_rectangle(49, 49, 252, 252)
-    canvas_image = w.create_image((151,151), image=tkinter_image, anchor='center')
-    w.image = tkinter_image
     
-    current_state = getattr(state, direction, None)
     
-    while getattr(current_state, direction, None) is not None:
-        image = current_state.image._image
-        print image
+    def draw_state(state, canvas_image):
+    
+        image = state.image._image
         tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
-        w.itemconfigure(canvas_image, image=tkinter_image)
-        w.image = tkinter_image
+
+        if canvas_image is None:    
+            canvas_image = w.create_image((151,151), image=tkinter_image, anchor='center', tag='frame')
+        else:
+            w.itemconfigure(canvas_image, image=tkinter_image)
+        w.tkinter_image = tkinter_image
         
-        w.update()
-        #time.sleep(1)
-        
-        current_state = getattr(current_state, direction, None)
-    
+        if getattr(state, direction, None) is not None:
+            master.after(1, draw_state, getattr(state, direction, None), canvas_image)
+
+
+    master.after(10, draw_state, state, None)
     master.mainloop()
 
 
