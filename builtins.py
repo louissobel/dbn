@@ -1,7 +1,8 @@
 import utils
 
-from dbnast import DBNPythonNode, DBNProcedureNode
+from dbnast import DBNPythonNode
 from dbnstate import Immutable, DBNImage
+from structures import DBNProcedure
 
 def builtin(formals):
     def decorator(function):        
@@ -9,7 +10,7 @@ def builtin(formals):
             args = [state.lookup_variable(f) for f in formals]
             return function(state, *args)
         builtin_node = DBNPythonNode(inner)
-        proc_node = DBNProcedureNode(formals, builtin_node)
+        proc_node = DBNProcedure(formals, builtin_node)
         return proc_node
     return decorator
         

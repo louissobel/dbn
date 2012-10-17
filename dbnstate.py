@@ -3,7 +3,7 @@ import copy
 from PIL import Image
 
 import utils
-
+from structures import DBNVariable, DBNDot
 
 RECURSION_LIMIT = 50
 
@@ -184,13 +184,13 @@ class DBNInterpreterState(Immutable):
         
         lval can be a DBNDot or a DBNVariable
         """     
-        if isinstance(lval, utils.DBNDot):
+        if isinstance(lval, DBNDot):
             x_coord = utils.pixel_to_coord(lval.x, 'x')
             y_coord = utils.pixel_to_coord(lval.y, 'y')
             color = utils.scale_100(rval)
             self.image = self.image.set_pixel(x_coord, y_coord, color)
 
-        elif isinstance(lval, utils.DBNVariable):
+        elif isinstance(lval, DBNVariable):
             self.env[lval.name] = rval
         
         else:

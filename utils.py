@@ -59,14 +59,3 @@ def bresenham_line(x0, y0, x1, y1):
             y = y + ystep
             error = error - deltax
     raise StopIteration
-
-
-
-class DBNVariable:
-    def __init__(self, name):
-        self.name = name
-            
-class DBNDot:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y

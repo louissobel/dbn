@@ -12,8 +12,7 @@ are the ones that this matters for
 Also, note that the line_no of the stored procedure created by the
 DefineCommandNode gets set to the line_no of the DefineCommandNode
 """
-import utils
-
+from structures import DBNDot, DBNVariable, DBNProcedure
 
 VERBOSE = False
 
@@ -220,7 +219,7 @@ class DBNCommandDefinitionNode(DBNBaseNode):
     def apply(self, state):
         state = state.set_line_no(self.line_no)
         
-        proc = DBNProcedureNode(self.args, self.command_body)   
+        proc = DBNProcedure(self.args, self.command_body)   
         proc.line_no = self.line_no     
         state = state.add_command(self.name, proc)
         return state
@@ -233,43 +232,6 @@ class DBNCommandDefinitionNode(DBNBaseNode):
         print "%s(%s)" % ((' ' * (depth+1) * indent), self.name)
         print "%s(%s)" % ((' ' * (depth+1) * indent), ','.join(self.args))
         self.command_body.pprint(depth=depth + 1, indent=indent)
-        print "%s)" % (' ' * depth * indent)
-        
-        
-
-class DBNProcedureNode(DBNBaseNode):
-    """
-    never created by the parser, only by the evaluation of a command definition node!
-    
-    very soon its going to lose its node status, go to status like Dot and Variable
-    """
-    
-    display_name = 'procedure'
-    
-    def __init__(self, formal_args, body):
-        DBNBaseNode.__init__(self)
-        self.formal_args = formal_args
-        self.arg_count = len(formal_args)
-        self.body = body        
-    
-    def apply(self, state):
-        """
-        tempted to remove this method,
-        it creates unnesesary stack frames for recursion
-        and, honestly, why must this implement this?
-        all it does is delegate the call to body, which
-        any reasonable caller can do just as well.
-        """
-        state = self.body.apply(state)
-        return state
-        
-    def __str__(self):
-        return "(proc (%s) %s)" % (','.join(self.formal_args), self.body)
-        
-    def pprint(self, depth=0, indent=4):
-        print "%s(proc" % ((' ' * depth * indent),)
-        print "%s(%s)" % ((' ' * (depth+1) * indent), ','.join(self.formal_args))
-        self.body.pprint(depth=depth + 1, indent=indent)
         print "%s)" % (' ' * depth * indent)
         
   
@@ -326,7 +288,7 @@ class DBNBracketNode(DBNBaseNode):
     def evaluate_lazy(self, state):
         x = self.left.evaluate(state)
         y = self.right.evaluate(state)
-        return utils.DBNDot(x, y)
+        return DBNDot(x, y)
 
     def pprint(self, depth=0, indent=4):
         print "%s(bracket" % (' ' * depth * indent)
@@ -404,7 +366,7 @@ class DBNWordNode(DBNBaseNode):
         """
         state is optional here, because we don't need it!
         """
-        return utils.DBNVariable(self.wordstring)
+        return DBNVariable(self.wordstring)
 
     def pprint(self, depth=0, indent=4):
         print "%s%s" % ((' ' * depth * indent), str(self))
