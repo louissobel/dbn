@@ -19,36 +19,32 @@ def parse_block(tokens, commands_allowed=False):
     while tokens:
         first_token = tokens.pop(0)
 
+        next_node = None
         if first_token.type == 'SET':
             set_tokens = collect_until_next(tokens, 'NEWLINE')
-            set_node = parse_set(set_tokens)
-            block_nodes.append(set_node)
+            next_node = parse_set(set_tokens)
             
         elif first_token.type == 'REPEAT':
             arg_tokens = collect_until_next(tokens, 'OPENBRACE')
             body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
-            repeat_node = parse_repeat(arg_tokens, body_tokens)
-            block_nodes.append(repeat_node)
+            next_node = parse_repeat(arg_tokens, body_tokens)
             
         elif first_token.type == 'QUESTION':
             arg_tokens = collect_until_next(tokens, 'OPENBRACE')
             body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
             question_name = first_token.value
-            question_node = parse_question(question_name, arg_tokens, body_tokens)
-            block_nodes.append(question_node)
+            next_node = parse_question(question_name, arg_tokens, body_tokens)
             
         elif first_token.type == 'COMMAND' and commands_allowed:
             arg_tokens = collect_until_next(tokens, 'OPENBRACE')
             body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
-            define_command_node = parse_define_command(arg_tokens, body_tokens)
-            block_nodes.append(define_command_node)
+            next_node = parse_define_command(arg_tokens, body_tokens)
         
         elif first_token.type == 'WORD':
             # then we treat it as a command :/
             arg_tokens = collect_until_next(tokens, 'NEWLINE')
             command_name = first_token.value        
-            command_node = parse_command(command_name, arg_tokens)
-            block_nodes.append(command_node)
+            next_node = parse_command(command_name, arg_tokens)
             
         elif first_token.type == 'NEWLINE':
             # then it is just an extra blank new line...
@@ -57,6 +53,10 @@ def parse_block(tokens, commands_allowed=False):
             
         else:
             raise ValueError('I dont know how to parse a %s in a block' % str(first_token))
+            
+        if next_node is not None:
+            next_node.line_no = first_token.line_no
+            block_nodes.append(next_node)
     
     return DBNBlockNode(*block_nodes)
 

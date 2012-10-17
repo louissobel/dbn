@@ -2,6 +2,15 @@
 This module has the classes
 for all the nodes in the AST
 of a dbn program
+
+
+note on line number tracking:
+done using a line_no attribute
+Commands and Keywords (Set, Repeat, Questions... (block level nodes))
+are the ones that this matters for
+
+Also, note that the line_no of the stored procedure created by the
+DefineCommandNode gets set to the line_no of the DefineCommandNode
 """
 import utils
 
@@ -9,14 +18,17 @@ import utils
 VERBOSE = False
 
 class DBNBaseNode:
-    pass
-
+    
+    def __init__(self):
+        self.line_no = -1
+        
 
 class DBNBlockNode(DBNBaseNode):
 
     display_name = 'block'
 
     def __init__(self, *args):
+        DBNBaseNode.__init__(self)
         self.children = args
 
     def apply(self, state):
@@ -47,10 +59,13 @@ class DBNSetNode(DBNBaseNode):
     display_name = 'set'
 
     def __init__(self, left, right):
+        DBNBaseNode.__init__(self)
         self.left = left
         self.right = right
 
     def apply(self, state):
+        state = state.set_line_no(self.line_no)
+        
         left = self.left.evaluate_lazy(state)
         right = self.right.evaluate(state)
         state = state.set(left, right)
@@ -71,14 +86,16 @@ class DBNRepeatNode(DBNBaseNode):
     display_name = 'repeat'
 
     def __init__(self, var, start, end, body):
+        DBNBaseNode.__init__(self)
         self.var = var
         self.start = start
         self.end = end
         self.body = body  # a DBNBlockNode
 
     def apply(self, state):
+        state = state.set_line_no(self.line_no)
+        
         variable = self.var.evaluate_lazy(state)
-
         start_val = self.start.evaluate(state)
         end_val = self.end.evaluate(state)
 
@@ -110,12 +127,15 @@ class DBNQuestionNode(DBNBaseNode):
     display_name = 'question'
     
     def __init__(self, question_name, lvalue, rvalue, body):
+        DBNBaseNode.__init__(self)
         self.question_name = question_name
         self.lvalue = lvalue
         self.rvalue = rvalue
         self.body = body
         
     def apply(self, state):
+        state = state.set_line_no(self.line_no)
+        
         left = self.lvalue.evaluate(state)
         right = self.rvalue.evaluate(state)
         
@@ -148,6 +168,7 @@ class DBNCommandNode(DBNBaseNode):
     display_name = 'command'
 
     def __init__(self, command_name, *args):
+        DBNBaseNode.__init__(self)
         self.command_name = command_name
         self.args = args
 
@@ -155,9 +176,9 @@ class DBNCommandNode(DBNBaseNode):
         self.args.append(node)
 
     def apply(self, state):
-        # args cannot mutate
+        state = state.set_line_no(self.line_no)
+        
         evaluated_args = [arg.evaluate(state) for arg in self.args]
-
         proc = state.lookup_command(self.command_name)
         if proc is None:
             raise ValueError("Command %s not found!" % self.command_name)
@@ -191,12 +212,16 @@ class DBNCommandDefinitionNode(DBNBaseNode):
     display_name = 'command_definition'
     
     def __init__(self, name, args, command_body):
+        DBNBaseNode.__init__(self)
         self.name = name
         self.args = args
         self.command_body = command_body
         
     def apply(self, state):
-        proc = DBNProcedureNode(self.args, self.command_body)        
+        state = state.set_line_no(self.line_no)
+        
+        proc = DBNProcedureNode(self.args, self.command_body)   
+        proc.line_no = self.line_no     
         state = state.add_command(self.name, proc)
         return state
         
@@ -215,11 +240,14 @@ class DBNCommandDefinitionNode(DBNBaseNode):
 class DBNProcedureNode(DBNBaseNode):
     """
     never created by the parser, only by the evaluation of a command definition node!
+    
+    very soon its going to lose its node status, go to status like Dot and Variable
     """
     
     display_name = 'procedure'
     
     def __init__(self, formal_args, body):
+        DBNBaseNode.__init__(self)
         self.formal_args = formal_args
         self.arg_count = len(formal_args)
         self.body = body        
@@ -253,6 +281,7 @@ class DBNPythonNode(DBNBaseNode):
     display_name = 'python'
     
     def __init__(self, function):
+        DBNBaseNode.__init__(self)
         self.function = function
         
     def apply(self, state):
@@ -279,6 +308,7 @@ class DBNBracketNode(DBNBaseNode):
     display_name = 'dot'
 
     def __init__(self, left, right):
+        DBNBaseNode.__init__(self)
         self.left = left
         self.right = right
 
@@ -310,6 +340,7 @@ class DBNBinaryOpNode(DBNBaseNode):
     display_name = 'operation'
 
     def __init__(self, operation, left, right):
+        DBNBaseNode.__init__(self)
         self.operation = operation
         self.left = left
         self.right = right
@@ -342,6 +373,7 @@ class DBNNumberNode(DBNBaseNode):
     display_name = 'number'
 
     def __init__(self, numberstring):
+        DBNBaseNode.__init__(self)
         self.numberstring = numberstring
 
     def __str__(self):
@@ -359,6 +391,7 @@ class DBNWordNode(DBNBaseNode):
     display_name = 'word'
 
     def __init__(self, wordstring):
+        DBNBaseNode.__init__(self)
         self.wordstring = wordstring
 
     def __str__(self):

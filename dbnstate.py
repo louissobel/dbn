@@ -141,6 +141,7 @@ class DBNInterpreterState(Immutable):
             self.commands = DBNProcedureSet()
             
             self.stack_depth = 0
+            self.line_no = -1
                     
     def __copy__(self):
         new = DBNInterpreterState(create=False)
@@ -153,6 +154,7 @@ class DBNInterpreterState(Immutable):
         new.commands = copy.copy(self.commands)
         
         new.stack_depth = self.stack_depth
+        new.line_no = self.line_no
         
         return new
         
@@ -206,6 +208,13 @@ class DBNInterpreterState(Immutable):
     def pop(self):
         self.env = self.env.pop()
         self.stack_depth -= 1
+        
+    @Immutable.mutates
+    def set_line_no(self, line_no):
+        # line_no SHOULD NEVER BE -1
+        if line_no == -1:
+            raise AssertionError("HOW LINE_NO -1?")
+        self.line_no = line_no
              
 
 class DBNImage(Immutable):

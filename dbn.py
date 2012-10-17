@@ -9,6 +9,7 @@ import output
 option_parser = OptionParser()
 option_parser.add_option('-v', '--verbose', action="store_true", dest="verbose", help="verbose!", default=False)
 option_parser.add_option('-a', '--animate', action="store_true", dest="animate", help="animate!", default=False)
+option_parser.add_option('-l', '--line-numbers', action="store_true", dest="line_numbers", help="print line numbers!", default=False)
 
 
 (options, args) = option_parser.parse_args()
@@ -37,12 +38,14 @@ state = DBNInterpreterState()
 
 state = dbn_ast.apply(state)
 
-if options.animate:
-    # rewind the state
-    first = state
-    while first.previous is not None:
-        first = first.previous
-        
+
+first = state
+while first.previous is not None:
+    first = first.previous
+
+if options.animate: 
     output.animate_state(first, 'next')
+elif options.line_numbers:
+    output.print_line_numbers(first)
 else:
     output.draw_window(state.image._image)

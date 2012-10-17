@@ -16,7 +16,6 @@ def animate_state(state, direction):
     
     
     def draw_state(state, canvas_image):
-    
         image = state.image._image
         tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
 
@@ -50,7 +49,18 @@ def draw_window(image):
     master.mainloop()
 
 
-
+def print_line_numbers(state):
+    """
+    will walk the state forward, printing when the line number
+    is new
+    """
+    current = state
+    last = -1
+    while current is not None:
+        if current.line_no != last:
+            print current.line_no
+            last = current.line_no
+        current = current.next
 
 def make_gif(state):
     
