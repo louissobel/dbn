@@ -10,42 +10,48 @@ option_parser = OptionParser()
 option_parser.add_option('-v', '--verbose', action="store_true", dest="verbose", help="verbose!", default=False)
 option_parser.add_option('-a', '--animate', action="store_true", dest="animate", help="animate!", default=False)
 option_parser.add_option('-l', '--line-numbers', action="store_true", dest="line_numbers", help="print line numbers!", default=False)
+option_parser.add_option('-f', '--full', action="store_true", dest="full", help="full interface!", default=False)
 
 
-(options, args) = option_parser.parse_args()
+def run_script_text(dbn_script, VERBOSE=False):
 
+    tokenizer = DBNTokenizer()
+    parser = DBNParser()
 
-VERBOSE = options.verbose
+    tokens = tokenizer.tokenize(dbn_script)
 
-filename = args[0]
-dbn_script = open(filename).read()
+    if VERBOSE:
+        for token in tokens:
+            print token
 
-tokenizer = DBNTokenizer()
-parser = DBNParser()
+    dbn_ast = parser.parse(tokens)
 
-tokens = tokenizer.tokenize(dbn_script)
+    if VERBOSE:
+        dbn_ast.pprint()
 
-if VERBOSE:
-    for token in tokens:
-        print token
+    state = DBNInterpreterState()
+    state = dbn_ast.apply(state)
+    
+    return state
 
-dbn_ast = parser.parse(tokens)
+if __name__ == "__main__":
+    (options, args) = option_parser.parse_args()
 
-if VERBOSE:
-    dbn_ast.pprint()
+    VERBOSE = options.verbose
 
-state = DBNInterpreterState()
+    filename = args[0]
+    dbn_script = open(filename).read()
+        
+    state = run_script_text(dbn_script, VERBOSE=VERBOSE)
+    first = state
+    while first.previous is not None:
+        first = first.previous
 
-state = dbn_ast.apply(state)
-
-
-first = state
-while first.previous is not None:
-    first = first.previous
-
-if options.animate: 
-    output.animate_state(first, 'next')
-elif options.line_numbers:
-    output.print_line_numbers(first)
-else:
-    output.draw_window(state.image._image)
+    if options.animate: 
+        output.animate_state(first, 'next')
+    elif options.line_numbers:
+        output.print_line_numbers(first)
+    elif options.full:
+        output.full_interface(state, dbn_script)
+    else:
+        output.draw_window(state.image._image)

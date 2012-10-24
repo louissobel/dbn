@@ -1,6 +1,9 @@
 from PIL import Image, ImageTk
 import Tkinter
 
+
+import dbn
+
 import os
 
 import time
@@ -77,4 +80,64 @@ def make_gif(state):
     """
     convert -delay 3 -loop 1 `ls temp/ | sort -r | perl -pe '$_ = "temp/$_";'` animation.gif"
     """
+
+
+
+def full_interface(state, dbn_script):
+    master = Tkinter.Tk()
+    
+    canvas = Tkinter.Canvas(master, width=302, height=302)
+    canvas.grid(row=0, column=0, rowspan=2)
+    
+    image = state.image._image
+    
+    tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
+
+
+    canvas.create_rectangle(49, 49, 252, 252)
+    canvas_image = canvas.create_image((151,151), image=tkinter_image, anchor='center')
+    canvas.image = tkinter_image
+    
+    
+    textframe = Tkinter.Frame(master, bg="black", border=1)
+    text = Tkinter.Text(textframe, height=30, width=50, borderwidth=0, selectborderwidth=0, highlightthickness=0)
+    text.focus_set()
+
+    textframe.grid(row=0, column=1, padx=20, pady=20)
+    text.pack()
+    
+    def insert_tab(event):
+        # insert 4 spaces
+        text.insert(Tkinter.INSERT, " " * 4)
+        return "break"
+    text.bind("<Tab>", insert_tab)
+    
+
+    
+    text.insert(1.0, dbn_script)
+
+    def draw_state(state):
+        image = state.image._image
+        tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
+
+        canvas.itemconfigure(canvas_image, image=tkinter_image)
+        canvas.tkinter = tkinter_image    
+    
+    def draw_text():
+        dbn_script = text.get(1.0, Tkinter.END)
+        print repr(dbn_script)
+        state = dbn.run_script_text(dbn_script)
+        print state
+        draw_state(state)
+    
+    def keyboard_draw_text(event):
+        draw_text()
+        return "break"
+    text.bind("<Shift-Return>", keyboard_draw_text)
+    
+    b = Tkinter.Button(master, text="draw", command=draw_text)
+    b.grid(row=1, column=1)    
+    
+    master.mainloop()
+    
     
