@@ -52,6 +52,11 @@ if __name__ == "__main__":
     elif options.line_numbers:
         output.print_line_numbers(first)
     elif options.full:
-        output.full_interface(state, dbn_script)
+        # we have to destroy local references to this huge ass state.
+        # first save it in a container
+        states = [state]
+        del state
+        del first
+        output.full_interface(states, dbn_script)
     else:
         output.draw_window(state.image._image)

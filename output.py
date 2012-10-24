@@ -8,6 +8,7 @@ import os
 
 import time
 
+
 def animate_state(state, direction):
     master = Tkinter.Tk()
 
@@ -83,16 +84,20 @@ def make_gif(state):
 
 
 
-def full_interface(state, dbn_script):
+def full_interface(states, dbn_script):
+    ####### STATES IS A ONE_ELEMENT LIST
+    
     master = Tkinter.Tk()
     
     canvas = Tkinter.Canvas(master, width=302, height=302)
     canvas.grid(row=0, column=0, rowspan=2)
     
-    image = state.image._image
+    image = states[0].image._image
+    del states[0] # now no more reference to the input state!
+    
+
     
     tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
-
 
     canvas.create_rectangle(49, 49, 252, 252)
     canvas_image = canvas.create_image((151,151), image=tkinter_image, anchor='center')
@@ -111,23 +116,18 @@ def full_interface(state, dbn_script):
         text.insert(Tkinter.INSERT, " " * 4)
         return "break"
     text.bind("<Tab>", insert_tab)
-    
 
-    
     text.insert(1.0, dbn_script)
 
     def draw_state(state):
         image = state.image._image
         tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
-
         canvas.itemconfigure(canvas_image, image=tkinter_image)
-        canvas.tkinter = tkinter_image    
+        canvas.image = tkinter_image    
     
     def draw_text():
         dbn_script = text.get(1.0, Tkinter.END)
-        print repr(dbn_script)
         state = dbn.run_script_text(dbn_script)
-        print state
         draw_state(state)
     
     def keyboard_draw_text(event):
