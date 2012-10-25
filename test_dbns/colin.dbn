@@ -1,0 +1,10 @@
+Paper 60
+Pen 25
+
+Command K X Y {
+    Line X (Y + 10) X Y
+    Line X (Y + 5) (X + 5) (Y + 10)
+    Line X (Y + 5) (X + 5) Y
+}
+
+K 50 50 

@@ -68,8 +68,8 @@ class DBNEnvironment(object):
     def __copy__(self):
         new = self.__copy_without_parent()
         
-        # id like to just call this, but it halves our usable stack depth!
-        #new.parent = copy.copy(self.parent)
+        # id like to just call this, but it halves our usable stack depth (recursion)!
+        # new.parent = copy.copy(self.parent)
         # so fuu... make it an iteration? thats OK, but clutters the interface
         # ! not if we use deep copy too!
         # that's probably what I should do throughout the code,
