@@ -3,7 +3,7 @@ import Tkinter
 
 
 import dbn
-
+import sys
 import os
 
 import time
@@ -37,7 +37,7 @@ def animate_state(state, direction):
     master.mainloop()
 
 
-def draw_window(image):
+def draw_window(image, time=False):
     master = Tkinter.Tk()
 
     tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
@@ -49,6 +49,9 @@ def draw_window(image):
     w.create_rectangle(49, 49, 252, 252)
     w.create_image((151,151), image=tkinter_image, anchor='center')
     w.image = tkinter_image
+
+    if time:
+        sys.exit(0)
 
     master.mainloop()
 
