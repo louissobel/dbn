@@ -1,7 +1,7 @@
 import utils
 
 from dbnast import DBNPythonNode
-from dbnstate import Immutable, DBNImage
+from dbnstate import Producer, DBNImage
 from structures import DBNProcedure
 
 def builtin(formals):
@@ -15,8 +15,8 @@ def builtin(formals):
     return decorator
         
 @builtin(('blX', 'blY', 'trX', 'trY'))
-@Immutable.mutates
-def Line(state, *args):
+@Producer(mutates='image')
+def Line(old, *args):
     
     blX, blY, trX, trY = args
     
@@ -26,21 +26,21 @@ def Line(state, *args):
     trY = utils.pixel_to_coord(trY, 'y')
     
     points = utils.bresenham_line(blX, blY, trX, trY)
-    pixel_list = ((x, y, state.pen_color) for x, y in points)
+    pixel_list = ((x, y, old.pen_color) for x, y in points)
     
-    state.image = state.image.set_pixels(pixel_list)
+    return old.image.set_pixels(pixel_list)
 
 @builtin(('value',))
-@Immutable.mutates
-def Paper(state, value):
+@Producer(mutates='image')
+def Paper(old, value):
     color = utils.scale_100(value)
-    state.image = DBNImage(color=color)
+    return DBNImage(color=color)
 
 @builtin(('value',))
-@Immutable.mutates
-def Pen(state, value):
+@Producer(mutates='pen_color')
+def Pen(old, value):
     color = utils.scale_100(value)
-    state.pen_color = color
+    return color
     
 BUILTIN_PROCS = {
     'Line': Line,

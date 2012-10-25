@@ -7,33 +7,72 @@ from structures import DBNVariable, DBNDot
 
 RECURSION_LIMIT = 50
 
-
-class Immutable:
+            
+            
+def Producer(copies=None, mutates=None):
     
-    @staticmethod
-    def mutates(function):
-        """
-        decorator for first duplicating
-        """
-        def inner_function(old, *args, **kwargs):
+    # lets first fix up mutates, copies
+    if copies is None:
+        copies = []
+    if not isinstance(copies, (tuple, list)):
+        copies = [copies]
+
+    if mutates is None:
+        raise AssertionError("Mutates shouldnt' be onone,,, thats not a producer!")
+    if not isinstance(mutates, (tuple, list)):
+        mutates = [mutates]
+    
+    if len(mutates) == 0:
+        raise AssertionError("mutates shouldn't be length 0, either")
+    
+    def decorator(function):
+        
+        if mutates[0] == 'self':
+            def inner(old_self, *args, **kwargs):
+                if 'self' in copies:
+                    new_self = copy.copy(old_self)
+                    args = (new_self,) + args               
+                new = function(old_self, *args, **kwargs)
+                return new
+            return inner
+        
+        def inner(old, *args, **kwargs):
             new = copy.copy(old)
             
-            # lets do this... attach self to out as predecessor
-            if hasattr(new, 'previous'):
-                new.previous = old
+            copied_values = []
+            for mutatant in mutates:
+                attr = getattr(old, mutatant)
+                if mutatant in copies:
+                    attr = copy.copy(attr)
+                    copied_values.append(attr)
+                
+            retval = function(*((old, ) + tuple(copied_values) + args), **kwargs)
+            
+            if len(mutates) > 1:
+                if not isinstance(retval, tuple):
+                    raise AssertionError("retval must be tuple if mutating more than one")
+                if len(mutates) != len(retval):
+                    raise AssertionError("return value length must be same as number of mutatants")
+                
+                for mutatant, new_value in zip(mutates, retval):
+                    setattr(new, mutatant, new_value)
+            else:
+                setattr(new, mutates[0], retval)
+                
+            # attach forward and back links if they exist
             if hasattr(old, 'next'):
                 old.next = new
             
-            retval = function(new, *args, **kwargs)
-            if not retval:
-                return new
-            else:
-                return retval #trusting them...
+            if hasattr(new, 'previous'):
+                new.previous = old
             
-        return inner_function
-        
+            return new
+        return inner
+    return decorator
+              
 
-class DBNProcedureSet(Immutable):
+
+class DBNProcedureSet():
     """
     For now, just the built ins (Line, Paper, Pen)
     """
@@ -50,10 +89,11 @@ class DBNProcedureSet(Immutable):
     def get(self, command_name):
         return self.dispatch.get(command_name, None)
     
-    @Immutable.mutates
-    def add(self, command_name, proc):
-        self.dispatch[command_name] = proc
-
+    @Producer(copies='dispatch', mutates='dispatch')
+    def add(old, new_dispatch, command_name, proc):
+        new_dispatch[command_name] = proc
+        return new_dispatch
+        
 class DBNEnvironment(object):
     
     def __init__(self, parent=None):
@@ -103,82 +143,76 @@ class DBNEnvironment(object):
             else:
                 return self.parent.get(key, default)        
     
-    def __setitem__(self, key, value):
-        self._inner[key] = value
+    @Producer(copies='_inner', mutates='_inner')
+    def set(old, _inner, key, value):
+        _inner[key] = value
+        return _inner
         
-    def __delitem__(self, key):
-        del self._inner[key]
-        
-    def push(self):
-        new_parent = copy.copy(self)
-        new = DBNEnvironment(parent=new_parent)
-        return new
-        
-    def pop(self):
-        if self.parent is None:
+    @Producer(copies='_inner', mutates='_inner')
+    def update(old, _inner, dct):
+        _inner.update(dct)
+        return _inner
+      
+    @Producer(copies='_inner', mutates='_inner') 
+    def delete(old, _inner, key):
+        del _inner[key]
+        return _inner
+    
+    @Producer(copies='self', mutates='self')  
+    def push(old_self, new_self):
+        child = DBNEnvironment(parent=new_self)
+        return child
+    
+    @Producer(mutates='self')
+    def pop(old):
+        if old.parent is None:
             raise ValueError("Cannot pop an environment without a parent!")
         else:
-            return copy.copy(self.parent)
+            return copy.copy(old.parent)
         
         
 
-class DBNInterpreterState(Immutable):
+class DBNInterpreterState(object):
     """
     The state of the interpreter.
     Really, just the pen color, master environment?
     and, of course, the image.
     
     fucking immutable!
-    """        
+    """ 
     
-    def __init__(self, create=True):
-        self.previous = None
-        self.next = None
-        if create:
-            self.image = DBNImage(color=255)
-            self.pen_color = 0
-            self.env = DBNEnvironment()
-            self.commands = DBNProcedureSet()
-            
-            self.stack_depth = 0
-            self.line_no = -1
-                    
-    def __copy__(self):
-        new = DBNInterpreterState(create=False)
+    next = None
+    previous = None     
+    
+    def __init__(self):
+        self.image = DBNImage(color=255)
+        self.pen_color = 0
+        self.env = DBNEnvironment()
+        self.commands = DBNProcedureSet()
         
-        # copy all the attributes over
-        # this should be sufficient for now
-        new.image = copy.copy(self.image)
-        new.pen_color = self.pen_color # an integer, so no need to copy
-        new.env = copy.copy(self.env)
-        new.commands = copy.copy(self.commands)
-        
-        new.stack_depth = self.stack_depth
-        new.line_no = self.line_no
-        
-        return new
+        self.stack_depth = 0
+        self.line_no = -1
         
     def lookup_command(self, name):
         return self.commands.get(name)
         
-    @Immutable.mutates
-    def add_command(self, name, proc):
-        self.commands = self.commands.add(name, proc)
+    @Producer(mutates='commands')
+    def add_command(old, name, proc):
+        return old.commands.add(name, proc)
         
     def lookup_variable(self, var):
         return self.env.get(var, 0)
      
-    @Immutable.mutates
-    def set_variable(self, var, to):
-        self.env[var] = to
+    @Producer(mutates='env')
+    def set_variable(old, var, to):
+        return old.env.set(var, to)
     
-    @Immutable.mutates  
-    def set_variables(self, **kwargs):
-        for var, to in kwargs.items():
-            self.env[var] = to
+    @Producer(mutates='env')
+    def set_variables(old, **kwargs):
+        return old.env.update(kwargs)
     
-    @Immutable.mutates 
-    def set(self, lval, rval):
+    @Producer(mutates=('image', 'env'))
+    def set(old, lval, rval):
         """
         sets lval to rval
         
@@ -188,36 +222,34 @@ class DBNInterpreterState(Immutable):
             x_coord = utils.pixel_to_coord(lval.x, 'x')
             y_coord = utils.pixel_to_coord(lval.y, 'y')
             color = utils.scale_100(rval)
-            self.image = self.image.set_pixel(x_coord, y_coord, color)
+            return old.image.set_pixel(x_coord, y_coord, color), old.env
 
         elif isinstance(lval, DBNVariable):
-            self.env[lval.name] = rval
+            return old.image, old.env.set(lval.name, rval)
         
         else:
             raise ValueError("Unknown lvalue! %s" % str(lval))
 
-    @Immutable.mutates
-    def push(self):
-        if self.stack_depth >= RECURSION_LIMIT:
-            raise ValueError("Recursion too deep! %d" % self.stack_depth)
+    @Producer(mutates=('env', 'stack_depth'))
+    def push(old):
+        if old.stack_depth >= RECURSION_LIMIT:
+            raise ValueError("Recursion too deep! %d" % old.stack_depth)
         else:
-            self.env = self.env.push()
-            self.stack_depth += 1
+            return (old.env.push(), old.stack_depth + 1)
         
-    @Immutable.mutates
-    def pop(self):
-        self.env = self.env.pop()
-        self.stack_depth -= 1
-        
-    @Immutable.mutates
-    def set_line_no(self, line_no):
+    @Producer(mutates=('env', 'stack_depth'))
+    def pop(old):
+        return (old.env.pop(), old.stack_depth - 1)
+    
+    @Producer(mutates='line_no')
+    def set_line_no(_, line_no):
         # line_no SHOULD NEVER BE -1
         if line_no == -1:
             raise AssertionError("HOW LINE_NO -1?")
-        self.line_no = line_no
+        return line_no
              
 
-class DBNImage(Immutable):
+class DBNImage():
     """
     Primitive wrapper around pil image
     
@@ -251,13 +283,15 @@ class DBNImage(Immutable):
         self._image_array[x, y] = value
         return True
     
-    @Immutable.mutates
-    def set_pixel(self, x, y, value):
-        self.__set_pixel(x, y, value)
+    @Producer(copies='self', mutates='self')
+    def set_pixel(old_self, new_self, x, y, value):
+        new_self.__set_pixel(x, y, value)
+        return new_self
         
-    @Immutable.mutates
-    def set_pixels(self, pixel_iterator):
+    @Producer(copies='self', mutates='self')
+    def set_pixels(old_self, new_self, pixel_iterator):
         for x, y, value in pixel_iterator:
-            self.__set_pixel(x, y, value)
+            new_self.__set_pixel(x, y, value)
+        return new_self
 
 import builtins
