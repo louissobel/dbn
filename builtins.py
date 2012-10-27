@@ -15,8 +15,8 @@ def builtin(*formals):
     return decorator
         
 @builtin('blX', 'blY', 'trX', 'trY')
-@Producer(mutates='image')
-def Line(old, *args):
+@Producer
+def Line(old, new, *args):
     
     blX, blY, trX, trY = args
     
@@ -28,19 +28,19 @@ def Line(old, *args):
     points = utils.bresenham_line(blX, blY, trX, trY)
     pixel_list = ((x, y, old.pen_color) for x, y in points)
     
-    return old.image.set_pixels(pixel_list)
+    new.image = old.image.set_pixels(pixel_list)
 
 @builtin('value')
-@Producer(mutates='image')
-def Paper(old, value):
+@Producer
+def Paper(old, new, value):
     color = utils.scale_100(value)
-    return DBNImage(color=color)
+    new.image = DBNImage(color=color)
 
 @builtin('value')
-@Producer(mutates='pen_color')
-def Pen(old, value):
+@Producer
+def Pen(old, new, value):
     color = utils.scale_100(value)
-    return color
+    new.pen_color = color
     
 BUILTIN_PROCS = {
     'Line': Line,
