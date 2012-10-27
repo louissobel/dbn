@@ -192,7 +192,7 @@ class DBNInterpreterState(object):
         
         self.stack_depth = 0
         self.line_no = -1
-        
+                
     def lookup_command(self, name):
         return self.commands.get(name)
         

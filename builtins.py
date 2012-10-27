@@ -4,7 +4,7 @@ from dbnast import DBNPythonNode
 from dbnstate import Producer, DBNImage
 from structures import DBNProcedure
 
-def builtin(formals):
+def builtin(*formals):
     def decorator(function):        
         def inner(state):
             args = [state.lookup_variable(f) for f in formals]
@@ -14,7 +14,7 @@ def builtin(formals):
         return proc_node
     return decorator
         
-@builtin(('blX', 'blY', 'trX', 'trY'))
+@builtin('blX', 'blY', 'trX', 'trY')
 @Producer(mutates='image')
 def Line(old, *args):
     
@@ -30,13 +30,13 @@ def Line(old, *args):
     
     return old.image.set_pixels(pixel_list)
 
-@builtin(('value',))
+@builtin('value')
 @Producer(mutates='image')
 def Paper(old, value):
     color = utils.scale_100(value)
     return DBNImage(color=color)
 
-@builtin(('value',))
+@builtin('value')
 @Producer(mutates='pen_color')
 def Pen(old, value):
     color = utils.scale_100(value)

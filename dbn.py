@@ -40,13 +40,18 @@ if __name__ == "__main__":
 
     VERBOSE = options.verbose
 
-    filename = args[0]
-    dbn_script = open(filename).read()
+    try:
+        filename = args[0]
+        dbn_script = open(filename).read()
         
-    state = run_script_text(dbn_script, VERBOSE=VERBOSE)
-    first = state
-    while first.previous is not None:
-        first = first.previous
+        state = run_script_text(dbn_script, VERBOSE=VERBOSE)
+        first = state
+        while first.previous is not None:
+            first = first.previous
+    except IndexError:
+        dbn_script = ''
+        state = DBNInterpreterState()
+        first = 5
 
     if options.animate: 
         output.animate_state(first, 'next')
