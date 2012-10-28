@@ -7,9 +7,7 @@ from structures import DBNVariable, DBNDot
 
 RECURSION_LIMIT = 50
 
-            
-            
- 
+
 def Producer(function): 
     def inner(old, *args, **kwargs):
         new = copy.copy(old)
@@ -209,13 +207,13 @@ class DBNImage():
     
     in PIL represention, not DBN (255, upper left origin, etc)
     """
-    def __init__(self, color=255, create=True):
-        if create:
+    def __init__(self, color=255, new=True):
+        if new:
             self._image = Image.new('L', (101, 101), color)
             self._image_array = self._image.load()
         
     def __copy__(self):
-         new = DBNImage(create=False)
+         new = DBNImage(new=False)
          new._image = self._image.copy()
          new._image_array = new._image.load()
          return new
@@ -224,16 +222,12 @@ class DBNImage():
         return self._image_array[x, y]
     
     def __set_pixel(self, x, y, value):
-        if x > 100:
-            return False
-        if x < 0:
+        if not 0 <= x <= 100:
             return False
         
-        if y > 100:
+        if not 0 <= y <= 100:
             return False
-        if y < 0:
-            return False
-    
+        
         self._image_array[x, y] = value
         return True
     
