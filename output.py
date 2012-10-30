@@ -5,7 +5,8 @@ import Tkinter
 import dbn
 import sys
 import os
-
+from tokenizer import DBNTokenizer
+import parser
 import time
 
 
@@ -142,37 +143,91 @@ def full_interface(states, dbn_script):
         return "break"
     text.bind("<Shift-Return>", keyboard_draw_text)
     
+    
+    ### stuff for drawing ghosts
+    tokenizer = DBNTokenizer()
+    def get_line(tkinter_index):
+        """
+        given an X, Y, gets the line text, or None
+        """
+        line, column = tkinter_index.split('.')
+        end_of_line = text.index("%s.end" % line).split('.')[1]
+        if int(column) < int(end_of_line):
+            start = "%s.0" % (line)
+            end = "%s.end" % (line)
+            return text.get(start, end)
+        else:
+            return None
+    
+
+    def text_mouse_motion(event):
+        #print event.x, event.y
+        tkinter_index = text.index("@%d,%d" % (event.x, event.y))
+        
+        str_line_no = tkinter_index.split('.')[0]
+        
+        line = get_line(tkinter_index)
+        if line is not None:
+            tokens = tokenizer.tokenize(line)
+            args = parser.parse_args(tokens)
+            int_arg_no = None
+            arg_count = len(args)
+            # we have to manually get bounding box for args
+            bounding_boxes = []
+            for index, arg in enumerate(args):
+                str_start_char = int(arg.start_location().split('.')[1])
+                str_end_char = int(arg.end_location().split('.')[1])
+
+                arg_start = "%s.%s" % (str_line_no, str_start_char)
+                arg_end = "%s.%s" % (str_line_no, str_end_char)
+
+                start_bbox = text.bbox(arg_start)
+                start_x, start_y, width, height = start_bbox
+
+                end_bbox = text.bbox(arg_end)
+                end_x, end_y, _, _ = end_bbox
+                
+                arg_bbox = (start_x, start_y, (end_x - start_x), height)
+                bounding_boxes.append(arg_bbox)
+            
+            int_arg_index = None
+            for index, arg_bbox in enumerate(bounding_boxes):
+                start_x, start_y, width, height = arg_bbox
+                if start_x <= event.x < start_x + width:
+                    int_arg_index = index
+                    break
+            if int_arg_index is not None:
+                set_ghost("l%sa%d" % (str_line_no, int_arg_index))
+            else:
+                clear_ghost()
+        else:
+            clear_ghost()             
+        
+    text.bind("<Motion>", text_mouse_motion)
+    
+    
+    
     b = Tkinter.Button(master, text="draw", command=draw_text)
     b.grid(row=1, column=1)
     
     
     # stuff for testing ghosts
-    ghost_input = Tkinter.Entry(master)
-    def draw_ghost():
-        key = ghost_input.get()
+    def set_ghost(key):
         state = states[0]
-        image = state.ghosts._ghost_hash.get(key)._image
+        image = state.ghosts._ghost_hash.get(key)
         if image is None:
-            print "None!"
+            pass
         else:
-            ghost_tkinter_image = ImageTk.BitmapImage(image.resize((202, 202)), foreground="red")
+            ghost_tkinter_image = ImageTk.BitmapImage(image._image.resize((202, 202)), foreground="red")
             canvas.itemconfigure(ghost_image, image=ghost_tkinter_image)
             canvas.ghost_image = ghost_tkinter_image
     
     def clear_ghost():
-        ghost_input.delete(0, Tkinter.END)
-        canvas.itemconfigure(ghost_image, image=None)
-        del canvas.ghost_image
+        if hasattr(canvas, 'ghost_image'):
+            canvas.itemconfigure(ghost_image, image=None)
+            del canvas.ghost_image
+
     
-    ghost_draw = Tkinter.Button(master, text='ghost', command=draw_ghost)
-    ghost_clear = Tkinter.Button(master, text='clear', command=clear_ghost)
-    
-    ghost_input.grid(row=2)
-    ghost_draw.grid(row=3)
-    ghost_clear.grid(row=4)
-    
-    
-    print state.ghosts._ghost_hash
     
     master.mainloop()
     

@@ -21,6 +21,10 @@ class DBNToken:
         self.char_no = char_no
 
         self.raw = raw
+        
+    def get_end_char_no(self):
+        return self.char_no + len(self.value)
+    end_char_no = property(get_end_char_no)
 
     def __str__(self):
         return "%d:%d> %s %s" % (

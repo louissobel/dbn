@@ -2,7 +2,7 @@
 a module that implements the parsing classes
 """
 from dbnast import *
-
+from tokenizer import DBNToken
           
 def parse_block(tokens, commands_allowed=False):
     """
@@ -16,35 +16,39 @@ def parse_block(tokens, commands_allowed=False):
     word \implies command
     """    
     block_nodes = []
+    all_tokens = tokens[:]
     while tokens:
         first_token = tokens.pop(0)
 
         next_node = None
         if first_token.type == 'SET':
-            set_tokens = collect_until_next(tokens, 'NEWLINE')
-            next_node = parse_set(set_tokens)
+            set_tokens, _ = collect_until_next(tokens, 'NEWLINE')
+            set_token = first_token
+            next_node = parse_set(set_token, set_tokens)
             
         elif first_token.type == 'REPEAT':
-            arg_tokens = collect_until_next(tokens, 'OPENBRACE')
-            body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
-            next_node = parse_repeat(arg_tokens, body_tokens)
+            arg_tokens, open_brace_token = collect_until_next(tokens, 'OPENBRACE')
+            body_tokens, close_brace_token = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
+            repeat_token = first_token
+            next_node = parse_repeat(repeat_token, arg_tokens, open_brace_token, body_tokens, close_brace_token)
             
         elif first_token.type == 'QUESTION':
-            arg_tokens = collect_until_next(tokens, 'OPENBRACE')
-            body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
-            question_name = first_token.value
-            next_node = parse_question(question_name, arg_tokens, body_tokens)
+            arg_tokens, open_brace_token = collect_until_next(tokens, 'OPENBRACE')
+            body_tokens, close_brace_token = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
+            question_token = first_token
+            next_node = parse_question(question_token, arg_tokens, open_brace_token, body_tokens, close_brace_token)
             
         elif first_token.type == 'COMMAND' and commands_allowed:
-            arg_tokens = collect_until_next(tokens, 'OPENBRACE')
-            body_tokens = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
-            next_node = parse_define_command(arg_tokens, body_tokens)
+            arg_tokens, open_brace_token = collect_until_next(tokens, 'OPENBRACE')
+            body_tokens, close_brace_token = collect_until_balanced(tokens, 'OPENBRACE', 'CLOSEBRACE')
+            command_token = first_token
+            next_node = parse_define_command(command_token, arg_tokens, open_brace_token, body_tokens, close_brace_token)
         
         elif first_token.type == 'WORD':
             # then we treat it as a command :/
-            arg_tokens = collect_until_next(tokens, 'NEWLINE')
-            command_name = first_token.value        
-            next_node = parse_command(command_name, arg_tokens)
+            arg_tokens, _ = collect_until_next(tokens, 'NEWLINE')
+            command_token = first_token  
+            next_node = parse_command(command_token, arg_tokens)
             
         elif first_token.type == 'NEWLINE':
             # then it is just an extra blank new line...
@@ -58,32 +62,35 @@ def parse_block(tokens, commands_allowed=False):
             next_node.line_no = first_token.line_no
             block_nodes.append(next_node)
     
-    return DBNBlockNode(*block_nodes)
+    return DBNBlockNode(*block_nodes, tokens=all_tokens)
 
-def parse_command(command_name, arg_tokens):
+def parse_command(command_token, arg_tokens):
     """
     parses a command
     """
+    all_tokens = [command_token] + arg_tokens[:]
+    command_name = command_token.value
     args = parse_args(arg_tokens)    
-    return DBNCommandNode(command_name, *args) # eeks, digging into the node here
+    return DBNCommandNode(command_name, *args, tokens=all_tokens) # eeks, digging into the node here
     
-def parse_set(arg_tokens):
+def parse_set(set_token, arg_tokens):
     """
     parses a Set
     """
+    all_tokens = [set_token] + arg_tokens[:]
     args = parse_args(arg_tokens)
     valid, error = assert_args(args, length=2, match=((DBNBracketNode, DBNWordNode), ) )
     if not valid:
         raise ValueError("Bad arguments parsing Set: %s" % error)
     
     lvalue, rvalue = args
-    
-    return DBNSetNode(lvalue, rvalue)
+    return DBNSetNode(lvalue, rvalue, tokens=all_tokens)
             
-def parse_repeat(arg_tokens, body_tokens):
+def parse_repeat(repeat_token, arg_tokens, open_brace_token, body_tokens, close_brace_token):
     """
     parses a Repeat
     """
+    all_tokens = [repeat_token] + arg_tokens[:] + [open_brace_token] + body_tokens[:] + [close_brace_token]
     strip_newline(arg_tokens) # newline between args and bracket is optional
 
     args = parse_args(arg_tokens)
@@ -92,15 +99,15 @@ def parse_repeat(arg_tokens, body_tokens):
         raise ValueError("bad arguments while parsing Repeat: %s" % error)
         
     body = parse_block(body_tokens)
-    
     var, start, end = args
+    return DBNRepeatNode(var, start, end, body, tokens=all_tokens)
     
-    return DBNRepeatNode(var, start, end, body)
-    
-def parse_question(question_name, arg_tokens, body_tokens):
+def parse_question(question_token, arg_tokens, open_brace_token, body_tokens, close_brace_token):
     """
     parses a question!
     """
+    all_tokens = [question_token] + arg_tokens[:] + [open_brace_token] + body_tokens[:] + [close_brace_token]
+    question_name = question_token.value
     strip_newline(arg_tokens)
     
     args = parse_args(arg_tokens)
@@ -109,16 +116,15 @@ def parse_question(question_name, arg_tokens, body_tokens):
         raise ValueError("bad arguments while parsing question %s: " % (question_name, error))
         
     body = parse_block(body_tokens)
-    
     lvalue, rvalue = args
-    
-    return DBNQuestionNode(question_name, lvalue, rvalue, body)
+    return DBNQuestionNode(question_name, lvalue, rvalue, body, tokens=all_tokens)
 
-def parse_define_command(arg_tokens, body_tokens):
+def parse_define_command(command_token, arg_tokens, open_brace_token, body_tokens, close_brace_token):
     """
     parses a command definition!
     """
-    # arg tokens MUST ALL BE WORDS. so we can bypass the normal parsing route.
+    all_tokens = [command_token] + arg_tokens[:] + [open_brace_token] + body_tokens[:] + [close_brace_token]
+    # arg tokens MUST ALL BE WORDS. so we can bypass the normal parsing route.    
     args = []
     for index, arg_token in enumerate(arg_tokens):
         if not arg_token.type == 'WORD':
@@ -134,31 +140,25 @@ def parse_define_command(arg_tokens, body_tokens):
     
     command_name = args[0]
     formal_args = args[1:]
-    
     body = parse_block(body_tokens)
+    return DBNCommandDefinitionNode(command_name, formal_args, body, tokens=all_tokens)
     
-    # ah.. ok.. lets not allow any commands within commands.
-    return DBNCommandDefinitionNode(command_name, formal_args, body)
-    
-    
-    
-
-def parse_bracket(tokens):
+def parse_bracket(open_bracket_token, content_tokens, close_bracket_token):
     """
     ok, so tokens is everything in the brackets
 
     pretty simple... call parse args on tokens, then make sure that
     there are only two, then store left, right
     """
-    args = parse_args(tokens)
+    all_tokens = [open_bracket_token] + list(content_tokens) + [close_bracket_token]
+    args = parse_args(content_tokens)
     valid, error = assert_args(args, length=2)
     if not valid:
         raise ValueError("Bad bracket contents: %s" % error)
         
     left = args[0]
     right = args[1]
-
-    return DBNBracketNode(left, right) 
+    return DBNBracketNode(left, right, tokens=all_tokens) 
     
 def parse_args(tokens):
     """
@@ -181,19 +181,21 @@ def parse_args(tokens):
             arg_list.append(parse_word(first_token))
             
         elif first_token.type == 'OPENPAREN':
-            arithmetic_tokens = collect_until_balanced(tokens, 'OPENPAREN', 'CLOSEPAREN')
-            arg_list.append(parse_arithmetic(arithmetic_tokens))
+            arithmetic_tokens, close_paren_token = collect_until_balanced(tokens, 'OPENPAREN', 'CLOSEPAREN')
+            open_paren_token = first_token
+            arg_list.append(parse_arithmetic(open_paren_token, arithmetic_tokens, close_paren_token))
         
         elif first_token.type == 'OPENBRACKET':
-            bracket_tokens = collect_until_balanced(tokens, 'OPENBRACKET', 'CLOSEBRACKET')
-            arg_list.append(parse_bracket(bracket_tokens))
+            bracket_tokens, close_bracket_token = collect_until_balanced(tokens, 'OPENBRACKET', 'CLOSEBRACKET')
+            open_bracket_token = first_token
+            arg_list.append(parse_bracket(open_bracket_token, bracket_tokens, close_bracket_token))
             
         else:
             raise ValueError("I don't know how to handle token type %s while parsing args!" % first_token.type)
             
     return arg_list
     
-def parse_arithmetic(tokens):
+def parse_arithmetic(open_paren_token, tokens, close_paren_token):
     """
     mega function to parse a set of tokens representing 'arithmatic'
     
@@ -218,15 +220,17 @@ def parse_arithmetic(tokens):
             nodes_and_ops.append(parse_number(first_token))
         
         elif first_token.type == 'OPENPAREN':
-            arithmetic_tokens = collect_until_balanced(tokens, 'OPENPAREN', 'CLOSEPAREN')
-            nodes_and_ops.append(parse_arithmetic(arithmetic_tokens))
+            arithmetic_tokens, close_paren_token = collect_until_balanced(tokens, 'OPENPAREN', 'CLOSEPAREN')
+            open_paren_token = first_token
+            nodes_and_ops.append(parse_arithmetic(open_paren_token, arithmetic_tokens, close_paren_token))
         
         elif first_token.type == 'OPENBRACKET':
-            bracket_tokens = collect_until_balanced(tokens, 'OPENBRACKET', 'CLOSEBRACKET')
-            nodes_and_ops.append(parse_bracket(bracket_tokens))
+            bracket_tokens, close_bracket_token = collect_until_balanced(tokens, 'OPENBRACKET', 'CLOSEBRACKET')
+            open_bracket_token = first_token
+            nodes_and_ops.append(parse_bracket(open_bracket_token, bracket_tokens, close_bracket_token))
             
         elif first_token.type == 'OPERATOR':
-            nodes_and_ops.append(first_token.value)
+            nodes_and_ops.append(first_token)
     
     # now we take multiple passes over that list, reducing
     # it by making binary operations, until it only has one
@@ -240,9 +244,10 @@ def parse_arithmetic(tokens):
             active_operation = operation
             found = False
             for index, node_or_op in enumerate(nodes_and_ops):
-                if node_or_op == active_operation:
-                    found = True
-                    active_index = index
+                if isinstance(node_or_op, DBNToken):
+                    if node_or_op.value == active_operation:
+                        found = True
+                        active_index = index
             if found:
                 break
                 
@@ -264,14 +269,15 @@ def parse_arithmetic(tokens):
             raise ValueError("There is no node! to the right of the %s operation" % active_operation)
         
         # some semanitc? validation...
-        if isinstance(left_node, basestring):
+        if isinstance(left_node, DBNToken):
             raise ValueError("The node to the left is not a node, but a string! %s" % left_node)
             
-        if isinstance(right_node, basestring):
+        if isinstance(right_node, DBNToken):
             raise ValueError("The node to the right is not a node, but a string! %s" % right_node)
             
         # ok but here, we know that they are both nodes (and they both exist!)
-        new_node = DBNBinaryOpNode(active_operation, left_node, right_node)
+        all_tokens = left_node.tokens + [nodes_and_ops[active_index]] + right_node.tokens
+        new_node = DBNBinaryOpNode(active_operation, left_node, right_node, tokens=all_tokens)
         
         new_nodes_and_ops = []
         for index, node_or_op in enumerate(nodes_and_ops):
@@ -286,19 +292,22 @@ def parse_arithmetic(tokens):
                 
         nodes_and_ops = new_nodes_and_ops
 
-    return nodes_and_ops[0] # a DBNBinaryOpNode
+    final_op = nodes_and_ops[0] # a DBNBinaryOpNode
+    # adding the close parents
+    final_op.tokens = [open_paren_token] + final_op.tokens + [close_paren_token]
+    return final_op
                             
 def parse_word(token):
     """
     token is just one token
     """
-    return DBNWordNode(token.value)
+    return DBNWordNode(token.value, tokens=[token])
     
 def parse_number(token):
     """
     token is just one token
     """
-    return DBNNumberNode(token.value)
+    return DBNNumberNode(token.value, tokens=[token])
 
 
 def collect_until_next(tokens, token_type):
@@ -309,13 +318,15 @@ def collect_until_next(tokens, token_type):
     throws away the terminating token of type token_type
     """
     out_tokens = []
+    last_token = None
     while tokens:
       next_token = tokens.pop(0)
       if next_token.type == token_type:
+          last_token = next_token
           break
       else:
           out_tokens.append(next_token)
-    return out_tokens
+    return out_tokens, last_token
 
 def collect_until_balanced(tokens, left_type, right_type):
     """
@@ -330,17 +341,19 @@ def collect_until_balanced(tokens, left_type, right_type):
 
     score = 1 # will return once 0
     out_tokens = []
+    last_token = None
     while tokens:
       next_token = tokens.pop(0)
       if next_token.type == right_type:
           score -= 1
           if score == 0:
+              last_token = next_token
               break
       elif next_token.type == left_type:
           score += 1
 
       out_tokens.append(next_token)
-    return out_tokens    
+    return out_tokens, last_token    
 
 def assert_args(args, length=None, match=None):
     """

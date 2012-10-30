@@ -18,16 +18,45 @@ VERBOSE = False
 
 class DBNBaseNode:
     
-    def __init__(self):
+    def __init__(self, tokens=None):
         self.line_no = -1
+        
+        if tokens is None:
+            self.tokens = []
+        else:
+            self.tokens = tokens
+    
+    def start_location(self):
+        """
+        returns a "lineno.charno" of where it starts
+        or None if it has no tokens
+        """
+        if self.tokens:
+            first_token = self.tokens[0]
+            return "%d.%d" % (first_token.line_no, first_token.char_no - 1)
+        else:
+            return None
+            
+    def end_location(self):
+        """
+        retusn a "lineno.charno" of where it ends
+        or None if it has no tokens
+        """
+        if self.tokens:
+            last_token = self.tokens[-1]
+            return "%d.%d" % (last_token.line_no, last_token.end_char_no - 1)
+        else:
+            return None
+        
         
 
 class DBNBlockNode(DBNBaseNode):
 
     display_name = 'block'
 
-    def __init__(self, *args):
-        DBNBaseNode.__init__(self)
+    def __init__(self, *args, **kwargs):
+        tokens = kwargs.get('tokens')
+        DBNBaseNode.__init__(self, tokens=tokens)
         self.children = args
 
     def apply(self, state):
@@ -57,8 +86,8 @@ class DBNSetNode(DBNBaseNode):
 
     display_name = 'set'
 
-    def __init__(self, left, right):
-        DBNBaseNode.__init__(self)
+    def __init__(self, left, right, tokens=None):
+        DBNBaseNode.__init__(self, tokens=tokens)
         self.left = left
         self.right = right
 
@@ -84,8 +113,8 @@ class DBNRepeatNode(DBNBaseNode):
 
     display_name = 'repeat'
 
-    def __init__(self, var, start, end, body):
-        DBNBaseNode.__init__(self)
+    def __init__(self, var, start, end, body, tokens=None):
+        DBNBaseNode.__init__(self, tokens=tokens)
         self.var = var
         self.start = start
         self.end = end
@@ -125,8 +154,8 @@ class DBNQuestionNode(DBNBaseNode):
     
     display_name = 'question'
     
-    def __init__(self, question_name, lvalue, rvalue, body):
-        DBNBaseNode.__init__(self)
+    def __init__(self, question_name, lvalue, rvalue, body, tokens=None):
+        DBNBaseNode.__init__(self, tokens=tokens)
         self.question_name = question_name
         self.lvalue = lvalue
         self.rvalue = rvalue
@@ -166,8 +195,9 @@ class DBNCommandNode(DBNBaseNode):
 
     display_name = 'command'
 
-    def __init__(self, command_name, *args):
-        DBNBaseNode.__init__(self)
+    def __init__(self, command_name, *args, **kwargs):
+        tokens = kwargs.get('tokens')
+        DBNBaseNode.__init__(self, tokens=tokens)
         self.command_name = command_name
         self.args = args
 
@@ -210,8 +240,8 @@ class DBNCommandDefinitionNode(DBNBaseNode):
     
     display_name = 'command_definition'
     
-    def __init__(self, name, args, command_body):
-        DBNBaseNode.__init__(self)
+    def __init__(self, name, args, command_body, tokens=None):
+        DBNBaseNode.__init__(self, tokens=tokens)
         self.name = name
         self.args = args
         self.command_body = command_body
@@ -243,7 +273,7 @@ class DBNPythonNode(DBNBaseNode):
     display_name = 'python'
     
     def __init__(self, function):
-        DBNBaseNode.__init__(self)
+        DBNBaseNode.__init__(self, tokens=[])
         self.function = function
         
     def apply(self, state):
@@ -269,8 +299,8 @@ class DBNBracketNode(DBNBaseNode):
 
     display_name = 'dot'
 
-    def __init__(self, left, right):
-        DBNBaseNode.__init__(self)
+    def __init__(self, left, right, tokens=None):
+        DBNBaseNode.__init__(self, tokens=tokens)
         self.left = left
         self.right = right
 
@@ -301,8 +331,8 @@ class DBNBinaryOpNode(DBNBaseNode):
 
     display_name = 'operation'
 
-    def __init__(self, operation, left, right):
-        DBNBaseNode.__init__(self)
+    def __init__(self, operation, left, right, tokens=None):
+        DBNBaseNode.__init__(self, tokens=tokens)
         self.operation = operation
         self.left = left
         self.right = right
@@ -334,8 +364,8 @@ class DBNNumberNode(DBNBaseNode):
 
     display_name = 'number'
 
-    def __init__(self, numberstring):
-        DBNBaseNode.__init__(self)
+    def __init__(self, numberstring, tokens=None):
+        DBNBaseNode.__init__(self, tokens=tokens)
         self.numberstring = numberstring
 
     def __str__(self):
@@ -352,8 +382,8 @@ class DBNWordNode(DBNBaseNode):
 
     display_name = 'word'
 
-    def __init__(self, wordstring):
-        DBNBaseNode.__init__(self)
+    def __init__(self, wordstring, tokens=None):
+        DBNBaseNode.__init__(self, tokens=tokens)
         self.wordstring = wordstring
 
     def __str__(self):
