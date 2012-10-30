@@ -1,6 +1,0 @@
- - tests.
-    - parse trees
-    - state stuff
-    - basic ast transformations
- - questions... should be pretty straight forward, following pattern of repeat
-    

@@ -125,9 +125,11 @@ class DBNInterpreterState(object):
             self.pen_color = 0
             self.env = DBNEnvironment()
             self.commands = DBNProcedureSet()
-        
+            self.ghosts = DBNGhosts()
+            
             self.stack_depth = 0
             self.line_no = -1
+            
     
     def __copy__(self):
         new = DBNInterpreterState(new=False)
@@ -136,6 +138,7 @@ class DBNInterpreterState(object):
         new.pen_color = self.pen_color
         new.env = self.env
         new.commands = self.commands
+        new.ghosts = self.ghosts
         
         new.stack_depth = self.stack_depth
         new.line_no = self.line_no
@@ -173,7 +176,20 @@ class DBNInterpreterState(object):
             y_coord = utils.pixel_to_coord(lval.y, 'y')
             color = utils.scale_100(rval)
             new.image = old.image.set_pixel(x_coord, y_coord, color)
-
+            
+            ##### hinting stuff
+            line_no = new.line_no
+            # hack to figure out if in command
+            in_command = new.stack_depth != 0
+            
+            new_ghosts = old.ghosts.add_point(line_no, 0, (x_coord, y_coord))
+            if not in_command:
+                new_ghosts = (new_ghosts
+                                .add_dimension_line(line_no, 1, 'horizontal', x_coord, y_coord)
+                                .add_dimension_line(line_no, 2, 'vertical', x_coord, y_coord)
+                )
+            new.ghosts = new_ghosts
+            
         elif isinstance(lval, DBNVariable):
             new.env = old.env.set(lval.name, rval)
         
@@ -198,8 +214,65 @@ class DBNInterpreterState(object):
         # line_no SHOULD NEVER BE -1
         if line_no == -1:
             raise AssertionError("HOW LINE_NO -1?")
-        new.line_no = 1
-             
+        new.line_no = line_no
+
+
+class DBNGhosts:
+    """
+    immutable state object representing ghosts
+    """
+    
+    def __init__(self):
+        self._ghost_hash = {}
+    
+    def __copy__(self):
+        new = DBNGhosts()
+        new._ghost_hash = copy.copy(self._ghost_hash)
+        return new
+    
+    def _make_key(self, line_no, arg_no):
+        return "l%da%d" % (line_no, arg_no)
+    
+    def _get_image(self, line_no, arg_no):
+        key = self._make_key(line_no, arg_no)
+        return self._ghost_hash.get(key)
+
+    def _set_image(self, line_no, arg_no, dbnimage):
+        key = self._make_key(line_no, arg_no)
+        self._ghost_hash[key] = dbnimage
+        return dbnimage
+        
+    def _add_points(self, line_no, arg_no, points):
+        """
+        points is a list of tuples
+        """
+        print line_no
+        image = self._get_image(line_no, arg_no)
+        if image is None:
+            image = DBNImage(color=0, mode='1')  # bitmap mode
+            
+        new_image = image.set_pixels((x, y, 1) for x,y in points)
+        self._set_image(line_no, arg_no, new_image)
+    
+    @Producer
+    def add_points(old, new, line_no, arg_no, points):
+        new._add_points(line_no, arg_no, points)
+    
+    @Producer
+    def add_point(old, new, line_no, arg_no, point):
+        """
+        point is an (x, y) tuple
+        """
+        new._add_points(line_no, arg_no, [point])
+    
+    @Producer
+    def add_dimension_line(old, new, line_no, arg_no, direction, x, y):
+        """
+        adds a dimension line!
+        """
+        points = utils.dimension_line(direction, x, y)
+        new._add_points(line_no, arg_no, points)
+        
 
 class DBNImage():
     """
@@ -207,9 +280,9 @@ class DBNImage():
     
     in PIL represention, not DBN (255, upper left origin, etc)
     """
-    def __init__(self, color=255, new=True):
+    def __init__(self, color=255, new=True, mode='L'):
         if new:
-            self._image = Image.new('L', (101, 101), color)
+            self._image = Image.new(mode, (101, 101), color)
             self._image_array = self._image.load()
         
     def __copy__(self):

@@ -59,3 +59,53 @@ def bresenham_line(x0, y0, x1, y1):
             y = y + ystep
             error = error - deltax
     raise StopIteration
+    
+def dimension_line(direction, x, y):
+    """'
+    yields the points for a direction line
+    """ 
+    L = 2 # end size in pixels (half the end size, actually)
+    if direction == 'horizontal':
+        x = x - 1
+        l_x1 = 0
+        l_y1 = y
+        l_x2 = x
+        l_y2 = y
+        
+        d1_x1 = 0
+        d1_y1 = y - L
+        d1_x2 = 0
+        d1_y2 = y + L
+        
+        d2_x1 = x
+        d2_y1 = y - L
+        d2_x2 = x
+        d2_y2 = y + L 
+           
+    elif direction == 'vertical':
+        y = y + 1 # plus 1 because it is already transformed
+        l_x1 = x
+        l_y1 = pixel_to_coord(0, 'y')
+        l_x2 = x
+        l_y2 = y
+        
+        d1_x1 = x + L
+        d1_y1 = pixel_to_coord(0, 'y')
+        d1_x2 = x - L
+        d1_y2 = pixel_to_coord(0, 'y')
+        
+        d2_x1 = x - L
+        d2_y1 = y
+        d2_x2 = x + L
+        d2_y2 = y
+        
+    lines = [
+        (l_x1, l_y1, l_x2, l_y2),
+        (d1_x1, d1_y1, d1_x2, d1_y2),
+        (d2_x1, d2_y1, d2_x2, d2_y2),
+    ]
+    
+    for line_points in lines:
+        for point in bresenham_line(*line_points):
+            yield point
+    raise StopIteration

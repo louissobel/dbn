@@ -95,9 +95,9 @@ def full_interface(states, dbn_script):
     canvas = Tkinter.Canvas(master, width=302, height=302)
     canvas.grid(row=0, column=0, rowspan=2)
     
-    image = states[0].image._image
-    del states[0] # now no more reference to the input state!
+    state = states[0]
     
+    image = state.image._image
 
     
     tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
@@ -106,6 +106,7 @@ def full_interface(states, dbn_script):
     canvas_image = canvas.create_image((151,151), image=tkinter_image, anchor='center')
     canvas.image = tkinter_image
     
+    ghost_image = canvas.create_image((151, 151), anchor='center')    
     
     textframe = Tkinter.Frame(master, bg="black", border=1)
     text = Tkinter.Text(textframe, height=30, width=50, borderwidth=0, selectborderwidth=0, highlightthickness=0)
@@ -123,10 +124,13 @@ def full_interface(states, dbn_script):
     text.insert(1.0, dbn_script)
 
     def draw_state(state):
+        states[0] = state
         image = state.image._image
         tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
         canvas.itemconfigure(canvas_image, image=tkinter_image)
-        canvas.image = tkinter_image    
+        canvas.image = tkinter_image 
+        
+        print state.ghosts._ghost_hash   
     
     def draw_text():
         dbn_script = text.get(1.0, Tkinter.END)
@@ -139,7 +143,36 @@ def full_interface(states, dbn_script):
     text.bind("<Shift-Return>", keyboard_draw_text)
     
     b = Tkinter.Button(master, text="draw", command=draw_text)
-    b.grid(row=1, column=1)    
+    b.grid(row=1, column=1)
+    
+    
+    # stuff for testing ghosts
+    ghost_input = Tkinter.Entry(master)
+    def draw_ghost():
+        key = ghost_input.get()
+        state = states[0]
+        image = state.ghosts._ghost_hash.get(key)._image
+        if image is None:
+            print "None!"
+        else:
+            ghost_tkinter_image = ImageTk.BitmapImage(image.resize((202, 202)), foreground="red")
+            canvas.itemconfigure(ghost_image, image=ghost_tkinter_image)
+            canvas.ghost_image = ghost_tkinter_image
+    
+    def clear_ghost():
+        ghost_input.delete(0, Tkinter.END)
+        canvas.itemconfigure(ghost_image, image=None)
+        del canvas.ghost_image
+    
+    ghost_draw = Tkinter.Button(master, text='ghost', command=draw_ghost)
+    ghost_clear = Tkinter.Button(master, text='clear', command=clear_ghost)
+    
+    ghost_input.grid(row=2)
+    ghost_draw.grid(row=3)
+    ghost_clear.grid(row=4)
+    
+    
+    print state.ghosts._ghost_hash
     
     master.mainloop()
     
