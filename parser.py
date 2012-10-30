@@ -309,6 +309,32 @@ def parse_number(token):
     """
     return DBNNumberNode(token.value, tokens=[token])
 
+def parse_ghost_line(tokens):
+    """
+    utility function used by interface to parse a line
+    for ghosting
+    
+    three behaviors:
+        - word is first (then it's command)
+        - set is first (then it's a set)
+        - anything else
+    """
+    if not tokens:
+        return None
+    
+    first_token = tokens[0]
+    if first_token.type == 'WORD':
+        return parse_args(tokens)
+        
+    elif first_token.type == 'SET':
+        args = parse_args(tokens[1:])
+        if not args:
+            return None
+        
+        first_arg = args[0]
+        if not isinstance(first_arg, DBNBracketNode):
+            return None
+        return [DBNWordNode(first_token.value, tokens=[first_token]), first_arg.left, first_arg.right] + args[1:]
 
 def collect_until_next(tokens, token_type):
     """

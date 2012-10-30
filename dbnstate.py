@@ -29,8 +29,6 @@ def Producer(function):
         return new
     return inner
 
-              
-
 
 class DBNProcedureSet():
     """
@@ -52,15 +50,18 @@ class DBNProcedureSet():
     @Producer
     def add(old, new, command_name, proc):
         new.dispatch[command_name] = proc
+
         
 class DBNEnvironment(object):
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, base_line_no=-1):
+        self.base_line_no = base_line_no
+        print self.base_line_no, 'fdf'
         self.parent = parent
         self._inner = {}
 
     def __copy__(self):
-        new = DBNEnvironment(parent=self.parent)
+        new = DBNEnvironment(parent=self.parent, base_line_no=self.base_line_no)
         new._inner = copy.copy(self._inner)
         return new
     
@@ -96,8 +97,9 @@ class DBNEnvironment(object):
     def delete(old, new, key):
         del new._inner[key]
       
-    def push(self):
-        child = DBNEnvironment(parent=self)
+    def push(self, base_line_no):
+        print base_line_no, "--"
+        child = DBNEnvironment(parent=self, base_line_no=base_line_no)
         return child
     
     def pop(self):
@@ -179,15 +181,13 @@ class DBNInterpreterState(object):
             
             ##### hinting stuff
             line_no = new.line_no
-            # hack to figure out if in command
-            in_command = new.stack_depth != 0
-            
-            new_ghosts = old.ghosts.add_point(line_no, 0, (x_coord, y_coord))
-            if not in_command:
-                new_ghosts = (new_ghosts
-                                .add_dimension_line(line_no, 1, 'horizontal', x_coord, y_coord)
-                                .add_dimension_line(line_no, 2, 'vertical', x_coord, y_coord)
-                )
+
+            new_ghosts = (old.ghosts
+                            .add_dimension_line(line_no, 1, 'horizontal', x_coord, y_coord)
+                            .add_dimension_line(line_no, 2, 'vertical', x_coord, y_coord)
+            )
+            new_ghosts = new_ghosts.add_point(line_no, 0, (x_coord, y_coord))
+            new_ghosts = new_ghosts.add_point_to_callstack(new.env, 0, (x_coord, y_coord))
             new.ghosts = new_ghosts
             
         elif isinstance(lval, DBNVariable):
@@ -201,7 +201,8 @@ class DBNInterpreterState(object):
         if old.stack_depth >= RECURSION_LIMIT:
             raise ValueError("Recursion too deep! %d" % old.stack_depth)
         else:
-            new.env = old.env.push()
+            print "pushing, setting base_line_no to %d" % old.line_no
+            new.env = old.env.push(base_line_no=old.line_no)
             new.stack_depth = old.stack_depth + 1
         
     @Producer
@@ -272,6 +273,25 @@ class DBNGhosts:
         """
         points = utils.dimension_line(direction, x, y)
         new._add_points(line_no, arg_no, points)
+ 
+    @Producer
+    def add_points_to_callstack(old, new, walking_env, arg_no, points):
+        while walking_env.parent is not None:
+            print walking_env.base_line_no, ':)'
+            line_no = walking_env.base_line_no
+            if line_no == -1:
+                raise AssertionError("base_line_no of an environment should not be -1 unless it is the root environment")
+            new._add_points(line_no, arg_no, points)
+            walking_env = walking_env.parent
+            
+    @Producer
+    def add_point_to_callstack(old, new, walking_env, arg_no, point):
+        while walking_env.parent is not None:
+            line_no = walking_env.base_line_no
+            if line_no == -1:
+                raise AssertionError("base_line_no of an environment should not be -1 unless it is the root environment")
+            new._add_points(line_no, arg_no, [point])
+            walking_env = walking_env.parent
         
 
 class DBNImage():

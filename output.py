@@ -158,25 +158,27 @@ def full_interface(states, dbn_script):
             return text.get(start, end)
         else:
             return None
-    
-
-    def text_mouse_motion(event):
-        #print event.x, event.y
-        tkinter_index = text.index("@%d,%d" % (event.x, event.y))
+        
+    def get_ghost_key(x, y):
+        """
+        given an x, y, returns the ghost key there, or None
+        """
+        tkinter_index = text.index("@%d,%d" % (x, y))
         
         str_line_no = tkinter_index.split('.')[0]
         
         line = get_line(tkinter_index)
         if line is not None:
             tokens = tokenizer.tokenize(line)
-            args = parser.parse_args(tokens)
-            int_arg_no = None
-            arg_count = len(args)
+            args = parser.parse_ghost_line(tokens)
+            if args is None:
+                return None
+            
             # we have to manually get bounding box for args
             bounding_boxes = []
             for index, arg in enumerate(args):
-                str_start_char = int(arg.start_location().split('.')[1])
-                str_end_char = int(arg.end_location().split('.')[1])
+                _, str_start_char = arg.start_location().split('.')
+                _, str_end_char = arg.end_location().split('.')
 
                 arg_start = "%s.%s" % (str_line_no, str_start_char)
                 arg_end = "%s.%s" % (str_line_no, str_end_char)
@@ -193,15 +195,26 @@ def full_interface(states, dbn_script):
             int_arg_index = None
             for index, arg_bbox in enumerate(bounding_boxes):
                 start_x, start_y, width, height = arg_bbox
-                if start_x <= event.x < start_x + width:
+                if start_x <= x < start_x + width:
                     int_arg_index = index
                     break
             if int_arg_index is not None:
-                set_ghost("l%sa%d" % (str_line_no, int_arg_index))
+                return "l%sa%d" % (str_line_no, int_arg_index)
             else:
-                clear_ghost()
+                return None
         else:
-            clear_ghost()             
+           return None
+      
+    def ghost_event(x, y):
+        key = get_ghost_key(x, y)
+        if key is None:
+            clear_ghost()
+        else:
+            set_ghost(key)    
+    
+    def text_mouse_motion(event):
+        #print event.x, event.y
+        ghost_event(event.x, event.y)
         
     text.bind("<Motion>", text_mouse_motion)
     

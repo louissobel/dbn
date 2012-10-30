@@ -31,21 +31,18 @@ def Line(old, new, *args):
     
     new.image = old.image.set_pixels(pixel_list)
     
-    ###### Hint stuff
-    # check if we are currently not in a Command
-    # by checking that the stack depth is not 1
-    # hacky, but it does the trick
-    in_command = new.stack_depth != 1
-    line_no = new.line_no
-    print "getting line_no:%d" % line_no
-    new_ghosts = old.ghosts.add_points(line_no, 0, points)
-    if not in_command:
-        new_ghosts = (new_ghosts
-                    .add_dimension_line(line_no, 1, 'horizontal', blX, blY)  # for blX
-                    .add_dimension_line(line_no, 2, 'vertical', blX, blY) # for blY
-                    .add_dimension_line(line_no, 3, 'horizontal', trX, trY) # for trX
-                    .add_dimension_line(line_no, 4, 'vertical', trX, trY) # for trY
-        )
+    current_line_no = new.line_no
+    new_ghosts = (old.ghosts
+                .add_dimension_line(current_line_no, 1, 'horizontal', blX, blY)  # for blX
+                .add_dimension_line(current_line_no, 2, 'vertical', blX, blY) # for blY
+                .add_dimension_line(current_line_no, 3, 'horizontal', trX, trY) # for trX
+                .add_dimension_line(current_line_no, 4, 'vertical', trX, trY) # for trY
+    )
+    
+    ## traverse up the environments,
+    ## adding these points to the ghost pointer
+    new_ghosts = new_ghosts.add_points_to_callstack(new.env, 0, points)
+
     new.ghosts = new_ghosts
 
 @builtin('value')
