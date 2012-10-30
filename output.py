@@ -129,7 +129,7 @@ def full_interface(states, dbn_script):
         image = state.image._image
         tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
         canvas.itemconfigure(canvas_image, image=tkinter_image)
-        canvas.image = tkinter_image 
+        canvas.image = tkinter_image
     
     def draw_text():
         dbn_script = text.get(1.0, Tkinter.END)
@@ -138,6 +138,10 @@ def full_interface(states, dbn_script):
     
     def keyboard_draw_text(event):
         draw_text()
+        pointer_x, pointer_y = text.winfo_pointerxy()
+        root_x, root_y = text.winfo_rootx(), text.winfo_rooty()
+        cx, cy = pointer_x - root_x, pointer_y - root_y
+        ghost_event(cx, cy)
         return "break"
     text.bind("<Shift-Return>", keyboard_draw_text)
     
@@ -208,12 +212,18 @@ def full_interface(states, dbn_script):
         if key is None:
             clear_ghost()
         else:
-            set_ghost(key)    
+            success = set_ghost(key)
+            if success is None:
+                clear_ghost()
     
     def text_mouse_motion(event):
         ghost_event(event.x, event.y)
         
+    def text_mouse_leave(event):
+        clear_ghost()
+        
     text.bind("<Motion>", text_mouse_motion)
+    text.bind("<Leave>", text_mouse_leave)
     
     
     
@@ -226,11 +236,12 @@ def full_interface(states, dbn_script):
         state = states[0]
         image = state.ghosts._ghost_hash.get(key)
         if image is None:
-            pass
+            return None
         else:
             ghost_tkinter_image = ImageTk.BitmapImage(image._image.resize((202, 202)), foreground="red")
             canvas.itemconfigure(ghost_image, image=ghost_tkinter_image)
             canvas.ghost_image = ghost_tkinter_image
+            return True
     
     def clear_ghost():
         if hasattr(canvas, 'ghost_image'):
