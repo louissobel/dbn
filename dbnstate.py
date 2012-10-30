@@ -56,7 +56,6 @@ class DBNEnvironment(object):
     
     def __init__(self, parent=None, base_line_no=-1):
         self.base_line_no = base_line_no
-        print self.base_line_no, 'fdf'
         self.parent = parent
         self._inner = {}
 
@@ -98,7 +97,6 @@ class DBNEnvironment(object):
         del new._inner[key]
       
     def push(self, base_line_no):
-        print base_line_no, "--"
         child = DBNEnvironment(parent=self, base_line_no=base_line_no)
         return child
     
@@ -201,7 +199,6 @@ class DBNInterpreterState(object):
         if old.stack_depth >= RECURSION_LIMIT:
             raise ValueError("Recursion too deep! %d" % old.stack_depth)
         else:
-            print "pushing, setting base_line_no to %d" % old.line_no
             new.env = old.env.push(base_line_no=old.line_no)
             new.stack_depth = old.stack_depth + 1
         
@@ -247,7 +244,6 @@ class DBNGhosts:
         """
         points is a list of tuples
         """
-        print line_no
         image = self._get_image(line_no, arg_no)
         if image is None:
             image = DBNImage(color=0, mode='1')  # bitmap mode
@@ -277,7 +273,6 @@ class DBNGhosts:
     @Producer
     def add_points_to_callstack(old, new, walking_env, arg_no, points):
         while walking_env.parent is not None:
-            print walking_env.base_line_no, ':)'
             line_no = walking_env.base_line_no
             if line_no == -1:
                 raise AssertionError("base_line_no of an environment should not be -1 unless it is the root environment")

@@ -130,8 +130,6 @@ def full_interface(states, dbn_script):
         tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
         canvas.itemconfigure(canvas_image, image=tkinter_image)
         canvas.image = tkinter_image 
-        
-        print state.ghosts._ghost_hash   
     
     def draw_text():
         dbn_script = text.get(1.0, Tkinter.END)
@@ -213,7 +211,6 @@ def full_interface(states, dbn_script):
             set_ghost(key)    
     
     def text_mouse_motion(event):
-        #print event.x, event.y
         ghost_event(event.x, event.y)
         
     text.bind("<Motion>", text_mouse_motion)
