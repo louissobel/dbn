@@ -96,9 +96,9 @@ def full_interface(states, dbn_script):
     canvas = Tkinter.Canvas(master, width=302, height=302)
     canvas.grid(row=0, column=0, rowspan=2)
     
-    state = states[0]
+    states[0]
     
-    image = state.image._image
+    image = states[0].image._image
 
     
     tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
@@ -237,8 +237,6 @@ def full_interface(states, dbn_script):
             canvas.itemconfigure(ghost_image, image=None)
             del canvas.ghost_image
 
-    
-    
     master.mainloop()
     
     
