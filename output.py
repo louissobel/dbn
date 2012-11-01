@@ -1,5 +1,6 @@
 from PIL import Image, ImageTk
 import Tkinter
+import ttk
 
 
 import dbn
@@ -92,11 +93,10 @@ def full_interface(states, dbn_script):
     ####### STATES IS A ONE_ELEMENT LIST
     
     master = Tkinter.Tk()
+    master.tk_strictMotif()
     
     canvas = Tkinter.Canvas(master, width=302, height=302)
-    canvas.grid(row=0, column=0, rowspan=2)
-    
-    states[0]
+    canvas.grid(row=0, column=0, rowspan=1, sticky='s')
     
     image = states[0].image._image
 
@@ -113,7 +113,7 @@ def full_interface(states, dbn_script):
     text = Tkinter.Text(textframe, height=30, width=50, borderwidth=0, selectborderwidth=0, highlightthickness=0)
     text.focus_set()
 
-    textframe.grid(row=0, column=1, padx=20, pady=20)
+    textframe.grid(row=0, column=1, padx=20, pady=20, rowspan=2)
     text.pack()
     
     def insert_tab(event):
@@ -124,12 +124,32 @@ def full_interface(states, dbn_script):
 
     text.insert(1.0, dbn_script)
 
+
     def draw_state(state):
         states[0] = state
         image = state.image._image
         tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
         canvas.itemconfigure(canvas_image, image=tkinter_image)
         canvas.image = tkinter_image
+    
+    def draw_frame_numbered(n):
+        """
+        will get the current state, rewind it,
+        then walk forward to the nth.
+        not elegeant at all.
+        REDO THIS (state player wrapper class?)
+        """
+        state = states[0]
+        first_state = state
+        while first_state.previous is not None:
+            first_state = first_state.previous
+        
+        out_state = first_state
+        for i in range(1,n):
+            out_state = out_state.next
+            # will raise Attriubte Error if counting is off
+        draw_state(out_state)
+        
     
     def draw_text():
         dbn_script = text.get(1.0, Tkinter.END)
@@ -228,7 +248,7 @@ def full_interface(states, dbn_script):
     
     
     b = Tkinter.Button(master, text="draw", command=draw_text)
-    b.grid(row=1, column=1)
+    b.grid(row=2, column=1)
     
     
     # stuff for testing ghosts
@@ -247,7 +267,30 @@ def full_interface(states, dbn_script):
         if hasattr(canvas, 'ghost_image'):
             canvas.itemconfigure(ghost_image, image=None)
             del canvas.ghost_image
+            
+    
+    # timeline scale
+    scale_var = Tkinter.IntVar()
+    scale_var.set(7)
+    slider_frame = Tkinter.Frame(master)
+    scale = Tkinter.Scale(slider_frame, orient=Tkinter.HORIZONTAL, showvalue=0, var=scale_var)
+    scale.active = False
+    
+    def scale_var_changed(*args):
+        frame_number = scale_var.get()
+        draw_frame_numbered(frame_number)
+    
+    scale_var.trace_variable('w', scale_var_changed)
+    
+    scale.grid(column=1, row=0)
+    
 
+    
+    label = Tkinter.Label(slider_frame, text="hi")
+    label.grid(column=0, row=0, sticky='s')
+    
+    slider_frame.grid(row=1)
+    
     master.mainloop()
     
     
