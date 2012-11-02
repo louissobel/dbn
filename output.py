@@ -10,6 +10,8 @@ from tokenizer import DBNTokenizer
 import parser
 import time
 
+from structures import DBNStateWrapper
+
 
 def animate_state(state, direction):
     master = Tkinter.Tk()
@@ -91,6 +93,8 @@ def make_gif(state):
 
 def full_interface(states, dbn_script):
     ####### STATES IS A ONE_ELEMENT LIST
+    state_wrapper = DBNStateWrapper(states[0])
+    del states[0] # no more reference to state in the caller
     
     master = Tkinter.Tk()
     master.tk_strictMotif()
@@ -98,9 +102,8 @@ def full_interface(states, dbn_script):
     canvas = Tkinter.Canvas(master, width=302, height=302)
     canvas.grid(row=0, column=0, rowspan=1, sticky='s')
     
-    image = states[0].image._image
+    image = state_wrapper.cursor.image._image
 
-    
     tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
 
     canvas.create_rectangle(49, 49, 252, 252)
@@ -121,16 +124,16 @@ def full_interface(states, dbn_script):
         text.insert(Tkinter.INSERT, " " * 4)
         return "break"
     text.bind("<Tab>", insert_tab)
-
     text.insert(1.0, dbn_script)
 
-
-    def draw_state(state):
-        states[0] = state
-        image = state.image._image
+    def draw_cursor():
+        image = state_wrapper.cursor.image._image
         tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
         canvas.itemconfigure(canvas_image, image=tkinter_image)
         canvas.image = tkinter_image
+        
+        # configure the set 'to' to be the length of the canvas
+        scale.config(to=len(state_wrapper))
     
     def draw_frame_numbered(n):
         """
@@ -138,23 +141,15 @@ def full_interface(states, dbn_script):
         then walk forward to the nth.
         not elegeant at all.
         REDO THIS (state player wrapper class?)
-        """
-        state = states[0]
-        first_state = state
-        while first_state.previous is not None:
-            first_state = first_state.previous
-        
-        out_state = first_state
-        for i in range(1,n):
-            out_state = out_state.next
-            # will raise Attriubte Error if counting is off
-        draw_state(out_state)
-        
+        """        
+        state_wrapper.seek(n)
+        draw_cursor()
     
     def draw_text():
         dbn_script = text.get(1.0, Tkinter.END)
         state = dbn.run_script_text(dbn_script)
-        draw_state(state)
+        state_wrapper.change_state(state)
+        draw_cursor()
     
     def keyboard_draw_text(event):
         draw_text()
@@ -164,7 +159,6 @@ def full_interface(states, dbn_script):
         ghost_event(cx, cy)
         return "break"
     text.bind("<Shift-Return>", keyboard_draw_text)
-    
     
     ### stuff for drawing ghosts
     tokenizer = DBNTokenizer()
@@ -245,15 +239,12 @@ def full_interface(states, dbn_script):
     text.bind("<Motion>", text_mouse_motion)
     text.bind("<Leave>", text_mouse_leave)
     
-    
-    
     b = Tkinter.Button(master, text="draw", command=draw_text)
     b.grid(row=2, column=1)
     
-    
     # stuff for testing ghosts
     def set_ghost(key):
-        state = states[0]
+        state = state_wrapper.cursor
         image = state.ghosts._ghost_hash.get(key)
         if image is None:
             return None
@@ -267,20 +258,40 @@ def full_interface(states, dbn_script):
         if hasattr(canvas, 'ghost_image'):
             canvas.itemconfigure(ghost_image, image=None)
             del canvas.ghost_image
-            
-    
+     
+    # line highlighting
+    def highlight_current_line():
+        n = state_wrapper.cursor.line_no
+        start_index = "%d.0" % n
+        end_index = "%d.end" % n
+        text.tag_add('highlighted', start_index, end_index)
+        text.tag_config('highlighted', background="pink")
+        print "added tag"
+        
+    def clear_line_highlights():
+        print "removing rtag"
+        text.tag_delete('highlighted')       
+        pass
+        
     # timeline scale
     scale_var = Tkinter.IntVar()
-    scale_var.set(7)
+    scale_var.set(0)
     slider_frame = Tkinter.Frame(master)
-    scale = Tkinter.Scale(slider_frame, orient=Tkinter.HORIZONTAL, showvalue=0, var=scale_var)
+    scale = Tkinter.Scale(slider_frame, orient=Tkinter.HORIZONTAL, showvalue=0, var=scale_var, to=len(state_wrapper))
     scale.active = False
     
     def scale_var_changed(*args):
         frame_number = scale_var.get()
         draw_frame_numbered(frame_number)
+        clear_line_highlights()
+        highlight_current_line()
     
     scale_var.trace_variable('w', scale_var_changed)
+    
+    def scale_mouse_deactivate(event):
+        clear_line_highlights()
+        
+    scale.bind("<ButtonRelease>", scale_mouse_deactivate)
     
     scale.grid(column=1, row=0)
     
