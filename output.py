@@ -134,6 +134,10 @@ def full_interface(states, dbn_script):
         
         # configure the set 'to' to be the length of the canvas
         scale.config(to=len(state_wrapper))
+        scale_var.set(state_wrapper.cursor_index)
+        
+        if not scale.active.get(): # otherwise, not my problem
+            scale_label.config(text="%d steps" % len(state_wrapper))
     
     def draw_frame_numbered(n):
         """
@@ -260,47 +264,106 @@ def full_interface(states, dbn_script):
             del canvas.ghost_image
      
     # line highlighting
-    def highlight_current_line():
-        n = state_wrapper.cursor.line_no
-        start_index = "%d.0" % n
-        end_index = "%d.end" % n
-        text.tag_add('highlighted', start_index, end_index)
-        text.tag_config('highlighted', background="pink")
-        print "added tag"
+    highlight_controller = {
+        'active' : False,
+    }
         
+    def highlight_current_line():
+        if highlight_controller['active']:
+            n = state_wrapper.cursor.line_no
+            start_index = "%d.0" % n
+            end_index = "%d.end" % n            
+            text.tag_add('highlighted', start_index, end_index)
+            text.tag_config('highlighted', background="pink")
+  
     def clear_line_highlights():
-        print "removing rtag"
         text.tag_delete('highlighted')       
-        pass
         
     # timeline scale
     scale_var = Tkinter.IntVar()
-    scale_var.set(0)
+    scale_var.set(len(state_wrapper))
     slider_frame = Tkinter.Frame(master)
-    scale = Tkinter.Scale(slider_frame, orient=Tkinter.HORIZONTAL, showvalue=0, var=scale_var, to=len(state_wrapper))
-    scale.active = False
+    scale = Tkinter.Scale(slider_frame, orient=Tkinter.HORIZONTAL, length=200, showvalue=0, var=scale_var, to=len(state_wrapper))
+
+    # scale state stuff
+    scale.hover = False
+    scale.pressed = False
+    scale.active = Tkinter.BooleanVar()
+    
+    def scale_active_state_changed(*args):
+        is_active = bool(scale.active.get())
+        clear_line_highlights()
+        if is_active:
+            scale.focus_set()
+            highlight_controller['active'] = True
+            highlight_current_line()
+            
+            # show which step we're at
+            scale_label.config(text="step %d" % scale_var.get())
+            master.config(cursor='sb_h_double_arrow')
+            
+            
+        else:
+            text.focus_set() # just to get to focus away from the scale
+            highlight_controller['active'] = False
+            # reset the state
+            #state_wrapper.fast_forward()
+            #draw_cursor()
+            
+            # set the cursor back. unfortunately
+            # named name as state cursor. this is the mouse cursor
+            master.config(cursor="")
+            
+    scale.active.trace_variable('w', scale_active_state_changed)
+    
+    def scale_entered(event):
+        scale.hover = True
+        scale.active.set(True)
+        
+    def scale_leaved(event):
+        scale.hover = False
+        if not scale.pressed:
+            scale.active.set(False)
+        
+    def scale_mousedown(event):
+        scale.pressed = True
+    
+    def scale_mouseup(event):
+        scale.pressed = False
+        if not scale.hover:
+            scale.active.set(False)
     
     def scale_var_changed(*args):
         frame_number = scale_var.get()
         draw_frame_numbered(frame_number)
         clear_line_highlights()
         highlight_current_line()
+        scale_label.config(text="step %d" % frame_number)
     
     scale_var.trace_variable('w', scale_var_changed)
     
     def scale_mouse_deactivate(event):
         clear_line_highlights()
-        
-    scale.bind("<ButtonRelease>", scale_mouse_deactivate)
     
-    scale.grid(column=1, row=0)
+    scale.bind("<ButtonRelease-1>", scale_mouseup)
+    scale.bind("<ButtonPress-1>", scale_mousedown)
+    scale.bind("<Enter>", scale_entered)
+    scale.bind("<Leave>", scale_leaved)
+    
+    scale.grid(column=1, row=0, sticky='e')
     
 
-    
-    label = Tkinter.Label(slider_frame, text="hi")
-    label.grid(column=0, row=0, sticky='s')
+    step_count = len(state_wrapper)
+    scale_label = Tkinter.Label(slider_frame, width=10, text="%d steps" % step_count)
+    scale_label.grid(column=0, row=0, sticky='s')
     
     slider_frame.grid(row=1)
+    
+    
+    ##### the state frame
+    
+    
+    
     
     master.mainloop()
     

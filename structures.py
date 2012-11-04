@@ -39,16 +39,14 @@ class DBNStateWrapper():
     
     
     def __init__(self, state):
-        self.cursor = state
-        self.start = self.get_start()
-        self.end = self.get_end()
-        self.length = None
+        self.change_state(state)
     
     def change_state(self, state):
         self.cursor = state
         self.start = self.get_start()
         self.end = self.get_end()
         self.length = None # to trigger a cache refrese
+        self.cursor_index = self._find_index()
         
     def __len__(self):
         if self.length is not None:
@@ -61,6 +59,15 @@ class DBNStateWrapper():
                 stepper = stepper.next
             self.length = i
             return i
+    
+    def _find_index(self):
+        # count backwards!
+        index = 0
+        pos = self.cursor
+        while pos.previous is not None:
+            pos = pos.previous
+            index += 1
+        return index
             
     def next_scrub(self):
         """
@@ -86,9 +93,8 @@ class DBNStateWrapper():
         current_line_no = self.cursor.line_no
         # ok lets step
         next = self.cursor.next # OK with this throwing attribute
+        raise NotImplementedError
         
-        
-    
     def get_start(self):
         """
         returns the first state of the cursor
@@ -112,12 +118,14 @@ class DBNStateWrapper():
         changes cursor to be the first
         """ 
         self.cursor = self.start
+        self.cursor_index = 0
         
     def fast_forward(self):
         """
         changes cursor to be the last
         """
         self.cursor = self.end
+        self.cursor_index = len(self)
         
     def seek(self, n):
         """
@@ -125,9 +133,10 @@ class DBNStateWrapper():
         raises IndexError if n is out of range
         """
         self.rewind()
-        for i in range(1,n):
+        for i in range(0,n):
             try:
                 self.cursor = self.cursor.next
+                self.cursor_index += 1
             except AttributeError: # if cursor is None
                 raise IndexError
         if self.cursor is None:
