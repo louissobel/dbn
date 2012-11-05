@@ -4,6 +4,10 @@ __Timeline__
  - should there be a reset button on the timeline?
  - timeline should somehow (red color) highlight the impact that
    each state has _as it happens_. 
+ - right now, there are a lot of steps that are invisible, becauaw
+   they are changing parts of the state that aren't exposed!
+   Thinking about making the scrubber skip the states that have no
+   visible effect, but tricky to code, and maybe not yet even possible
 
 __Reverse Mapping__
 
