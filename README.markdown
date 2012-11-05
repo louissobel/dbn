@@ -19,4 +19,4 @@ Currently, the supported statements are
  
 (that's everything through chapter 12 except `Load`)
 
-try `python dbn.py tests_dbns/test_question.dbn` to see an example
+try `python dbn.py -f tests_dbns/square.dbn` to see an example
