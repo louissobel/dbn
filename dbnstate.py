@@ -122,7 +122,7 @@ class DBNInterpreterState(object):
     def __init__(self, new=True):
         if new:
             self.image = DBNImage(color=255)
-            self.pen_color = 0
+            self.pen_color = 100
             self.env = DBNEnvironment()
             self.commands = DBNProcedureSet()
             self.ghosts = DBNGhosts()

@@ -92,7 +92,7 @@ class DBNTextInput(Tkinter.Text):
              args = parser.parse_ghost_line(tokens)
              if args is None:
                  return None
-
+                
              # we have to manually get bounding box for args
              bounding_boxes = []
              for index, arg in enumerate(args):
@@ -119,6 +119,7 @@ class DBNTextInput(Tkinter.Text):
                      break
              if int_arg_index is not None:
                  return "l%sa%d" % (str_line_no, int_arg_index)
+                 
              else:
                  return None
          else:
@@ -201,6 +202,53 @@ class DBNTimeline(Tkinter.Frame):
         self.scale.focus_set()
 
 
+class ColorDisplayWidget(Tkinter.Canvas):
+    
+    def __init__(self, root, color=80, width=30, height=30):
+        Tkinter.Canvas.__init__(self, root, width=width, height=height)
+
+        self.create_rectangle(3, 3, width+2, height+2)
+
+        self.color = Tkinter.IntVar()
+        self.color.trace_variable('w', self.set_color_listener)
+        self.color.set(color)
+        
+    def set_color_listener(self, *args):
+        self.set_color(self.color.get())
+    
+    def set_color(self, color):
+        tkinter_color = "gray%d" % color
+        self.config(bg=tkinter_color)
+        
+ 
+class DBNPenState(Tkinter.Frame):
+    
+    def __init__(self, root):
+        #### the state frame
+        Tkinter.Frame.__init__(self, root)
+        self.label = Tkinter.Label(self, text="Pen: ")
+        self.value_label = Tkinter.Label(self, width=4, text="100")
+        self.color_display = ColorDisplayWidget(self)
+        
+        self.default_background = self.label['background']
+        
+        self.label.grid(row=0, column=0)
+        self.value_label.grid(row=0, column=1)
+        self.color_display.grid(row=0, column=2)
+        
+    def set(self, to):
+        self.value_label.config(text=str(to))
+        self.color_display.color.set(100 - to)
+        
+    def highlight(self):
+        self.label.config(bg="red")
+        print "g"
+    
+    def clear_highlight(self):
+        print "goose"
+        self.label.config(background=self.default_background)
+
+
 class DBNInterface:
     
     def __init__(self, master, state_wrapper, initial_script=''):
@@ -210,10 +258,9 @@ class DBNInterface:
         
         self.add_widgets()
         self.bind_events()
-        
-        self.image_canvas.set_image(state_wrapper.cursor.image._image)
-        
+        self.draw_cursor()
         self.text.focus_set()
+        
         
     def add_widgets(self):
         self.image_canvas = DBNImageCanvas(self.master)        
@@ -230,6 +277,9 @@ class DBNInterface:
         self.timeline = DBNTimeline(self.master, len(self.state_wrapper))
         self.timeline.grid(row=1)
         
+        self.pen_color_state = DBNPenState(self.master)
+        self.pen_color_state.grid(row=2)
+        
     def bind_events(self):
         self.text.bind("<Shift-Return>", self.keyboard_draw_text)
         self.text.bind("<Motion>", self.text_mouse_motion)
@@ -241,6 +291,9 @@ class DBNInterface:
     def draw_cursor(self):
         image = self.state_wrapper.cursor.image._image
         self.image_canvas.set_image(image)
+        
+        
+        self.pen_color_state.set(self.state_wrapper.cursor.pen_color)
     
         # configure the set 'to' to be the length of the canvas
         self.timeline.set_length(len(self.state_wrapper))
@@ -273,6 +326,9 @@ class DBNInterface:
         
     def ghost_event(self, x, y):
         key = self.text.get_ghost_key(x, y)
+        self.handle_ghost_key(key)
+    
+    def handle_ghost_key(self, key):
         if key is None:
             self.image_canvas.clear_ghost()
         else:
@@ -321,16 +377,5 @@ class DBNInterface:
         self.text.clear_line_highlights()
         self.highlight_current_line()
         self.timeline.set_label_active_text(frame_number)
-
-
-##### the state frame
-# pen_color_frame = Tkinter.Frame()
-# pen_color_label = Tkinter.Label(pen_color_frame, text="Pen: ")
-# pen_color_value_label = Tkinter.Label(pen_color_frame, text="100")
-# pen_color_canvas = Tkinter.Canvas(pen_color_frame, width=20, height=20, bg="gray1")
-# 
-# pen_color_label.pack()
-# pen_color_value_label.pack()
-# pen_color_canvas.pack()
-# 
-# pen_color_frame.grid(row=2)
+        
+        

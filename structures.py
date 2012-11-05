@@ -54,6 +54,8 @@ class DBNStateWrapper():
         else:
             i = 0
             stepper = self.start
+            if stepper is None:
+                return 0
             while stepper.next is not None:
                 i += 1
                 stepper = stepper.next

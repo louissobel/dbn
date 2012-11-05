@@ -8,7 +8,10 @@ def clip(val, lower, upper):
         return lower
         
     return val
-    
+
+def clip_100(val):
+    return clip(val, 0 , 100)
+
 def clip_255(val):
     return clip(val, 0, 255)
 

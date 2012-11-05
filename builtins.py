@@ -27,7 +27,9 @@ def Line(old, new, *args):
     
     # use list so I can reuse the iterable
     points = list(utils.bresenham_line(blX, blY, trX, trY))
-    pixel_list = ((x, y, old.pen_color) for x, y in points)
+    
+    color = utils.scale_100(old.pen_color)
+    pixel_list = ((x, y, color) for x, y in points)
     
     new.image = old.image.set_pixels(pixel_list)
     
@@ -54,8 +56,7 @@ def Paper(old, new, value):
 @builtin('value')
 @Producer
 def Pen(old, new, value):
-    color = utils.scale_100(value)
-    new.pen_color = color
+    new.pen_color = utils.clip_100(value)
     
 BUILTIN_PROCS = {
     'Line': Line,
