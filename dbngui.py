@@ -40,12 +40,17 @@ class DBNImageCanvas(Tkinter.Canvas):
 class DBNTextInput(Tkinter.Text):
     
     def __init__(self, root, initial_script=''):
-        Tkinter.Text.__init__(self, root, height=30, width=50, borderwidth=0, selectborderwidth=0, highlightthickness=0)
+        Tkinter.Text.__init__(self, root, height=30, width=80, borderwidth=0, selectborderwidth=0, highlightthickness=0)
+        
+        self.WIDTH=80
         
         self.bind_events()
         self.insert(1.0, initial_script)
         
         self.highlight_active = False
+        
+        self.highlighted_lines = []
+        
         self.tokenizer = DBNTokenizer()
         
     def bind_events(self):
@@ -127,12 +132,28 @@ class DBNTextInput(Tkinter.Text):
     
     def highlight_line(self, n):
         start_index = "%d.0" % n
-        end_index = "%d.end" % n            
-        self.tag_add('highlighted', start_index, end_index)
+        line_end_index = "%d.end" % n
+        
+        mark_name = "%d.prehighlight_end" % n
+        self.mark_set(mark_name, line_end_index)
+        self.mark_gravity(mark_name, Tkinter.LEFT)
+        
+        end_char = int(self.index(line_end_index).split('.')[1])
+        leftover = self.WIDTH - end_char
+        self.insert(mark_name, " "*leftover)
+        
+        self.tag_add('highlighted', start_index, line_end_index)
+        self.highlighted_lines.append(n)
+        
         self.tag_config('highlighted', background="pink")
 
     def clear_line_highlights(self):
         self.tag_delete('highlighted')
+        for n in self.highlighted_lines:
+            old_mark = "%d.prehighlight_end" % n
+            line_end_index = "%d.end" % n
+            self.delete(old_mark, line_end_index)
+        self.highlighted_lines = []
 
 
 class DBNTimeline(Tkinter.Frame):
