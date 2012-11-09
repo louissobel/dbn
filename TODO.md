@@ -44,5 +44,9 @@ __More state display__
     their "toolbox" grows with those commands.
   - but with each state that is revealed, and this is where the ghost generalization comes in,
     there needs to be a way to show the change in that state, both while hovering and scrubbing
+    
+__Misc__
+
+ - floats - numbers should be floats then rounded. most intuitive way about it.
 
 

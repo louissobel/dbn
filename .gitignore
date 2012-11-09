@@ -1,5 +1,8 @@
 *.pyc
 
 
+# virtualenv
+venv
+
 # gifs
 *.gif
