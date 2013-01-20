@@ -57,12 +57,14 @@ def parse_block(tokens, commands_allowed=False):
             
         else:
             raise ValueError('I dont know how to parse a %s in a block' % str(first_token))
-            
+        
         if next_node is not None:
-            next_node.line_no = first_token.line_no
             block_nodes.append(next_node)
-    
-    return DBNBlockNode(*block_nodes, tokens=all_tokens)
+        
+    return DBNBlockNode(
+        children=block_nodes,
+        tokens=all_tokens,
+    )
 
 def parse_command(command_token, arg_tokens):
     """
@@ -71,7 +73,12 @@ def parse_command(command_token, arg_tokens):
     all_tokens = [command_token] + arg_tokens[:]
     command_name = command_token.value
     args = parse_args(arg_tokens)    
-    return DBNCommandNode(command_name, *args, tokens=all_tokens) # eeks, digging into the node here
+    return DBNCommandNode(
+        name=command_name,
+        children=args,
+        tokens=all_tokens,
+        line_no=command_token.line_no
+    )
     
 def parse_set(set_token, arg_tokens):
     """
@@ -83,8 +90,11 @@ def parse_set(set_token, arg_tokens):
     if not valid:
         raise ValueError("Bad arguments parsing Set: %s" % error)
     
-    lvalue, rvalue = args
-    return DBNSetNode(lvalue, rvalue, tokens=all_tokens)
+    return DBNSetNode(
+        children=args,
+        tokens=all_tokens,
+        line_no=set_token.line_no,
+    )
             
 def parse_repeat(repeat_token, arg_tokens, open_brace_token, body_tokens, close_brace_token):
     """
@@ -100,7 +110,11 @@ def parse_repeat(repeat_token, arg_tokens, open_brace_token, body_tokens, close_
         
     body = parse_block(body_tokens)
     var, start, end = args
-    return DBNRepeatNode(var, start, end, body, tokens=all_tokens)
+    return DBNRepeatNode(
+        children=[var, start, end, body],
+        tokens=all_tokens,
+        line_no=repeat_token.line_no,
+    )
     
 def parse_question(question_token, arg_tokens, open_brace_token, body_tokens, close_brace_token):
     """
@@ -117,7 +131,12 @@ def parse_question(question_token, arg_tokens, open_brace_token, body_tokens, cl
         
     body = parse_block(body_tokens)
     lvalue, rvalue = args
-    return DBNQuestionNode(question_name, lvalue, rvalue, body, tokens=all_tokens)
+    return DBNQuestionNode(
+        name=question_name,
+        children=[lvalue, rvalue, body],
+        tokens=all_tokens,
+        line_no=question_token.line_no,
+    )
 
 def parse_define_command(command_token, arg_tokens, open_brace_token, body_tokens, close_brace_token):
     """
@@ -132,16 +151,19 @@ def parse_define_command(command_token, arg_tokens, open_brace_token, body_token
                 "Every argument to Command must be a WORD. arg %d is a %s" %
                 (index, arg_token.type)
             )
-        args.append(arg_token.value)
+        args.append(parse_word(arg_token))
         
     # we must have at least one!
     if not args:
         raise ValueError("There must be at least one argument to Command!")
     
-    command_name = args[0]
-    formal_args = args[1:]
     body = parse_block(body_tokens)
-    return DBNCommandDefinitionNode(command_name, formal_args, body, tokens=all_tokens)
+    args.append(body)
+    return DBNCommandDefinitionNode(
+        children=args,
+        tokens=all_tokens,
+        line_no=command_token.line_no,
+    )
     
 def parse_bracket(open_bracket_token, content_tokens, close_bracket_token):
     """
@@ -155,10 +177,11 @@ def parse_bracket(open_bracket_token, content_tokens, close_bracket_token):
     valid, error = assert_args(args, length=2)
     if not valid:
         raise ValueError("Bad bracket contents: %s" % error)
-        
-    left = args[0]
-    right = args[1]
-    return DBNBracketNode(left, right, tokens=all_tokens) 
+    
+    return DBNBracketNode(
+        children=args,
+        tokens=all_tokens,
+    )
     
 def parse_args(tokens):
     """
@@ -277,7 +300,11 @@ def parse_arithmetic(open_paren_token, tokens, close_paren_token):
             
         # ok but here, we know that they are both nodes (and they both exist!)
         all_tokens = left_node.tokens + [nodes_and_ops[active_index]] + right_node.tokens
-        new_node = DBNBinaryOpNode(active_operation, left_node, right_node, tokens=all_tokens)
+        new_node = DBNBinaryOpNode(
+            name=active_operation,
+            children=[left_node, right_node],
+            tokens=all_tokens,
+        )
         
         new_nodes_and_ops = []
         for index, node_or_op in enumerate(nodes_and_ops):
@@ -301,13 +328,19 @@ def parse_word(token):
     """
     token is just one token
     """
-    return DBNWordNode(token.value, tokens=[token])
+    return DBNWordNode(
+        children=[token.value],
+        tokens=[token],
+    )
     
 def parse_number(token):
     """
     token is just one token
     """
-    return DBNNumberNode(token.value, tokens=[token])
+    return DBNNumberNode(
+        children=[token.value],
+        tokens=[token],
+    )
 
 def parse_ghost_line(tokens):
     """
@@ -334,7 +367,8 @@ def parse_ghost_line(tokens):
         first_arg = args[0]
         if not isinstance(first_arg, DBNBracketNode):
             return None
-        return [DBNWordNode(first_token.value, tokens=[first_token]), first_arg.left, first_arg.right] + args[1:]
+        # no idea whats going on here \\\
+        return [DBNWordNode(children=[first_token.value], tokens=[first_token]), first_arg.left, first_arg.right] + args[1:]
 
 def collect_until_next(tokens, token_type):
     """

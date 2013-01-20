@@ -20,20 +20,12 @@ class DBNProcedure():
     halfy implements the DBNBaseNodeInterface, but really belongs here
     """
 
-    def __init__(self, formal_args, body):
+    def __init__(self, formal_args, body, line_no=-1):
         self.formal_args = formal_args
         self.arg_count = len(formal_args)
-        self.body = body
+        self.body = body        
+        self.line_no = line_no
 
-    def __str__(self):
-        return "(proc (%s) %s)" % (','.join(self.formal_args), self.body)
-
-    def pprint(self, depth=0, indent=4):
-        print "%s(proc" % ((' ' * depth * indent),)
-        print "%s(%s)" % ((' ' * (depth+1) * indent), ','.join(self.formal_args))
-        self.body.pprint(depth=depth + 1, indent=indent)
-        print "%s)" % (' ' * depth * indent)
-        
         
 class DBNStateWrapper():
     

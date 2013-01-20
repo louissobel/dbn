@@ -18,13 +18,13 @@ VERBOSE = False
 
 class DBNBaseNode:
     
-    def __init__(self, tokens=None):
-        self.line_no = -1
-        
-        if tokens is None:
-            self.tokens = []
-        else:
-            self.tokens = tokens
+    type = 'base'
+    
+    def __init__(self, name=None, children=None, tokens=None, line_no=-1):
+        self.line_no = line_no
+        self.tokens = tokens or []
+        self.children = children or []
+        self.name = name or self.type
     
     def start_location(self):
         """
@@ -47,17 +47,29 @@ class DBNBaseNode:
             return "%d.%d" % (last_token.line_no, last_token.end_char_no - 1)
         else:
             return None
+
+
+    def pformat(self, depth=0, indent=None):
+    
+        if indent is None:
+            return "(%s %s)" % (self.name, [c.pformat(depth, indent) for c in self.children])
         
+        else:
+            out = " " * indent * depth
+            out += "(%s\n" % self.name
+            for child in self.children:
+                out += child.pformat(depth+1, indent)
+            out += " " * indent * depth
+            out += ")\n"
+            return out
+            
+    def pprint(self, indent=2):
+        print self.pformat(depth=0, indent=indent)
         
 
 class DBNBlockNode(DBNBaseNode):
 
-    display_name = 'block'
-
-    def __init__(self, *args, **kwargs):
-        tokens = kwargs.get('tokens')
-        DBNBaseNode.__init__(self, tokens=tokens)
-        self.children = args
+    type = 'block'
 
     def apply(self, state):
         """
@@ -69,63 +81,38 @@ class DBNBlockNode(DBNBaseNode):
             state = child.apply(state)
         return state
 
-    def __str__(self):
-        return "(eval %s)" % ' '.join([str(c) for c in self.children])
-
-    def pprint(self, depth=0, indent=4):
-        print "%s(" % (' ' * depth * indent)
-        for child in self.children:
-            child.pprint(depth=depth + 1, indent=indent)
-        print "%s)" % (' ' * depth * indent)
-
 
 class DBNSetNode(DBNBaseNode):
     """
     takes care of the special handling for Set
     """
 
-    display_name = 'set'
-
-    def __init__(self, left, right, tokens=None):
-        DBNBaseNode.__init__(self, tokens=tokens)
-        self.left = left
-        self.right = right
+    type = 'set'
 
     def apply(self, state):
         state = state.set_line_no(self.line_no)
         
-        left = self.left.evaluate_lazy(state)
-        right = self.right.evaluate(state)
+        left, right = children
+        
+        left = left.evaluate_lazy(state)
+        right = right.evaluate(state)
+        
         state = state.set(left, right)
         return state
-
-    def __str__(self):
-        return "(Set %s %s)" % (self.left, self.right)
-
-    def pprint(self, depth=0, indent=4):
-        print "%s(Set" % ((' ' * depth * indent),)
-        self.left.pprint(depth=depth + 1, indent=indent)
-        self.right.pprint(depth=depth + 1, indent=indent)
-        print "%s)" % (' ' * depth * indent)
 
 
 class DBNRepeatNode(DBNBaseNode):
 
-    display_name = 'repeat'
-
-    def __init__(self, var, start, end, body, tokens=None):
-        DBNBaseNode.__init__(self, tokens=tokens)
-        self.var = var
-        self.start = start
-        self.end = end
-        self.body = body  # a DBNBlockNode
+    type = 'repeat'
 
     def apply(self, state):
         state = state.set_line_no(self.line_no)
         
-        variable = self.var.evaluate_lazy(state)
-        start_val = self.start.evaluate(state)
-        end_val = self.end.evaluate(state)
+        var, start, end, body = self.children
+        
+        variable = var.evaluate_lazy(state)
+        start_val = start.evaluate(state)
+        end_val = end.evaluate(state)
 
         #+1 because it is end inclusive
         if end_val > start_val:
@@ -135,37 +122,22 @@ class DBNRepeatNode(DBNBaseNode):
 
         for variable_value in repeat_range:
             state = state.set_variable(variable.name, variable_value)
-            state = self.body.apply(state)
+            state = body.apply(state)
 
         return state
 
-    def __str__(self):
-        return "(Repeat %s %s %s %s)" % (self.var, self.start, self.end, self.body)
 
-    def pprint(self, depth=0, indent=4):
-        print "%s(Repeat" % ((' ' * depth * indent),)
-        self.var.pprint(depth=depth + 1, indent=indent)
-        self.start.pprint(depth=depth + 1, indent=indent)
-        self.end.pprint(depth=depth + 1, indent=indent)
-        self.body.pprint(depth=depth + 1, indent=indent)
-        print "%s)" % (' ' * depth * indent)
-        
 class DBNQuestionNode(DBNBaseNode):
     
-    display_name = 'question'
-    
-    def __init__(self, question_name, lvalue, rvalue, body, tokens=None):
-        DBNBaseNode.__init__(self, tokens=tokens)
-        self.question_name = question_name
-        self.lvalue = lvalue
-        self.rvalue = rvalue
-        self.body = body
+    type = 'question'
         
     def apply(self, state):
         state = state.set_line_no(self.line_no)
         
-        left = self.lvalue.evaluate(state)
-        right = self.rvalue.evaluate(state)
+        lvalue, rvalue, body = self.children
+        
+        left = lvalue.evaluate(state)
+        right = rvalue.evaluate(state)
         
         questions = {
             'Same': lambda l,r: l == r,
@@ -174,48 +146,29 @@ class DBNQuestionNode(DBNBaseNode):
             'NotSmaller': lambda l,r: l >= r,
         }
         
-        do_branch = questions[self.question_name](left, right)
+        do_branch = questions[self.name](left, right)
         if do_branch:
-            state = self.body.apply(state)
+            state = body.apply(state)
         
         return state
-        
-    def __str__(self):
-        return "(%s %s %s %s)" % (self.question_name, self.lvalue, self.rvalue, self.body)
-        
-    def pprint(self, depth=0, indent=4):
-        print "%s(%s" % ((' ' * depth * indent), self.question_name)
-        self.lvalue.pprint(depth=depth + 1, indent=indent)
-        self.rvalue.pprint(depth=depth + 1, indent=indent)
-        self.body.pprint(depth=depth + 1, indent=indent)
-        print "%s)" % (' ' * depth * indent)
 
 
 class DBNCommandNode(DBNBaseNode):
 
-    display_name = 'command'
-
-    def __init__(self, command_name, *args, **kwargs):
-        tokens = kwargs.get('tokens')
-        DBNBaseNode.__init__(self, tokens=tokens)
-        self.command_name = command_name
-        self.args = args
-
-    def add_arg(self, node):
-        self.args.append(node)
+    type = 'command'
 
     def apply(self, state):
         state = state.set_line_no(self.line_no)
         
-        evaluated_args = [arg.evaluate(state) for arg in self.args]
-        proc = state.lookup_command(self.command_name)
+        evaluated_args = [arg.evaluate(state) for arg in self.children]
+        proc = state.lookup_command(self.name)
         if proc is None:
-            raise ValueError("Command %s not found!" % self.command_name)
+            raise ValueError("Command %s not found!" % self.name)
 
         # get the arg count of proc.. it has to be equal to length of evaluated args
         if proc.arg_count != len(evaluated_args):
             raise ValueError("%s requires %d arguments, but %d given" % \
-                (self.command_name, proc.arg_count, len(evaluated_args)))
+                (self.name, proc.arg_count, len(evaluated_args)))
         
         state = state.push()
         state = state.set_variables(**dict(zip(proc.formal_args, evaluated_args)))
@@ -223,54 +176,30 @@ class DBNCommandNode(DBNBaseNode):
         state = state.pop()
         return state
 
-    def __str__(self):
-        return "(%s %s)" % (
-            self.command_name,
-            ' '.join([str(a) for a in self.args])
-        )
-
-    def pprint(self, depth=0, indent=4):
-        print "%s(%s" % ((' ' * depth * indent), self.command_name)
-        for arg in self.args:
-            arg.pprint(depth=depth + 1, indent=indent)
-        print "%s)" % (' ' * depth * indent)
-
 
 class DBNCommandDefinitionNode(DBNBaseNode):
     
-    display_name = 'command_definition'
-    
-    def __init__(self, name, args, command_body, tokens=None):
-        DBNBaseNode.__init__(self, tokens=tokens)
-        self.name = name
-        self.args = args
-        self.command_body = command_body
-        
+    type = 'command_definition'
+       
     def apply(self, state):
         state = state.set_line_no(self.line_no)
         
-        proc = DBNProcedure(self.args, self.command_body)   
-        proc.line_no = self.line_no     
-        state = state.add_command(self.name, proc)
+        # [name, arg1, ..., argN, body]
+        command_name = self.children[0].evaluate_lazy().name
+        args = [word.evaluate_lazy().name for word in self.children[1:-1]]
+        body = self.children[-1]
+
+        proc = DBNProcedure(args, body, line_no=self.line_no)
+
+        state = state.add_command(command_name, proc)
         return state
-        
-    def __str__(self):
-        return "(define %s (%s) %s)" % (self.name, ','.join(self.args), self.command_body)
-        
-    def pprint(self, depth=0, indent=4):
-        print "%s(define" % ((' ' * depth * indent),)
-        print "%s(%s)" % ((' ' * (depth+1) * indent), self.name)
-        print "%s(%s)" % ((' ' * (depth+1) * indent), ','.join(self.args))
-        self.command_body.pprint(depth=depth + 1, indent=indent)
-        print "%s)" % (' ' * depth * indent)
-        
+
   
 class DBNPythonNode(DBNBaseNode):
     """
     also, never created by the parser, only by me
     """
-    
-    display_name = 'python'
+    type = 'python'
     
     def __init__(self, function):
         DBNBaseNode.__init__(self, tokens=[])
@@ -279,12 +208,6 @@ class DBNPythonNode(DBNBaseNode):
     def apply(self, state):
         state = self.function(state)
         return state
-    
-    def __str__(self):
-        return "([Native Code])"  # heh
-        
-    def pprint(self, depth=0, indent=4):
-        print "%s%s" % ((' ' * depth * indent), str(self))
         
     
 ################################################################
@@ -297,52 +220,38 @@ class DBNPythonNode(DBNBaseNode):
 
 class DBNBracketNode(DBNBaseNode):
 
-    display_name = 'dot'
-
-    def __init__(self, left, right, tokens=None):
-        DBNBaseNode.__init__(self, tokens=tokens)
-        self.left = left
-        self.right = right
-
-    def __str__(self):
-        return "(bracket %s %s)" % (str(self.left), str(self.right))
+    type = 'bracket'
 
     def evaluate(self, state):
         """
         cannot mutate state!
         """
-        x = self.left.evaluate(state)
-        y = self.right.evaluate(state)
+        left, right = self.children
+        
+        x = left.evaluate(state)
+        y = right.evaluate(state)
         return state.image.query_pixel(x, y)
 
     def evaluate_lazy(self, state):
-        x = self.left.evaluate(state)
-        y = self.right.evaluate(state)
+        left, right = self.children
+        
+        x = left.evaluate(state)
+        y = right.evaluate(state)
         return DBNDot(x, y)
-
-    def pprint(self, depth=0, indent=4):
-        print "%s(bracket" % (' ' * depth * indent)
-        self.left.pprint(depth=depth + 1, indent=indent)
-        self.right.pprint(depth=depth + 1, indent=indent)
-        print "%s)" % (' ' * depth * indent)
 
 
 class DBNBinaryOpNode(DBNBaseNode):
 
-    display_name = 'operation'
-
-    def __init__(self, operation, left, right, tokens=None):
-        DBNBaseNode.__init__(self, tokens=tokens)
-        self.operation = operation
-        self.left = left
-        self.right = right
+    type = 'operation'
 
     def __str__(self):
         return "(%s %s %s)" % (self.operation, str(self.left), str(self.right))
 
     def evaluate(self, state):
-        left = self.left.evaluate(state)
-        right = self.right.evaluate(state)
+        left, right = self.children
+        
+        left = left.evaluate(state)
+        right = right.evaluate(state)
 
         ops = {
             '+': lambda a, b: a + b,
@@ -351,52 +260,33 @@ class DBNBinaryOpNode(DBNBaseNode):
             '*': lambda a, b: a * b,
         }
 
-        return ops[self.operation](left, right)
-
-    def pprint(self, depth=0, indent=4):
-        print "%s(%s" % ((' ' * depth * indent), self.operation)
-        self.left.pprint(depth=depth + 1, indent=indent)
-        self.right.pprint(depth=depth + 1, indent=indent)
-        print "%s)" % (' ' * depth * indent)
+        return ops[self.name](left, right)
 
 
 class DBNNumberNode(DBNBaseNode):
 
-    display_name = 'number'
-
-    def __init__(self, numberstring, tokens=None):
-        DBNBaseNode.__init__(self, tokens=tokens)
-        self.numberstring = numberstring
-
-    def __str__(self):
-        return "(%s)" % self.numberstring
+    type = 'number'
 
     def evaluate(self, state):
-        return int(self.numberstring)
+        return int(self.children[0])
 
-    def pprint(self, depth=0, indent=4):
-        print "%s%s" % ((' ' * depth * indent), str(self))
-
+    def pformat(self, depth, indent):
+        return "%s(number %s)\n" % (" "*depth*indent, self.children[0])
 
 class DBNWordNode(DBNBaseNode):
 
     display_name = 'word'
 
-    def __init__(self, wordstring, tokens=None):
-        DBNBaseNode.__init__(self, tokens=tokens)
-        self.wordstring = wordstring
-
-    def __str__(self):
-        return "(%s)" % self.wordstring
 
     def evaluate(self, state):
-        return state.lookup_variable(self.wordstring)
+        return state.lookup_variable(self.children[0])
 
     def evaluate_lazy(self, state=None):
         """
         state is optional here, because we don't need it!
         """
-        return DBNVariable(self.wordstring)
+        return DBNVariable(self.children[0])
+        
+    def pformat(self, depth, indent):
+        return "%s(word %s)\n" % (" "*depth*indent, self.children[0])
 
-    def pprint(self, depth=0, indent=4):
-        print "%s%s" % ((' ' * depth * indent), str(self))
