@@ -65,6 +65,31 @@ class DBNBaseNode:
             
     def pprint(self, indent=2):
         print self.pformat(depth=0, indent=indent)
+    
+    def to_js(self, depth=0):
+        """
+        we use a four space indent, by the way
+        """
+        header_lines = [
+            "(new DBNASTNode({",
+            "  type: '%s'," % self.type,
+            "  name: '%s'," % self.name,
+            "  tokens: [],",
+            "  line_no: %d," % self.line_no,
+            "  children: [\n",
+        ]
+
+        out = '\n'.join([depth  * "    " + l for l in header_lines])
+        for child in self.children:
+            out += child.to_js(depth+1) + ',\n'
+        
+        footer_lines = [
+            "  ]",
+            "}))",
+        ]
+        
+        out += '\n'.join([depth  * "    " + l for l in footer_lines])
+        return out
         
 
 class DBNBlockNode(DBNBaseNode):
@@ -275,7 +300,7 @@ class DBNNumberNode(DBNBaseNode):
 
 class DBNWordNode(DBNBaseNode):
 
-    display_name = 'word'
+    type = 'word'
 
 
     def evaluate(self, state):

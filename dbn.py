@@ -29,6 +29,7 @@ def run_script_text(dbn_script, VERBOSE=False):
 
     if VERBOSE:
         dbn_ast.pprint()
+        print dbn_ast.to_js()
 
     state = DBNInterpreterState()
     state = dbn_ast.apply(state)
