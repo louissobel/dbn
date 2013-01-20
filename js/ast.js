@@ -196,7 +196,7 @@ DBNASTNode.prototype.apply = function(state) {
 DBNASTNode.prototype.evaluate = function(state) {
     var type_eval_func_hash = {
         
-        dot : function(state) {
+        bracket : function(state) {
             
             var left = this.children[0]
             var right = this.children[1]
@@ -245,7 +245,7 @@ DBNASTNode.prototype.evaluate = function(state) {
 DBNASTNode.prototype.evaluate_lazy = function(state) {
     var type_eval_lazy_func_hash = {
         
-        dot : function(state) {
+        bracket : function(state) {
             
             var left = this.children[0]
             var right = this.children[1]
