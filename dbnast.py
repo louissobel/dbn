@@ -268,10 +268,10 @@ class DBNNumberNode(DBNBaseNode):
     type = 'number'
 
     def evaluate(self, state):
-        return int(self.children[0])
+        return int(self.name)
 
     def pformat(self, depth, indent):
-        return "%s(number %s)\n" % (" "*depth*indent, self.children[0])
+        return "%s(number %s)\n" % (" "*depth*indent, self.name)
 
 class DBNWordNode(DBNBaseNode):
 
@@ -279,14 +279,14 @@ class DBNWordNode(DBNBaseNode):
 
 
     def evaluate(self, state):
-        return state.lookup_variable(self.children[0])
+        return state.lookup_variable(self.name)
 
     def evaluate_lazy(self, state=None):
         """
         state is optional here, because we don't need it!
         """
-        return DBNVariable(self.children[0])
+        return DBNVariable(self.name)
         
     def pformat(self, depth, indent):
-        return "%s(word %s)\n" % (" "*depth*indent, self.children[0])
+        return "%s(word %s)\n" % (" "*depth*indent, self.name)
 

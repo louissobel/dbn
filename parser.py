@@ -329,7 +329,7 @@ def parse_word(token):
     token is just one token
     """
     return DBNWordNode(
-        children=[token.value],
+        name=token.value,
         tokens=[token],
     )
     
@@ -338,7 +338,7 @@ def parse_number(token):
     token is just one token
     """
     return DBNNumberNode(
-        children=[token.value],
+        name=token.value,
         tokens=[token],
     )
 
