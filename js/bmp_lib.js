@@ -388,3 +388,38 @@ if ('btoa' in window && typeof window.btoa == 'function' &&
     return window.btoa(input);
   }
 }
+
+
+
+// some custom shit - scales a grid
+// by an integer factor
+bmp_lib.scale = function(image, factor) {
+  var old_width = image[0].length;
+  var old_height = image.length;
+  
+  var i; // row
+  var j; // column
+  var or; //old row
+  var nr; //new row
+  
+  var i_f; // row factor counter
+  var j_f; // column factor counter
+  
+  var new_image = [];
+  for (i=0;i<old_height;i++) {
+    // do factor times
+    or = image[i];
+    for (i_f=0;i_f<factor;i_f++) {
+      nr = [];
+      
+      for (j=0;j<old_width;j++) {
+        // do factor times
+        for (j_f=0;j_f<factor;j_f++) {
+          nr.push(or[j])
+        }
+      }
+      new_image.push(nr)
+    }
+  }
+  return new_image;
+}
