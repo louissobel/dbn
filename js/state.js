@@ -65,7 +65,7 @@ var Builtin = function() {
 
 var Line = Builtin('blX', 'blY', 'trX', 'trY')(Producer(function(old_state, new_state, blX, blY, trX, trY) {
 
-  // TODO: utils.bresenham_line
+
   var points = utils.bresenham_line(blX, blY, trX, trY);
   var color = old.pen_color;
 
@@ -123,7 +123,6 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
   DBNProcedureSet.prototype.copy = function() {
     var new_set = new DBNProcedureSet();
     new_set._inner = utils.copy_dict(this._inner);
-    // TODO: write utils.copy_dict
     return new_set;
   }
   
@@ -245,7 +244,6 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
       } else {
         color = options.color;
       }
-      // TODO: write utils.clip_100
       var clipped_color = utils.clip_100(color);
       this._initialize_image_data(clipped_color);
     }    
@@ -327,7 +325,6 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
     x = this._dbnx_to_x(x);
     y = this._dbny_to_y(y);
 
-    // TODO: write utils.in_range
     // check x
     if (!utils.in_range(x, 0, this.width - 1)) {
       return false;
