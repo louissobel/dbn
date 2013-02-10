@@ -368,7 +368,7 @@ def parse_ghost_line(tokens):
         if not isinstance(first_arg, DBNBracketNode):
             return None
         # no idea whats going on here \\\
-        return [DBNWordNode(children=[first_token.value], tokens=[first_token]), first_arg.left, first_arg.right] + args[1:]
+        return [DBNWordNode(children=[first_token.value], tokens=[first_token]), first_arg.left_child(), first_arg.right_child()] + args[1:]
 
 def collect_until_next(tokens, token_type):
     """

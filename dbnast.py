@@ -68,27 +68,29 @@ class DBNBaseNode:
     
     def to_js(self, depth=0):
         """
-        we use a four space indent, by the way
+        we use a two space indent, by the way
         """
         header_lines = [
-            "(new DBNASTNode({",
+            "new DBNASTNode({",
             "  type: '%s'," % self.type,
             "  name: '%s'," % self.name,
             "  tokens: [],",
             "  line_no: %d," % self.line_no,
-            "  children: [\n",
+            "  children: [%s" % ('\n' if self.children else ']\n'),
         ]
 
-        out = '\n'.join([depth  * "    " + l for l in header_lines])
-        for child in self.children:
-            out += child.to_js(depth+1) + ',\n'
+        out = '\n'.join([depth  * "  " + l for l in header_lines])
+        child_js = [child.to_js(depth+2) for child in self.children]
+        out += ',\n'.join(child_js) + '\n'
+   
+        if self.children:
+          footer_lines = [ "  ]" ]
+        else:
+          footer_lines = []
+
+        footer_lines.append("})")
         
-        footer_lines = [
-            "  ]",
-            "}))",
-        ]
-        
-        out += '\n'.join([depth  * "    " + l for l in footer_lines])
+        out += '\n'.join([depth  * "  " + l for l in footer_lines])
         return out
         
 
@@ -117,7 +119,7 @@ class DBNSetNode(DBNBaseNode):
     def apply(self, state):
         state = state.set_line_no(self.line_no)
         
-        left, right = children
+        left, right = self.children
         
         left = left.evaluate_lazy(state)
         right = right.evaluate(state)
@@ -256,6 +258,12 @@ class DBNBracketNode(DBNBaseNode):
         x = left.evaluate(state)
         y = right.evaluate(state)
         return state.image.query_pixel(x, y)
+        
+    def left_child(self):
+      return self.children[0]
+    
+    def right_child(self):
+      return self.children[1]
 
     def evaluate_lazy(self, state):
         left, right = self.children

@@ -369,5 +369,5 @@ DBNProcedure.prototype.print_info = function() {
  *
  * Jacked from base node
  */
-DBNProcedure.prototype.toString = DBNBaseNode.prototype.toString;
+DBNProcedure.prototype.toString = DBNASTNode.prototype.toString;
 
