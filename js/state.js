@@ -36,6 +36,74 @@ var Producer = function(f) {
   return inner;
 }
 
+
+/**
+ * Builtins have to go here. Bleh
+ */
+
+// Magic function that builds a built in
+var Builtin = function() {
+  var formals = arguments;
+  var decorator = function(f) {
+    var inner = function(state) {
+      var args = [];
+      formals.forEach(function(formal, index, array) {
+        args.push(state.lookup_variable(formal));
+      });
+      return f.apply(state, args)
+    }
+    var jsnode = new DBNASTNode({
+      type: 'javascript',
+      children: [inner]
+    });
+    var proc = new DBNProcedure(formals, jsnode);
+    return proc;
+  }
+  return decorator;
+}
+
+
+var Line = Builtin('blX', 'blY', 'trX', 'trY')(Producer(function(old_state, new_state, blX, blY, trX, trY) {
+
+  // TODO: utils.bresenham_line
+  var points = utils.bresenham_line(blX, blY, trX, trY);
+  var color = old.pen_color;
+
+  var pixel_list = [];
+  points.forEach(function(tuple, index, array) {
+    pixel_list.append([tuple[0], tuple[1], color]);
+  });
+
+   new_state.image = old_state.image.set_pixels(pixel_list)
+
+   // GHOSTING STUFF (Python still)
+   // current_line_no = new.line_no
+   // new_ghosts = (old.ghosts
+   //             .add_dimension_line(current_line_no, 1, 'horizontal', blX, blY)  # for blX
+   //             .add_dimension_line(current_line_no, 2, 'vertical', blX, blY) # for blY
+   //             .add_dimension_line(current_line_no, 3, 'horizontal', trX, trY) # for trX
+   //             .add_dimension_line(current_line_no, 4, 'vertical', trX, trY) # for trY
+   // )
+   // 
+   // ## traverse up the environments,
+   // ## adding these points to the ghost pointer
+   // new_ghosts = new_ghosts.add_points_to_callstack(new.env, 0, points)
+   // 
+   // new.ghosts = new_ghosts
+
+}));
+
+var Paper = Builtin('value')(Producer(function(old_state, new_state, value) {
+  new_state.image = new DBNImage({color: utils.clip_100(value)});
+  // clear ghosts?
+}));
+
+var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
+  new_sate.pen_color = utils.clip_100(value);
+}));
+
+
+
 /**
  * DBNProcedureSet
  * Object for storing a dictionary of procedures
@@ -44,15 +112,17 @@ var Producer = function(f) {
  * So this doesn't have to worry about stacks or anything. 1 per state.
  */
 (function DBNProcedureSet() {
-    this._inner = {};
+    this._inner = {
+      Line: Line,
+      Paper: Paper,
+      Pen: Pen,
+    };
 
-    // TODO: Add builtins!
-    //this._inner.add_builtins(builtins) // (or some shit like that)
   }
 
   DBNProcedureSet.prototype.copy = function() {
     var new_set = new DBNProcedureSet();
-    new_set._inner = utils.copy_dict({});
+    new_set._inner = utils.copy_dict(this._inner);
     // TODO: write utils.copy_dict
     return new_set;
   }
