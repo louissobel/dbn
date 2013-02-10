@@ -31,11 +31,10 @@ def run_script_text(dbn_script, **options):
 
     dbn_ast = parser.parse(tokens)
     if dump_javascript:
-      print dbn_ast.to_js()
+        print dbn_ast.to_js(varname='ast')
 
     if VERBOSE:
         dbn_ast.pprint()
-        print dbn_ast.to_js()
 
     state = DBNInterpreterState()
     state = dbn_ast.apply(state)

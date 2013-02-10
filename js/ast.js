@@ -270,6 +270,7 @@ DBNASTNode.prototype.evaluate_lazy = function(state) {
 }
 
 
+
 /**
  * The toString method - 
  * expects a function printInfo that returns an object with name, children
@@ -287,11 +288,9 @@ DBNASTNode.prototype.toString = function(depth, indent) {
         }
         return out;
     }
-    
-    var print_info = this.print_info();
 
     if (typeof(indent) === "undefined") {
-        var out = "(" + print_info.name + " " + childmap.call(print_info, function(c){return c.toString()}).join(' ') + ")";
+        var out = "(" + this.name + " " + childmap.call(this, function(c){return c.toString()}).join(' ') + ")";
         return out;
     } else {
         depth = depth || 0
@@ -299,9 +298,12 @@ DBNASTNode.prototype.toString = function(depth, indent) {
 
         var out = "";
         for (var i=0; i<depth*indent; i++) { out += " " }
-        out += "(" + print_info.name + "\n";
-        out += childmap.call(print_info, function(c){c.toString(depth+1, indent)}).join('');
-        for (var i=0; i<depth*indent; i++) { out += " " }
+        out += "(" + this.name;
+        if (this.children.length > 0) {
+          out += '\n';
+          out += childmap.call(this, function(c){return c.toString(depth+1, indent)}).join('');
+          for (var i=0; i<depth*indent; i++) { out += " " }
+        }
         out += ")\n";
         return out        
     }
@@ -349,20 +351,12 @@ function DBNProcedure(formal_args, body) {
     this.formal_args = formal_args;
     this.arg_count = formal_args.length;
     this.body = body;
+    
+    // for printing
+    this.children = [formal_args.join(','), this.body]
+    this.name = 'proc';
 }
 
-/**
- * The print_info for a DBNprocedure
- *
- * @this{DBNProcedure}
- * @returns{Object} with keys [name, children] for printing
- */
-DBNProcedure.prototype.print_info = function() {
-    return {
-        name : 'proc',
-        children : [this.formal_args.join(','), this.body]
-    }
-}
 
 /**
  * The toString method for a DBNProcedure 
