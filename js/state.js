@@ -13,7 +13,7 @@ var Producer = function(f) {
 
     // the function will be applied in the context of newThing
     // and the args will be (old, new, *args)
-    var retval = f.apply(new_thing, [old_thing, new_thing].concat(arguments));
+    var retval = f.apply(new_thing, [old_thing, new_thing].concat(Array.prototype.slice.call(arguments)));
 
     // retval MUST either be the new thing, or undefined
     // this is more an assertion than anything else
@@ -43,7 +43,7 @@ var Producer = function(f) {
 
 // Magic function that builds a built in
 var Builtin = function() {
-  var formals = arguments;
+  var formals = Array.prototype.slice.call(arguments);
   var decorator = function(f) {
     var inner = function(state) {
       var args = [];
@@ -65,13 +65,13 @@ var Builtin = function() {
 
 var Line = Builtin('blX', 'blY', 'trX', 'trY')(Producer(function(old_state, new_state, blX, blY, trX, trY) {
 
-
   var points = utils.bresenham_line(blX, blY, trX, trY);
-  var color = old.pen_color;
+  
+  var color = old_state.pen_color;
 
   var pixel_list = [];
   points.forEach(function(tuple, index, array) {
-    pixel_list.append([tuple[0], tuple[1], color]);
+    pixel_list.push([tuple[0], tuple[1], color]);
   });
 
    new_state.image = old_state.image.set_pixels(pixel_list)
@@ -99,7 +99,7 @@ var Paper = Builtin('value')(Producer(function(old_state, new_state, value) {
 }));
 
 var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
-  new_sate.pen_color = utils.clip_100(value);
+  new_state.pen_color = utils.clip_100(value);
 }));
 
 
@@ -111,13 +111,12 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
  * Such that commands can only be defined in the top stack level
  * So this doesn't have to worry about stacks or anything. 1 per state.
  */
-(function DBNProcedureSet() {
+function DBNProcedureSet() {
     this._inner = {
       Line: Line,
       Paper: Paper,
-      Pen: Pen,
+      Pen: Pen
     };
-
   }
 
   DBNProcedureSet.prototype.copy = function() {
@@ -137,7 +136,7 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
   DBNProcedureSet.prototype.add = Producer(function(old_set, new_set, command_name, proc) {
     new_set._inner[command_name] = proc;
   });
-)
+
 
 /**
  * DBNEnvironment
@@ -145,7 +144,8 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
  * Stacked so can pop, push, locals, etc
  */
 
-(function DBNEnvironment(options) {
+function DBNEnvironment(options) {
+    options = options || {};
     this.parent = options.parent || null;
     this.base_line_no = options.base_line_no || -1;
     this._inner = {};
@@ -216,7 +216,7 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
       return this.parent;
     }
   }
-)
+
 
 
 /**
@@ -225,10 +225,12 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
  * This is the place where DBN-format colors (0 --> 100) become real ones
  * Not worrying about ghosting just now
  */
-(function DBNImage(options) {
+function DBNImage(options) {
     
     this.width = 101;
     this.height = 101;
+  
+    options = options || {};
   
     var create;
     if (typeof options.create == "undefined") {
@@ -240,10 +242,11 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
     if (create) {
       var color;
       if (typeof options.color == "undefined") {
-        color = 100; // still in DBN mode here, which is OK
+        color = 0; // still in DBN mode here, which is OK
       } else {
         color = options.color;
       }
+
       var clipped_color = utils.clip_100(color);
       this._initialize_image_data(clipped_color);
     }    
@@ -296,9 +299,10 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
     for (i=0;i<this.height;i++) {
       or = this._image[i];
       nr = [];
-      for (j=0;i<this.width;j++) {
+      for (j=0;j<this.width;j++) {
         nr.push(or[j]);
       }
+      new_image.push(nr);
     }
     return new_image;
   }
@@ -348,7 +352,7 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
     // pixel array is an array of [x, y, value] tuples
     var array_length = pixel_array.length;
     var i;
-    for (i=0;i<array_length,i++) {
+    for (i=0;i<array_length;i++) {
       new_img._set_pixel.apply(this, pixel_array[i]);
     }
   })
@@ -356,15 +360,17 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
   DBNImage.prototype.data_uri = function() {
     // returns the DATAURI of this thing as a bitmap.
     // relying on bmp_lib's internal cacheing for now
-    return bmp_lib.imageSource(this._image, this._PALETTE);
+    return bmp_lib.imageSource(bmp_lib.scale(this._image,3), this._PALETTE);
   }
-)
+
 
 
 /**
  * And now, the interpreter state!
  */
-(function DBNInterpreterState(options) {
+function DBNInterpreterState(options) {
+    options = options || {};
+    
     var create;
     if (typeof options.create == "undefined") {
       create = true;
@@ -414,7 +420,7 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
   })
   
   DBNInterpreterState.prototype.lookup_variable = function(name) {
-    return self.env.get(name, 0); // default to 0!
+    return this.env.get(name, 0); // default to 0!
   }
   
   DBNInterpreterState.prototype.set_variable = Producer(function(old_state, new_state, key, value) {
@@ -474,7 +480,6 @@ var Pen = Builtin('value')(Producer(function(old_state, new_state, value) {
     new_state.line_no = line_no;
   })
   
-)
 
 // 
 // class DBNGhosts:

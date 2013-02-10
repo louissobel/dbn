@@ -156,7 +156,7 @@ function DBNASTNode(options) {
               }
 
               state = state.push();
-              state.set_variables(command_bindings);
+              state = state.set_variables(command_bindings);
               state = proc.body.apply(state);
               state = state.pop();
 
@@ -164,14 +164,23 @@ function DBNASTNode(options) {
           },
         
           command_definition : function(state) {
-              state = state.set_line_no(this.line_no)
+              state = state.set_line_no(this.line_no);
 
-              var args = this.children[0]
-              var body = this.children[1]
-            
+              // don't even THINK about mutating this.children
+              var children_copy = this.children.slice();
+
+              var name_node = children_copy.shift();
+              var body = children_copy.pop();
+              
+              var name = name_node.evaluate_lazy().name;
+              var args = [];
+              children_copy.forEach(function(child, index, array) {
+                args.push(child.evaluate_lazy().name);
+              });
+              
               var proc = new DBNProcedure(args, body);
               proc.line_no = this.line_no;
-              state = state.add_command(this.name, proc);
+              state = state.add_command(name, proc);
 
               return state;
           },
@@ -189,7 +198,7 @@ function DBNASTNode(options) {
           throw new TypeError("node type " + this.type + " does not have an apply function")
       }
     
-      return apply_func(state)
+      return apply_func.call(this, state)
   }
 
 
@@ -207,7 +216,7 @@ function DBNASTNode(options) {
               return state.image.query_pixel(x, y);
           },
         
-          binary_op : function(state) {
+          operation : function(state) {
             
               var left = this.children[0]
               var right = this.children[1]
@@ -230,7 +239,7 @@ function DBNASTNode(options) {
           },
         
           word : function(state) {
-              return this.name;
+              return state.lookup_variable(this.name);
           },
       }
     
@@ -239,7 +248,7 @@ function DBNASTNode(options) {
           throw new TypeError("node type " + this.type + " does not have an evaluate function")
       }
     
-      return eval_func(state)
+      return eval_func.call(this, state)
   }
 
   DBNASTNode.prototype.evaluate_lazy = function(state) {
@@ -261,12 +270,12 @@ function DBNASTNode(options) {
           },
       }
     
-      var eval_func = type_eval_func_hash[this.type]
+      var eval_func = type_eval_lazy_func_hash[this.type]
       if (typeof eval_func == "undefined") {
           throw new TypeError("node type " + this.type + " does not have an evaluate function")
       }
     
-      return eval_func(state)
+      return eval_func.call(this, state)
   }
 
 

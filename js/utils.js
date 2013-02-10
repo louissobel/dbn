@@ -38,12 +38,24 @@ var utils = {
     
     var temp;
     if (steep) {
+      //rotate 90 degrees
       temp = x0;
       x0 = y0;
       y0 = temp;
 
       temp = x1;
       x1 = y1;
+      y1 = temp;
+    }
+    
+    if (x0 > x1) {
+      // swap the points
+      temp = x0;
+      x0 = x1;
+      x1 = temp;
+      
+      temp = y0;
+      y0 = y1;
       y1 = temp;
     }
     
