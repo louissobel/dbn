@@ -397,10 +397,11 @@ bmp_lib.scale = function(image, factor) {
   var old_width = image[0].length;
   var old_height = image.length;
   
-  var i; // row
-  var j; // column
-  var or; //old row
-  var nr; //new row
+  var i   // row
+    , j   // column
+    , or  //old row
+    , nr  //new row
+    ; 
   
   var i_f; // row factor counter
   var j_f; // column factor counter

@@ -1,14 +1,13 @@
 import flask
 
-from tokenizer import DBNTokenizer
-from parser import DBNParser
+import pydbn
+import js_shim
 
 app = flask.Flask(__name__)
 app.debug = True
 
-
-tokenizer = DBNTokenizer()
-parser = DBNParser()
+tokenizer = pydbn.tokenizer.DBNTokenizer()
+parser = pydbn.parser.DBNParser()
 
 @app.route('/compile', methods=('POST',))
 def index():
@@ -16,7 +15,7 @@ def index():
     try:
         tokens = tokenizer.tokenize(dbn_script)
         dbn_ast = parser.parse(tokens)
-        return dbn_ast.to_js(varname='ast')
+        return js_shim.pydbn2dbnjs(dbn_ast, varname='ast')
     except Exception as e:
         return "var ast = null;"
 

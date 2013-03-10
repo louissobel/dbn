@@ -65,37 +65,6 @@ class DBNBaseNode:
     
     def pprint(self, indent=2):
         print self.pformat(depth=0, indent=indent)
-    
-    def to_js(self, depth=0, varname=None):
-        """
-        we use a two space indent, by the way
-        """
-        header_lines = [
-            "new DBNASTNode({",
-            "  type: '%s'," % self.type,
-            "  name: '%s'," % self.name,
-            "  tokens: [],",
-            "  line_no: %d," % self.line_no,
-            "  children: [%s" % ('\n' if self.children else ']'),
-        ]
-        
-        out = '\n'.join([depth  * "  " + l for l in header_lines])
-        child_js = [child.to_js(depth+2) for child in self.children]
-        out += ',\n'.join(child_js) + '\n'
-        
-        if self.children:
-            footer_lines = [ "  ]" ]
-        else:
-            footer_lines = []
-        
-        footer_lines.append("})")
-        
-        out += '\n'.join([depth  * "  " + l for l in footer_lines])
-        
-        if varname is not None:
-            out = "var %s = %s" % (varname, out)
-        
-        return out
 
 
 class DBNBlockNode(DBNBaseNode):
