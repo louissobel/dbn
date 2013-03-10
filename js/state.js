@@ -383,7 +383,7 @@ function DBNInterpreterState(options) {
       
       this.image = new DBNImage({color:initial_paper_color});
       this.pen_color = initial_pen_color;
-      this.env = new DBNEnvironment;
+      this.env = new DBNEnvironment();
       this.commands = new DBNProcedureSet();
       //this.ghosts = new DBNGhosts();
       

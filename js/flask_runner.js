@@ -24,6 +24,7 @@ var render = function(ast) {
   var fresh = new DBNInterpreterState();
   var result = ast.apply(fresh);
   document.getElementById('lala').src = result.image.data_uri();
+  window.result = result;
 }
 
 
