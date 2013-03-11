@@ -1,8 +1,7 @@
 define(function (require, exports, module) {
   "use strict";
 
-  var builtins = require('lib/builtins')
-    , producer = require('lib/state/producer')
+  var producer = require('lib/state/producer')
     , utils    = require('lib/utils')
     ;
 
@@ -13,12 +12,8 @@ define(function (require, exports, module) {
    * Such that commands can only be defined in the top stack level
    * So this doesn't have to worry about stacks or anything. 1 per state.
    */
-  var DBNProcedureSet = module.exports = function () {
-    this._inner = {
-      Line: builtins.Line
-    , Paper: builtins.Paper
-    , Pen: builtins.Pen
-    };
+  var DBNProcedureSet = module.exports = function (inner) {
+    this._inner = inner || {};
   };
 
   (function() {

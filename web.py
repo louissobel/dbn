@@ -15,9 +15,9 @@ def index():
     try:
         tokens = tokenizer.tokenize(dbn_script)
         dbn_ast = parser.parse(tokens)
-        return js_shim.pydbn2dbnjs(dbn_ast, varname='ast')
+        return js_shim.pydbn2dbnjs(dbn_ast)
     except Exception as e:
-        return "var ast = null;"
+        return "null;"
 
 if __name__ == "__main__":
     app.run('0.0.0.0', port=4000)

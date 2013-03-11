@@ -27,7 +27,7 @@ define(function (require, exports, module) {
     this.tokens = options.tokens || [];
     this.children = options.children || [];
     this.name = options.name || options.type;
-  }
+  };
 
   (function() {
 

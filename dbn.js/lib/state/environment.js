@@ -10,16 +10,16 @@ define(function (require, exports, module) {
    * maintains the mapping of variables
    * Stacked so can pop, push, locals, etc
    */
+
   var DBNEnvironment = module.exports = function (options) {
     options = options || {};
     this.parent = options.parent || null;
     this.baseLineNo = options.baseLineNo || -1;
     this._inner = {};
     this._varCount = 0;
-  }
+  };
 
   (function() {
-
     this.copy = function () {
       var newEnv = new DBNEnvironment({parent: this.parent, baseLineNo: this.baseLineNo});
       newEnv._inner = utils.copyDict(this._inner);
@@ -66,7 +66,7 @@ define(function (require, exports, module) {
 
         for (var i = 0; i < keysToSet.length; i++) {
           key = keysToSet[i];
-          newEnv.set(key, keyOrObject[key]);
+          newEnv._set(key, keyOrObject[key]);
         }
       }
     });

@@ -7,6 +7,7 @@ define(function (require, exports, module) {
     , producer        = require('lib/state/producer')
     , DBNDot          = require('lib/structures/dot')
     , DBNVariable     = require('lib/structures/variable')
+    , builtins        = require('lib/builtins')
     ;
 
   
@@ -35,7 +36,7 @@ define(function (require, exports, module) {
 
       this.penColor = INITIAL_PEN_COLOR;
       this.env = new DBNEnvironment();
-      this.commands = new DBNProcedureSet();
+      this.commands = new DBNProcedureSet(builtins);
       //this.ghosts = new DBNGhosts();
 
       this.stackDepth = 0;
@@ -46,7 +47,7 @@ define(function (require, exports, module) {
     // own properties (look in producer for why that's important!)
     this.next = null;
     this.previous = null;
-  }
+  };
   
   (function() {
 

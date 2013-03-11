@@ -1,7 +1,7 @@
 define(function (require, exports, module) {
   "use strict";
 
-  var DBNInterpreterState = require('lib/state')
+  var DBNInterpreterState = require('lib/state/interpreter_state')
     , DBNASTNode          = require('lib/ast_node')
     ;
   
@@ -11,7 +11,7 @@ define(function (require, exports, module) {
 
     xmlhttp.onreadystatechange = function() {
       if (xmlhttp.readyState==4 && xmlhttp.status==200) {
-        eval(xmlhttp.responseText);
+        var ast = eval(xmlhttp.responseText);
         if (ast === null) {
           window.alert('tokenize / parse error');
         } else {
@@ -34,6 +34,7 @@ define(function (require, exports, module) {
 
 
   window.onload = function() {
+    console.log('HI');
     document.getElementById('do_draw').onclick = function() {
       sendScript(document.getElementById('script').value);
     };

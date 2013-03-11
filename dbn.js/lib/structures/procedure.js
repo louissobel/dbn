@@ -1,7 +1,5 @@
-define(function (require, module, exports) {
+define(function (require, exports, module) {
   "use strict";
-
-  var DBNASTNode = require('lib/ast_node');
 
   /**
    * DBNProcedure - a class to encapsulate a procedure, its args and its body
@@ -21,10 +19,10 @@ define(function (require, module, exports) {
     this.name = 'proc';
   };
 
-  (function() {
-
-    this.toString = DBNASTNode.prototype.toString;
-
-  }).call(DBNProcedure.prototype);
+  // (function() {
+  // 
+  //     this.toString = DBNASTNode.prototype.toString;
+  // 
+  //   }).call(DBNProcedure.prototype);
 
 });

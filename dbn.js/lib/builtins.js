@@ -34,7 +34,6 @@ define(function (require, exports, module) {
   };
   
   module.exports = {
-
     Line: _builtin('blX', 'blY', 'trX', 'trY')(producer(function (oldState, newState, blX, blY, trX, trY) {
 
       var points = utils.bresenhamLine(blX, blY, trX, trY)
@@ -66,9 +65,8 @@ define(function (require, exports, module) {
       // new.ghosts = new_ghosts
 
     }))
-  
-  , Paper: _builtin('value')(producer(function (oldState, newState, value) {
 
+  , Paper: _builtin('value')(producer(function (oldState, newState, value) {
       newState.image = new DBNImage({
         color: utils.clip100(value)
       });
