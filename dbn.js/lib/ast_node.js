@@ -14,7 +14,8 @@ DefineCommandNode gets set to the line_no of the DefineCommandNode
 */
 
 define(function (require, exports, module) {
-  
+  "use strict";
+
   var DBNDot        = require('lib/structures/dot')
     , DBNVariable   = require('lib/structures/variable')
     , DBNProcedure  = require('lib/structures/procedure')
@@ -30,7 +31,7 @@ define(function (require, exports, module) {
 
   (function() {
 
-    this.start_location = function () {
+    this.startLocation = function () {
       if (this.tokens.length > 0) {
         var firstToken = this.tokens[0];
         return {
@@ -42,9 +43,9 @@ define(function (require, exports, module) {
       }
     };
 
-    this.end_location = function () {
+    this.endLocation = function () {
       if (this.tokens.length > 0) {
-        var last_token = this.tokens[this.tokens.length - 1];
+        var lastToken = this.tokens[this.tokens.length - 1];
         return {
           lineNo: lastToken.lineNo
         , charNo: lastToken.charNo
@@ -71,7 +72,7 @@ define(function (require, exports, module) {
             , right = this.children[1]
             ;
 
-          var leftVal = left.evaluate_lazy(state)
+          var leftVal = left.evaluateLazy(state)
             , rightVal = right.evaluate(state)
             ;
 
@@ -152,7 +153,7 @@ define(function (require, exports, module) {
         }
 
       , command: function (state) {
-          state = state.setLineNo(this.lineNo)
+          state = state.setLineNo(this.lineNo);
 
           var evaluatedArgs = [];
 
@@ -165,7 +166,7 @@ define(function (require, exports, module) {
             throw new SyntaxError("Command " + this.name + " is not defined!");
           }
 
-          if (proc.arg_count != evaluated_args.length) {
+          if (proc.argCount != evaluatedArgs.length) {
             throw new SyntaxError(
               this.name + " requires " + proc.argCount + "arguments, but " + evaluatedArgs.length + " were provided"
             );
@@ -208,18 +209,18 @@ define(function (require, exports, module) {
         }
 
       , javascript: function (state) {
-          var code = this.children[0]
+          var code = this.children[0];
           return code(state);
         }
 
-      }
+      };
 
       var applyFunc = typeApplyFuncHash[this.type];
       if (typeof applyFunc === "undefined") {
         throw new TypeError("node type " + this.type + " does not have an apply function");
       }
 
-      return applyFunc.call(this, state)
+      return applyFunc.call(this, state);
     };
 
     this.evaluate = function (state) {
@@ -270,13 +271,13 @@ define(function (require, exports, module) {
         }
 
       , number: function (state) {
-          return parseInt(this.name);
+          return parseInt(this.name, 10);
         }
 
       , word: function (state) {
           return state.lookupVariable(this.name);
         }
-      }
+      };
 
       var evalFunc = typeEvalFuncHash[this.type];
 
@@ -306,11 +307,11 @@ define(function (require, exports, module) {
       , word: function (state) {
           return new DBNVariable(this.name);
         }
-      }
+      };
 
       var evalLazyFunc = typeEvalLazyFuncHash[this.type];
 
-      if (typeof eval_func === "undefined") {
+      if (typeof evalLazyFunc === "undefined") {
         throw new TypeError("node type " + this.type + " does not have an evaluate function");
       }
 
@@ -339,7 +340,7 @@ define(function (require, exports, module) {
         if (typeof indent === "undefined") {
             return "(" + this.name + " " + childmap.call(this, function(c){ return c.toString(); }).join(' ') + ")";
         } else {
-            depth = depth || 0
+            depth = depth || 0;
 
             // we know indent has a value because thats how we got to this branch
             var out = "";

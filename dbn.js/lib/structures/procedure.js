@@ -1,4 +1,5 @@
 define(function (require, module, exports) {
+  "use strict";
 
   var DBNASTNode = require('lib/ast_node');
 
@@ -16,7 +17,7 @@ define(function (require, module, exports) {
     this.body = body;
     
     // for printing
-    this.children = [formalArgs.join(','), this.body]
+    this.children = [formalArgs.join(','), this.body];
     this.name = 'proc';
   };
 
@@ -26,4 +27,4 @@ define(function (require, module, exports) {
 
   }).call(DBNProcedure.prototype);
 
-})
+});

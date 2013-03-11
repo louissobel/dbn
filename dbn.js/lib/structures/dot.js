@@ -1,4 +1,5 @@
 define(function (require, exports, module) {
+  "use strict";
 
   /**
    * DBNDot - encapsulates a dot (with x, y coords)
@@ -11,4 +12,4 @@ define(function (require, exports, module) {
     this.y = y;
   };
 
-})
+});

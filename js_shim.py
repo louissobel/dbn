@@ -10,7 +10,7 @@ def pydbn2dbnjs(self, depth=0, varname=None):
         "  type: '%s'," % self.type,
         "  name: '%s'," % self.name,
         "  tokens: [],",
-        "  line_no: %d," % self.line_no,
+        "  lineNo: %d," % self.line_no,
         "  children: [%s" % ('\n' if self.children else ']'),
     ]
     

@@ -1,4 +1,5 @@
 define(function (require, exports, module) {
+  "use strict";
 
   /**
    * DBNVariable = encapsulates a variable name
@@ -10,4 +11,4 @@ define(function (require, exports, module) {
       this.name = name;
   };
 
-})
+});

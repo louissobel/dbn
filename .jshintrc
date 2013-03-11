@@ -1,0 +1,7 @@
+{
+  "laxcomma" : true
+, "strict" : true
+, "browser" : true
+, "camelcase" : true
+
+}

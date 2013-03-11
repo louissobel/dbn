@@ -1,7 +1,8 @@
 // a bunch of pure utility functions
 
 define(function (require, exports, module) {
-  
+  "use strict";
+
   module.exports = {
 
     // clips value to be in range [0,100]
@@ -26,11 +27,11 @@ define(function (require, exports, module) {
     // implicit assumption that it is being used like a HashTable
   , copyDict: function(obj) {
       var props = Object.getOwnPropertyNames(obj);
-      var new_obj = {};
+      var newObj = {};
       props.forEach(function(prop, index, array) {
-        new_obj[prop] = obj[prop];
+        newObj[prop] = obj[prop];
       });
-      return new_obj;
+      return newObj;
     }
 
     // and some drawing utils
@@ -85,12 +86,12 @@ define(function (require, exports, module) {
         error += deltay;
         if (error > 0) {
           y += ystep;
-          error -= deltax
+          error -= deltax;
         }
       }
 
       return points; 
     }
-  }
+  };
 
 });
