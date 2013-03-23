@@ -100,7 +100,6 @@ class DBNSetNode(DBNBaseNode):
         state = state.set(left, right)
         return state
 
-
 class DBNRepeatNode(DBNBaseNode):
     
     type = 'repeat'
@@ -267,6 +266,7 @@ class DBNBinaryOpNode(DBNBaseNode):
         }
         
         return ops[self.name](left, right)
+    
 
 
 class DBNNumberNode(DBNBaseNode):
@@ -280,10 +280,9 @@ class DBNNumberNode(DBNBaseNode):
         return "%s(number %s)\n" % (" "*depth*indent, self.name)
 
 class DBNWordNode(DBNBaseNode):
-    
+
     type = 'word'
 
-    
     def evaluate(self, state):
         return state.lookup_variable(self.name)
     
@@ -295,4 +294,5 @@ class DBNWordNode(DBNBaseNode):
     
     def pformat(self, depth, indent):
         return "%s(word %s)\n" % (" "*depth*indent, self.name)
+    
 

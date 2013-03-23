@@ -1,0 +1,81 @@
+STORE (name):
+  pop
+  env[name] <-- top
+
+LOAD (name):
+  push env[name]
+
+LOAD_INTEGER (n):
+  push n
+
+SET_DOT:
+  pop
+  pop
+  pop
+  Set [TOP TOP1] TOP2
+
+GET_DOT:
+  pop
+  pop
+  push [TOP TOP1]
+  
+BINARY_ADD:
+  pop
+  pop
+  push TOP + TOP1
+
+BINARY_SUB:
+  pop
+  pop
+  push TOP - TOP1
+
+BINARY_DIV:
+  pop
+  pop
+  push TOP / TOP1
+
+BINARY_MUL:
+  pop
+  pop
+  push TOP * TOP1
+
+COMPARE_SAME:
+  pop
+  pop
+  push TOP == TOP1
+
+COMPARE_NSAME:
+  pop
+  pop
+  push TOP != TOP1
+
+COMPARE_SMALLER:
+  pop
+  pop
+  push TOP < TOP1
+
+COMPARE_NSMALLER:
+  pop
+  pop
+  push TOP >= TOP1
+
+DUP_TOPX (x):
+  duplicates top x
+
+POP_TOPX (x):
+  pops top x
+
+ROT_TWO:
+  swaps top 2
+
+JUMP (x):
+  jumps to x
+
+POP_JUMP_IF_FALSE (x):
+  pop
+  if TOP is false, jumps to x
+
+POP_JUMP_IF_TRUE (x):
+  pop
+  if TOP is true, jumps to x
+

@@ -1,0 +1,4 @@
+Repeat A 10 0 {
+  Set B A
+}
+
