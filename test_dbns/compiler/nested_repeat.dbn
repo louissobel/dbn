@@ -1,0 +1,5 @@
+Repeat A 0 10 {
+ Repeat B 5 2 {
+  Set [A B] 10
+ }
+}

@@ -1,0 +1,7 @@
+Smaller? 5 6 {
+  Same? 3 3 {
+    NotSmaller? 5 4 {
+     Set [0 0] 100
+    } 
+ }
+}

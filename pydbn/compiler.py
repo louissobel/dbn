@@ -3,10 +3,11 @@ from dbnast import *
 
 class DBNCompiler:
     
-    def __init__(self):
+    def __init__(self, counter=0):
         self.bytecodes = []
         self.commands = {}
-        self.counter = 0
+        self.counter = counter
+        self.start = counter
     
     def add(self, code, arg=None):
         self.bytecodes.append((code, arg))
@@ -17,8 +18,9 @@ class DBNCompiler:
         for bc in other.bytecodes:
             self.add(*bc)
 
-    def compile(self, node):
-        new = DBNCompiler()
+    def compile(self, node, offset=0):
+        new = DBNCompiler(counter=self.counter + offset)
+
         if   isinstance(node, DBNBlockNode):
             new.compile_block(node)
 
@@ -135,31 +137,55 @@ class DBNCompiler:
         }
 
         self.add(questions[node.name])
-        
-        body = self.compile(body)
-        after_body = self.counter + body.counter + 1
 
-        self.add('POP_JUMP_IF_FALSE', after_body)
-        self.extend(body)
+        body_code = self.compile(body, offset=1)
+
+        self.add('POP_JUMP_IF_FALSE', body_code.counter)
+        self.extend(body_code)
 
     def compile_command(self, node):
-        raise NotImplemented
+        # get the children on the stack in reverse order
+        for sub_node in reversed(node.children):
+            self.extend(self.compile(sub_node))
+        
+        # load the name of the command
+        self.add('LOAD_STRING', node.name)
+
+        # run the command!
+        self.add('COMMAND', len(node.children))
+
+        # command return value always gets thrown away
+        self.add('POP_TOPX', 1)
 
     def compile_command_definition(self, node):
+        # When I build Number... going to have to 
+        # refactor / restructure this all i think
+        # sweet
+
         # children:
         # [name, arg1, ..., argN, body]
+        name = node.children[0]
+        args = node.children[1:-1]
+        body = node.children[-1]
         
+        for arg in reversed(args):
+            self.add('LOAD_STRING', arg.name)
 
-            # [name, arg1, ..., argN, body]
-            command_name = self.children[0].evaluate_lazy().name
-            args = [word.evaluate_lazy().name for word in self.children[1:-1]]
-            body = self.children[-1]
+        self.add('LOAD_STRING', name.name)
 
-            proc = DBNProcedure(args, body, line_no=self.line_no)
+        body_code = self.compile(body, offset = 3)
 
-            state = state.add_command(command_name, proc)
-            return state
+        self.add('LOAD_INTEGER', body_code.start)
+        self.add('DEFINE_COMMAND', len(args))
 
+        # Implicitly add Return 0
+        # if not node.has_return_value
+        body_code.add('LOAD_INTEGER', 0)
+        body_code.add('RETURN')
+
+        after_body = body_code.counter
+        self.add('JUMP', after_body)
+        self.extend(body_code)
 
     def compile_bracket(self, node):
         # this compiles it as read
@@ -174,8 +200,8 @@ class DBNCompiler:
     def compile_binary_op(self, node):
         left, right = node.children
 
-        self.compile(right)
-        self.compile(left)
+        self.extend(self.compile(right))
+        self.extend(self.compile(left))        
 
         ops = {
             '+': 'BINARY_ADD',

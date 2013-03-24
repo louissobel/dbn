@@ -1,0 +1,6 @@
+Command Rectangle A B {
+ Set X 0
+}
+
+
+Rectangle 9 8

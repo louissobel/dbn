@@ -8,6 +8,9 @@ LOAD (name):
 LOAD_INTEGER (n):
   push n
 
+LOAD_STRING (name):
+  push n
+
 SET_DOT:
   pop
   pop
@@ -78,4 +81,18 @@ POP_JUMP_IF_FALSE (x):
 POP_JUMP_IF_TRUE (x):
   pop
   if TOP is true, jumps to x
+  
+DEFINE_COMMAND (n):
+  makes a command expecting n arguments
+  pop
+  TOP is address of command body start
+  pop
+  TOP1 is name of command
+  then n more POPs, because n more formal args are expected
+
+COMMAND (n):
+  runs a command!
+  pop
+  TOP is name of command
+  n is number of arguments, pops that many
 

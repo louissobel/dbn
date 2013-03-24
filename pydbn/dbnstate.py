@@ -96,7 +96,7 @@ class DBNEnvironment(object):
     def delete(old, new, key):
         del new._inner[key]
       
-    def push(self, base_line_no):
+    def push(self, base_line_no=0):
         child = DBNEnvironment(parent=self, base_line_no=base_line_no)
         return child
     
@@ -105,6 +105,13 @@ class DBNEnvironment(object):
             raise ValueError("Cannot pop an environment without a parent!")
         else:
             return self.parent
+    
+    def __str__(self):
+        out = str(self._inner)
+        if self.parent is not None:
+            out = "(%s --> %s)" % (out, str(self.parent))
+        return out
+        
         
         
 class DBNInterpreterState(object):

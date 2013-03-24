@@ -1,0 +1,3 @@
+Command Rectangle A B C D {
+  Set A 5
+}

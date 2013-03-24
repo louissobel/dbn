@@ -1,0 +1,24 @@
+// basic test of commands.
+// recursion!
+
+Command Line BX BY TX TY {
+}
+
+Command Rectangle L B R T {
+  Line L B R B
+  Line R B R T
+  Line R T L T
+  Line L T L B
+}
+
+Command RectInRect L B R T S {
+
+    Smaller? B T {
+      Smaller? L R {
+        Rectangle L B R T
+        RectInRect (L + S) (B + S) (R - S) (T - S) S
+      }
+    }
+}
+
+RectInRect 30 40 70 60 3
