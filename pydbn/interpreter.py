@@ -46,11 +46,12 @@ class DBNInterpreter:
         self.set_frame(old_frame)
 
     def run(self):
+        ops = 0
         while self.pointer < len(self.bytecode):
-            print self.pointer, self.stack, self.env, self.commands
+            #print self.pointer, self.stack, self.env, self.commands
 
             op, arg = self.bytecode[self.pointer]
-            print '%s %s' % (op, arg)
+            #print '%s %s' % (op, arg)
     
             if op == 'STORE':
                 val = self.stack.pop()
@@ -226,8 +227,9 @@ class DBNInterpreter:
                 # and jump!
                 self.pointer = return_location
 
+            ops += 1
         print self.pointer, self.stack, self.env, self.commands
-        print 'END'
+        print 'END', ops
         
 
 if __name__ == "__main__":

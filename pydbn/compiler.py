@@ -99,7 +99,7 @@ class DBNCompiler:
         # compare
         self.add('COMPARE_SAME')
         # now stack is [end, current, current<end]
-        # if current is not less than end, lets GTFO
+        # if current is the same as end, lets GTFO
         skip_count = 8
         self.add('POP_JUMP_IF_TRUE', self.counter + skip_count + 1)
 
