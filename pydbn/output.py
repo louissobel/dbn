@@ -10,7 +10,6 @@ from tokenizer import DBNTokenizer
 import parser
 import time
 
-from structures import DBNStateWrapper
 import dbngui
 
 

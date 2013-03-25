@@ -1,38 +1,65 @@
 import sys
 
 import dbnstate
+import structures
 
-class Interpreter:
-    
+DEFAULT_VARIABLE_VALUE = 0
+DEFAULT_INITIAL_PAPER_COLOR = 0
+DEFAULT_INITIAL_PEN_COLOR = 100
+
+class DBNInterpreter:
+
     def __init__(self, code):
         self.bytecode = code
-        self.env = dbnstate.DBNEnvironment()
+
         self.commands = {}
-        self.stack = []
+        self.numbers = {}
         
-        # base pointer
-        self.bp = 0
-        
-        # return pointer
-        self.rp = -1
-        
+        self.image = dbnstate.DBNImage(DEFAULT_INITIAL_PAPER_COLOR)
+        self.pen_color = DEFAULT_INITIAL_PEN_COLOR
+
+        # initialize base frame
+        base_frame = dbnstate.DBNFrame()
+        self.set_frame(base_frame)
+
         # program count
         self.pointer = 0
+
+    def set_frame(self, frame):
+        self.frame = frame
+        self.stack = frame.stack
+        self.env = frame.env
+
+    def push_frame(self):
+        new_frame = dbnstate.DBNFrame(
+            parent=self.frame,
+            return_pointer=self.pointer + 1,
+            depth = self.frame.depth + 1,
+        )
+        self.set_frame(new_frame)
     
+    def pop_frame(self):
+        old_frame = self.frame.parent
+        if old_frame is None:
+            raise RuntimeError("Pop frame with no parent")
+        
+        self.set_frame(old_frame)
+
     def run(self):
         while self.pointer < len(self.bytecode):
             print self.pointer, self.stack, self.env, self.commands
 
-            op, arg = bytecode[self.pointer]
+            op, arg = self.bytecode[self.pointer]
             print '%s %s' % (op, arg)
     
             if op == 'STORE':
                 val = self.stack.pop()
-                self.env = self.env.set(arg, val)
+                self.frame.bind_variable(arg, val)
                 self.pointer += 1
     
             elif op == 'LOAD':
-                self.stack.append(self.env.get(arg))
+                val = self.frame.lookup_variable(arg, default=DEFAULT_VARIABLE_VALUE)
+                self.stack.append(val)
                 self.pointer += 1
     
             elif op == 'LOAD_INTEGER':
@@ -44,9 +71,17 @@ class Interpreter:
                 self.pointer += 1
 
             elif op == 'SET_DOT':
+                x = self.stack.pop()
+                y = self.stack.pop()
+                val = self.stack.pop()
+                self.image.set_pixel(x, y, val)
                 self.pointer += 1
     
             elif op == 'GET_DOT':
+                x = self.stack.pop()
+                y = self.stack.pop()
+                val = self.image.query_pixel(x, y)
+                self.stack.append(val)
                 self.pointer += 1
         
             elif op == 'BINARY_ADD':
@@ -142,7 +177,8 @@ class Interpreter:
 
                 argc = int(arg)
                 formal_args = [self.stack.pop() for i in range(argc)]
-                self.commands[command_name] = {'p': command_pointer, 'a': formal_args}
+                command = structures.DBNCommand(formal_args, command_pointer)
+                self.commands[command_name] = command
                 self.pointer += 1
         
             elif op == 'COMMAND':
@@ -150,47 +186,39 @@ class Interpreter:
 
                 command = self.commands.get(command_name)
                 if command is None:
-                    raise ValueError('No such command! %s' % command_name)
+                    raise RuntimeError('No such command! %s' % command_name)
 
                 argc = int(arg)
-                if not argc == len(command['a']):
-                    raise ValueError('bad argc')
+                if not argc == command.argc:
+                    raise RuntimeError('bad argc')
 
                 evaled_args = [self.stack.pop() for i in range(argc)]
+                
+                if command.is_builtin:
+                    command.call(self, *evaled_args)
+                    self.stack.append(0)
+                    self.pointer += 1
 
-                self.env = self.env.push()
-
-                # bind the variables
-                self.env = self.env.update(dict(zip(command['a'], evaled_args)))
-
-                # stash our base_pointer, return pointer
-                self.stack.append(self.bp)
-                self.stack.append(self.rp)
-
-                # set our new bp, rp
-                self.bp = len(self.stack)
-                self.rp = self.pointer + 1
-
-                # lets fucking jump!
-                self.pointer = command['p']
+                else:
+                    # push a frame
+                    self.push_frame()
+                    
+                    # bind the variables
+                    self.frame.bind_variables(**dict(zip(command.formal_args, evaled_args)))
+                    
+                    # jump!
+                    self.pointer = command.body_pointer
             
             elif op == 'RETURN':
                 # return val is TOP
+                # TODO error guard / catch
                 retval = self.stack.pop()
-                
-                # lets get back to the base
-                while len(self.stack) > self.bp:
-                    self.stack.pop()
 
                 # save current rp
-                return_location = self.rp
+                return_location = self.frame.return_pointer
                 
-                # restore old rp, bp
-                self.rp = self.stack.pop()
-                self.bp = self.stack.pop()
-                
-                # lets clear the env
-                self.env = self.env.pop()
+                # restore the frame
+                self.pop_frame()
                 
                 # and put our retval in
                 self.stack.append(retval)
@@ -209,6 +237,6 @@ if __name__ == "__main__":
         n, o, a = line.strip().split()
         bytecode.append((o, a))
     
-    i = Interpreter(bytecode)
+    i = DBNInterpreter(bytecode)
     i.run()
     

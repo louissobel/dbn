@@ -57,13 +57,13 @@ class DBNCompiler:
         return new
         
     def compile_block(self, node):
-        for subnode in node.children:
-            self.extend(self.compile(subnode))
+        for sub_node in node.children:
+            self.extend(self.compile(sub_node))
 
     def compile_set(self, node):
-        left, right = node.children
 
-        self.extend(self.compile(right))
+        self.extend(self.compile(node.right))
+        left = node.left
 
         # If left is a bracket, its a store_bracket op
         if   isinstance(left, DBNBracketNode):
@@ -79,21 +79,19 @@ class DBNCompiler:
             self.add('STORE', left.name)
 
     def compile_repeat(self, node):
-        var, start, end, body = node.children
-        
         # push on end
-        self.extend(self.compile(end))
+        self.extend(self.compile(node.end))
         # push on start
-        self.extend(self.compile(start))
+        self.extend(self.compile(node.start))
 
         # body entry - [end, current]
         body_entry = self.counter
 
         # dup current for store
         self.add('DUP_TOPX', 1)
-        self.add('STORE', var.name)
+        self.add('STORE', node.var.name)
 
-        self.extend(self.compile(body))
+        self.extend(self.compile(node.body))
 
         # dup [end, current] for comparison
         self.add('DUP_TOPX', 2)
@@ -124,10 +122,8 @@ class DBNCompiler:
         self.add('POP_TOPX', 2)
 
     def compile_question(self, node):
-        left, right, body = node.children
-        
-        self.extend(self.compile(right))
-        self.extend(self.compile(left))
+        self.extend(self.compile(node.right))
+        self.extend(self.compile(node.left))
 
         questions = {
             'Same': 'COMPARE_SAME',
@@ -138,21 +134,21 @@ class DBNCompiler:
 
         self.add(questions[node.name])
 
-        body_code = self.compile(body, offset=1)
+        body_code = self.compile(node.body, offset=1)
 
         self.add('POP_JUMP_IF_FALSE', body_code.counter)
         self.extend(body_code)
 
     def compile_command(self, node):
         # get the children on the stack in reverse order
-        for sub_node in reversed(node.children):
-            self.extend(self.compile(sub_node))
+        for arg_node in reversed(node.args):
+            self.extend(self.compile(arg_node))
         
         # load the name of the command
         self.add('LOAD_STRING', node.name)
 
         # run the command!
-        self.add('COMMAND', len(node.children))
+        self.add('COMMAND', len(node.args))
 
         # command return value always gets thrown away
         self.add('POP_TOPX', 1)
@@ -162,21 +158,15 @@ class DBNCompiler:
         # refactor / restructure this all i think
         # sweet
 
-        # children:
-        # [name, arg1, ..., argN, body]
-        name = node.children[0]
-        args = node.children[1:-1]
-        body = node.children[-1]
-        
-        for arg in reversed(args):
+        for arg in reversed(node.args):
             self.add('LOAD_STRING', arg.name)
 
-        self.add('LOAD_STRING', name.name)
+        self.add('LOAD_STRING', node.command_name.name)
 
-        body_code = self.compile(body, offset = 3)
+        body_code = self.compile(node.body, offset = 3)
 
         self.add('LOAD_INTEGER', body_code.start)
-        self.add('DEFINE_COMMAND', len(args))
+        self.add('DEFINE_COMMAND', len(node.args))
 
         # Implicitly add Return 0
         # if not node.has_return_value
@@ -188,20 +178,14 @@ class DBNCompiler:
         self.extend(body_code)
 
     def compile_bracket(self, node):
-        # this compiles it as read
-        # will be compiled as write by compile_set
-        left, right = node.children
-
-        self.extend(self.compile(right))
-        self.extend(self.compile(left))
+        self.extend(self.compile(node.right))
+        self.extend(self.compile(node.left))
 
         self.add('GET_DOT')
 
     def compile_binary_op(self, node):
-        left, right = node.children
-
-        self.extend(self.compile(right))
-        self.extend(self.compile(left))        
+        self.extend(self.compile(node.right))
+        self.extend(self.compile(node.left))        
 
         ops = {
             '+': 'BINARY_ADD',
