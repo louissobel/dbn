@@ -34,7 +34,7 @@ class PaperCommand(DBNBuiltinCommand):
         return 'Paper'
     
     def call(self, interpreter, color):
-        interpreter.set_new_image(color)
+        interpreter.image.repaper(color)
 
 class PenCommand(DBNBuiltinCommand):
     

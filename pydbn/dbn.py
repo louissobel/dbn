@@ -42,3 +42,6 @@ if __name__ == "__main__":
         interpreter = DBNInterpreter(compilation.bytecodes)
         builtins.load_builtins(interpreter)
         interpreter.run()
+        
+        # ok!
+        output.draw_window(interpreter.image._image)
