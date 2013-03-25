@@ -45,10 +45,15 @@ class DBNInterpreter:
         
         self.set_frame(old_frame)
 
-    def run(self):
+    def run(self, **kwargs):
+        trace = kwargs.get('trace', False)
+        
         ops = 0
         while self.pointer < len(self.bytecode):
             #print self.pointer, self.stack, self.env, self.commands
+
+            if trace:
+                print self.pointer
 
             op, arg = self.bytecode[self.pointer]
             #print '%s %s' % (op, arg)
@@ -228,8 +233,8 @@ class DBNInterpreter:
                 self.pointer = return_location
 
             ops += 1
-        print self.pointer, self.stack, self.env, self.commands
-        print 'END', ops
+        #print self.pointer, self.stack, self.env, self.commands
+        #print 'END', ops
         
 
 if __name__ == "__main__":

@@ -10,13 +10,10 @@ import builtins
 import output
 
 option_parser = OptionParser()
-option_parser.add_option('-v', '--verbose', action="store_true", dest="verbose", help="verbose!", default=False)
-option_parser.add_option('-a', '--animate', action="store_true", dest="animate", help="animate!", default=False)
-option_parser.add_option('-j', '--javscript', action="store_true", dest="javascript", help="dump javascript", default=False)
-option_parser.add_option('-l', '--line-numbers', action="store_true", dest="line_numbers", help="print line numbers!", default=False)
-option_parser.add_option('-f', '--full', action="store_true", dest="full", help="full interface!", default=False)
 option_parser.add_option('-c', '--compile', action="store_true", dest="compile", help="compile code", default=False)
 option_parser.add_option('-n', '--numbers', action="store_true", dest="numbers", help="show opcode numbers", default=False)
+
+option_parser.add_option('-t', '--trace', action="store_true", dest="trace", help="trace interpretation", default=False)
 
 
 if __name__ == "__main__":
@@ -41,7 +38,7 @@ if __name__ == "__main__":
     else:
         interpreter = DBNInterpreter(compilation.bytecodes)
         builtins.load_builtins(interpreter)
-        interpreter.run()
+        interpreter.run(trace=options.trace)
         
         # ok!
         output.draw_window(interpreter.image._image)
