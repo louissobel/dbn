@@ -2,6 +2,7 @@ import sys
 
 import dbnstate
 import structures
+import adapter_bus
 
 DEFAULT_VARIABLE_VALUE = 0
 DEFAULT_INITIAL_PAPER_COLOR = 0
@@ -15,12 +16,19 @@ class DBNInterpreter:
         self.commands = {}
         self.numbers = {}
         
+        # the adpater bus to the external world
+        self.adapter_bus = adapter_bus.AdapterBus()
+        self.adapter_bus.connect(self)
+        
         self.image = dbnstate.DBNImage(DEFAULT_INITIAL_PAPER_COLOR)
         self.pen_color = DEFAULT_INITIAL_PEN_COLOR
 
         # initialize base frame
         base_frame = dbnstate.DBNFrame()
         self.set_frame(base_frame)
+
+        # line no
+        self.line_no = -1
 
         # program count
         self.pointer = 0
@@ -57,8 +65,19 @@ class DBNInterpreter:
 
             op, arg = self.bytecode[self.pointer]
             #print '%s %s' % (op, arg)
+
+            if   op == 'SET_LINE_NO':
+                # lame
+                self.adapter_bus.send('image', 'refresh')
+                
+                line_no = int(arg)
+                if line_no == -1:
+                    raise RuntimeError("Why is line_no being set to -1??")
+                else:
+                    self.line_no = line_no
+                self.pointer += 1
     
-            if op == 'STORE':
+            elif op == 'STORE':
                 val = self.stack.pop()
                 self.frame.bind_variable(arg, val)
                 self.pointer += 1
@@ -234,7 +253,9 @@ class DBNInterpreter:
 
             ops += 1
         #print self.pointer, self.stack, self.env, self.commands
-        #print 'END', ops
+        #
+        print 'END', ops
+        self.adapter_bus.send('image', 'refresh')
         
 
 if __name__ == "__main__":

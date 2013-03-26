@@ -12,6 +12,8 @@ import time
 
 import dbngui
 
+from adapters import BasicImageRefresher
+
 
 def animate_state(state, direction):
     master = Tkinter.Tk()
@@ -41,22 +43,31 @@ def animate_state(state, direction):
     master.mainloop()
 
 
-def draw_window(image, time=False):
+def draw_window(interpreter):
+    TIMEOUT = 40
     master = Tkinter.Tk()
-
-    tkinter_image = ImageTk.PhotoImage(image.resize((202, 202)))
-    #tkinter_image = ImageTk.PhotoImage(test_image)
 
     w = Tkinter.Canvas(master, width=302, height=302)
     w.pack()
+    
+    # some kind of pub / sub ability will be nice
+    image_adapter = BasicImageRefresher()
+    interpreter.adapter_bus.attach(image_adapter)
 
     w.create_rectangle(49, 49, 252, 252)
-    w.create_image((151,151), image=tkinter_image, anchor='center')
-    w.image = tkinter_image
+    im = w.create_image((151,151), anchor='center')
+    
+    def check_draw():
+        #racy
+        if image_adapter.new:
+            tkinter_image = ImageTk.PhotoImage(image_adapter.image().resize((202, 202)))
+            image_adapter.new = False
 
-    if time:
-        sys.exit(0)
-
+            w.image = tkinter_image
+            w.itemconfigure(im, image=tkinter_image)
+        master.after(TIMEOUT, check_draw)
+    
+    master.after(0, check_draw)
     master.mainloop()
 
 

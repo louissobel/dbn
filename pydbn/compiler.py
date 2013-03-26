@@ -61,6 +61,7 @@ class DBNCompiler:
             self.extend(self.compile(sub_node))
 
     def compile_set(self, node):
+        self.add('SET_LINE_NO', node.line_no)
 
         self.extend(self.compile(node.right))
         left = node.left
@@ -79,6 +80,8 @@ class DBNCompiler:
             self.add('STORE', left.name)
 
     def compile_repeat(self, node):
+        self.add('SET_LINE_NO', node.line_no)
+
         # push on end
         self.extend(self.compile(node.end))
         # push on start
@@ -122,6 +125,8 @@ class DBNCompiler:
         self.add('POP_TOPX', 2)
 
     def compile_question(self, node):
+        self.add('SET_LINE_NO', node.line_no)
+
         self.extend(self.compile(node.right))
         self.extend(self.compile(node.left))
 
@@ -140,10 +145,12 @@ class DBNCompiler:
         self.extend(body_code)
 
     def compile_command(self, node):
+        self.add('SET_LINE_NO', node.line_no)
+
         # get the children on the stack in reverse order
         for arg_node in reversed(node.args):
             self.extend(self.compile(arg_node))
-        
+
         # load the name of the command
         self.add('LOAD_STRING', node.name)
 
@@ -154,6 +161,7 @@ class DBNCompiler:
         self.add('POP_TOPX', 1)
 
     def compile_command_definition(self, node):
+        self.add('SET_LINE_NO', node.line_no)
         # When I build Number... going to have to 
         # refactor / restructure this all i think
         # sweet

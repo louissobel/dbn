@@ -8,6 +8,7 @@ from interpreter import DBNInterpreter
 import builtins
 
 import output
+import threading
 
 option_parser = OptionParser()
 option_parser.add_option('-c', '--compile', action="store_true", dest="compile", help="compile code", default=False)
@@ -38,7 +39,7 @@ if __name__ == "__main__":
     else:
         interpreter = DBNInterpreter(compilation.bytecodes)
         builtins.load_builtins(interpreter)
-        interpreter.run(trace=options.trace)
+
+        threading.Thread(target = lambda: interpreter.run(trace=options.trace)).start()
+        output.draw_window(interpreter)
         
-        # ok!
-        output.draw_window(interpreter.image._image)
