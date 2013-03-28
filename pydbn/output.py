@@ -44,7 +44,7 @@ def animate_state(state, direction):
 
 
 def draw_window(interpreter):
-    TIMEOUT = 40
+    TIMEOUT = 10
     master = Tkinter.Tk()
 
     w = Tkinter.Canvas(master, width=302, height=302)
@@ -65,6 +65,7 @@ def draw_window(interpreter):
 
             w.image = tkinter_image
             w.itemconfigure(im, image=tkinter_image)
+            master.update_idletasks()
         master.after(TIMEOUT, check_draw)
     
     master.after(0, check_draw)
