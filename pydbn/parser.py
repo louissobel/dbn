@@ -1,7 +1,7 @@
 """
 a module that implements the parsing classes
 
-simple parsing, because next node can be exactly determined by next token (LR(k)?)
+simple parsing, because next node can be exactly determined by next token and current node (LL(1)?)
 """
 from dbnast import *
 from tokenizer import DBNToken
@@ -12,30 +12,12 @@ def parse_program(tokens):
     while tokens:
         first_token = tokens[0]
 
-        if   first_token.type == 'SET':
-            next_node = parse_set(tokens)
-
-        elif first_token.type == 'REPEAT':
-            next_node = parse_set(tokens)
-
-        elif first_token.type == 'QUESTION':
-            next_node = parse_question(tokens)
-
-        elif first_token.type == 'COMMAND':
+        if   first_token.type == 'COMMAND':
             # then it is a command declaration
             next_node = parse_define_command(tokens)
 
-        elif first_token.type == 'WORD':
-            # then it is a command invocation
-            next_node = parse_command(tokens)
-
-        elif first_token.type == 'NEWLINE':
-            # then its garbage, just an extra newline
-            # gotta pop it though!
-            tokens.pop(0)
-            next_node = None
         else:
-            raise ValueError('I dont know how to parse a %s in a program' % str(first_token))
+            next_node = parse_statement(tokens)
 
         if next_node is not None:
             program_nodes.append(next_node)
@@ -48,7 +30,6 @@ def parse_program(tokens):
         children=block_nodes,
         tokens=node_tokens,
     )
-
 
 def parse_define_command(tokens):
     """
@@ -89,6 +70,40 @@ def parse_define_command(tokens):
         tokens=node_tokens,
         line_no=command_token.line_no,
     )
+
+def parse_block_statement(tokens):
+    """
+    Parses one statement out from tokens
+    Set, Repeat,  Question, Word (command invocation)
+    will raise an error if unable to build a statement
+    
+    Also handles extra newlines by popping them and returning None
+    Could handle newlines by having a DBNNoOpNode, which is a NOOP
+    Would remove necessity of checking if return value is None. Hmmm
+    """
+    first_token = tokens[0]
+
+    if   first_token.type == 'SET':
+        return parse_set(tokens)
+
+    elif first_token.type == 'REPEAT':
+        return parse_set(tokens)
+
+    elif first_token.type == 'QUESTION':
+        return parse_question(tokens)
+
+    elif first_token.type == 'WORD':
+        # then it is a command invocation
+        return parse_command(tokens)
+        
+    elif first_token.type == 'NEWLINE':
+        # then it is just an extra newline
+        # pop it, throw it away, return None
+        tokens.pop(0)
+        return None
+
+    else:
+        raise ValueError("I don't know how to parse %s as a statement!" % first_token.type)
 
 def parse_set(tokens):
     """
@@ -197,27 +212,9 @@ def parse_block(tokens):
             # then the block is closed
             close_brace_token = tokens.pop(0)
             next_node = None
-
-        elif first_token.type == 'SET':
-            next_node = parse_set(tokens)
-
-        elif first_token.type == 'REPEAT':
-            next_node = parse_set(tokens)
-
-        elif first_token.type == 'QUESTION':
-            next_node = parse_question(tokens)
-
-        elif first_token.type == 'WORD':
-            # then it is a command invocation
-            next_node = parse_command(tokens)
-
-        elif first_token.type == 'NEWLINE':
-            # then its garbage, just an extra newline
-            # gotta pop it though!
-            tokens.pop(0)
-            next_node = None
+        
         else:
-            raise ValueError('I dont know how to parse a %s in a block' % str(first_token))
+            next_node = parse_statement(tokens)
 
         if next_node is not None:
             block_nodes.append(next_node)
@@ -253,7 +250,6 @@ def parse_arg(tokens):
 
     else:
         raise ValueError("I don't know how to handle token type %s while parsing args!" % first_token.type)
-
 
 def parse_arithmetic(open_paren_token, tokens, close_paren_token):
     """
@@ -371,7 +367,7 @@ def parse_bracket(tokens):
     second_arg = parse_arg(tokens)
     close_bracket_token = tokens.pop(0)
 
-    node_tokens= = [open_bracket_token] + first_arg.tokens + second_arg.tokens + [close_bracket_token]
+    node_tokens = [open_bracket_token] + first_arg.tokens + second_arg.tokens + [close_bracket_token]
     return DBNBracketNode(
         children=[first_arg, second_arg],
         tokens=all_tokens,
