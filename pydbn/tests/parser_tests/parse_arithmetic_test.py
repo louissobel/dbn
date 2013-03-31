@@ -1,3 +1,5 @@
+import unittest
+
 import parser
 from dbnast import *
 from tests.parser_tests.base_test import ParserTestCase
@@ -196,3 +198,7 @@ class ParseArithmeticTest(ParserTestCase):
 
         with self.assertRaises(ValueError):
             self.run_parse(parser.parse_arithmetic, tokens, expected=DBNBinaryOpNode)
+
+
+if __name__ == "__main__":
+    unittest.main()

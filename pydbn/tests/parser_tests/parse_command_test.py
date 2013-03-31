@@ -1,4 +1,5 @@
 import random
+import unittest
 
 import parser
 from dbnast import *
@@ -54,3 +55,7 @@ class ParseCommandTest(ParserTestCase):
         
         with self.assertRaises(ValueError):
             self.run_parse(parser.parse_command, tokens, expected=DBNCommandNode)
+
+
+if __name__ == "__main__":
+    unittest.main()

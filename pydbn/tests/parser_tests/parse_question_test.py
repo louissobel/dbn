@@ -1,4 +1,5 @@
 import random
+import unittest
 
 import parser
 from dbnast import *
@@ -71,3 +72,7 @@ class ParseQuestionTest(ParserTestCase):
         
         with self.assertRaises(ValueError):
             self.run_parse(parser.parse_question, tokens, expected=DBNQuestionNode)
+
+
+if __name__ == "__main__":
+    unittest.main()

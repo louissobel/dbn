@@ -1,3 +1,5 @@
+import unittest
+
 import parser
 from dbnast import *
 from tests.parser_tests.base_test import ParserTestCase
@@ -55,3 +57,7 @@ class ParseArgTest(ParserTestCase):
         
         with self.assertRaises(ValueError):
             self.run_parse(parser.parse_arg, tokens, expected=DBNSetNode)
+
+
+if __name__ == "__main__":
+    unittest.main()
