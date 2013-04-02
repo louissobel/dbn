@@ -76,6 +76,8 @@ class ParseSetTest(ParserTestCase):
             ('SET', ''),
             ('WORD', 'A'),
             ('NUMBER', '9'),
+            # now some other token
+            ('SET', ''),
         )
 
         with self.assertRaises(ValueError):

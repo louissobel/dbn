@@ -36,6 +36,7 @@ class ParseQuestionTest(ParserTestCase):
             ('NUMBER', '0'),
             ('NEWLINE', '\n'),
             ('OPENBRACE', ''),
+            ('NEWLINE', ''),
             ('CLOSEBRACE', ''),
             ('NEWLINE', '\n'),
             line_no = line_no,
@@ -52,6 +53,7 @@ class ParseQuestionTest(ParserTestCase):
             ('NUMBER', '0'),
             ('NUMBER', '0'),
             ('OPENBRACE', ''),
+            ('NEWLINE', ''),
             ('CLOSEBRACE', ''),
             ('NEWLINE', '\n'),
         )
@@ -67,8 +69,12 @@ class ParseQuestionTest(ParserTestCase):
             ('NUMBER', '0'),
             ('NUMBER', '0'),
             ('OPENBRACE', ''),
+            ('NEWLINE', ''),
             ('CLOSEBRACE', ''),
+            # now some other token
+            ('SET', ''),
         )
+        
         
         with self.assertRaises(ValueError):
             self.run_parse(parser.parse_question, tokens, expected=DBNQuestionNode)

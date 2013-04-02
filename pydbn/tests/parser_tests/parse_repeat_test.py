@@ -36,6 +36,7 @@ class ParseRepeatTest(ParserTestCase):
             ('NUMBER', '100'),
             ('NEWLINE', '\n'),
             ('OPENBRACE', ''),
+            ('NEWLINE', ''),
             ('CLOSEBRACE', ''),
             ('NEWLINE', '\n'),
             line_no = line_no,
@@ -53,6 +54,7 @@ class ParseRepeatTest(ParserTestCase):
             ('NUMBER', '0'),
             ('NUMBER', '100'),
             ('OPENBRACE', ''),
+            ('NEWLINE', ''),
             ('CLOSEBRACE', ''),
             ('NEWLINE', '\n'),
         )
@@ -69,6 +71,7 @@ class ParseRepeatTest(ParserTestCase):
             ('NUMBER', '0'),
             ('NUMBER', '100'),
             ('OPENBRACE', ''),
+            ('NEWLINE', ''),
             ('CLOSEBRACE', ''),
             ('NEWLINE', '\n'),
         )
@@ -86,11 +89,14 @@ class ParseRepeatTest(ParserTestCase):
             ('NUMBER', '0'),
             ('NUMBER', '100'),
             ('OPENBRACE', ''),
+            ('NEWLINE', ''),
             ('CLOSEBRACE', ''),
+            # now some other token
+            ('SET', ''),
         )
 
         with self.assertRaises(ValueError):
-            self.run_parse(parser.parse_question, tokens, expected=DBNQuestionNode)
+            self.run_parse(parser.parse_repeat, tokens, expected=DBNQuestionNode)
 
 
 if __name__ == "__main__":

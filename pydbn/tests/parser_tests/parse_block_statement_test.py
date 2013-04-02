@@ -32,6 +32,7 @@ class ParseBlockStatementTest(ParserTestCase):
             ('NUMBER', '0'),
             ('NUMBER', '100'),
             ('OPENBRACE', ''),
+            ('NEWLINE', ''),
             ('CLOSEBRACE', ''),
             ('NEWLINE', ''),
         )
@@ -46,6 +47,7 @@ class ParseBlockStatementTest(ParserTestCase):
             ('NUMBER', '0'),
             ('NUMBER', '0'),
             ('OPENBRACE', ''),
+            ('NEWLINE', ''),
             ('CLOSEBRACE', ''),
             ('NEWLINE', ''),
         )
@@ -63,15 +65,12 @@ class ParseBlockStatementTest(ParserTestCase):
     
     def test_absorb_newline(self):
         """
-        it should absorb a newline with grace
+        it should handle a newline correctly
         """
         tokens = self.make_tokens(
             ('NEWLINE', ''),
         )
-        result = parser.parse_block_statement(tokens)
-        
-        self.assertIsNone(result)
-        self.assertEquals(0, len(tokens))
+        result, result_tokens = self.run_parse(parser.parse_block_statement, tokens, expected=DBNNoopNode)
 
     def test_bad_token(self):
         """
