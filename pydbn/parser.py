@@ -131,7 +131,7 @@ def parse_block_statement(tokens):
         return parse_set(tokens)
 
     elif first_token.type == 'REPEAT':
-        return parse_set(tokens)
+        return parse_repeat(tokens)
 
     elif first_token.type == 'QUESTION':
         return parse_question(tokens)
