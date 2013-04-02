@@ -156,6 +156,15 @@ class DBNTokenizer:
             if not token.type == 'WHITESPACE' and not token.type == 'COMMENT':
                 yield token
 
+        # always yield an extra newline
+        yield DBNToken(
+            'NEWLINE',
+            '\n',
+            -1,
+            -1,
+            '\n',
+        )
+
         raise StopIteration
 
     def tokenize(self, string):
