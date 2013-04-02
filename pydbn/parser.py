@@ -30,7 +30,7 @@ def parse_program(tokens):
         node_tokens.extend(node.tokens)
 
     return DBNBlockNode(
-        children=block_nodes,
+        children=program_nodes,
         tokens=node_tokens,
     )
 
@@ -44,8 +44,10 @@ def parse_define_command(tokens):
     children = []
     parsing_args = True
     while parsing_args:
+        first_token = tokens[0]
+
         if first_token.type == 'OPENBRACE' or first_token.type == 'NEWLINE':
-            # prase_block will handle these tokens
+            # marks the end of the formal args; parse_block will handle this tokens
             parsing_args = False
         else:
             try:
@@ -59,15 +61,20 @@ def parse_define_command(tokens):
         raise ValueError("There must be at least one argument to Command! (the name of command)")
 
     body = parse_block(tokens)
+
+    noop = parse_newline(tokens)
+
     children.append(body)
 
     child_tokens = []
     for child in children:
         child_tokens.extend(child.tokens)
-    node_tokens = [command_token] + child_tokens + body.tokens
+
+    # child_tokens included the tokens of the body
+    node_tokens = [command_token] + child_tokens + noop.tokens
 
     return DBNCommandDefinitionNode(
-        children=args,
+        children=children,
         tokens=node_tokens,
         line_no=command_token.line_no,
     )
@@ -86,6 +93,10 @@ def parse_block(tokens):
 
     open_brace_token = tokens.pop(0)
 
+    # assert that the next token is a NEWLINE
+    if not tokens[0].type == 'NEWLINE':
+        raise ValueError('block open brace must be followed by newline')
+
     in_block = True
     while in_block:
         first_token = tokens[0]
@@ -93,13 +104,10 @@ def parse_block(tokens):
         if   first_token.type == 'CLOSEBRACE':
             # then the block is closed
             close_brace_token = tokens.pop(0)
-            next_node = None
             in_block = False
 
         else:
             next_node = parse_block_statement(tokens)
-
-        if next_node is not None:
             block_nodes.append(next_node)
 
     node_tokens = leading_newline_tokens + [open_brace_token]
@@ -141,10 +149,9 @@ def parse_block_statement(tokens):
         return parse_command(tokens)
         
     elif first_token.type == 'NEWLINE':
-        # then it is just an extra newline
-        # pop it, throw it away, return None
-        tokens.pop(0)
-        return None
+        # then it is just an extra newline (noop)
+        return parse_newline(tokens)
+        
 
     else:
         raise ValueError("I don't know how to parse %s as a statement!" % first_token.type)
@@ -162,9 +169,9 @@ def parse_set(tokens):
 
     second_arg = parse_arg(tokens)
 
-    newline_token = get_terminating_newline_token(tokens)
+    noop = parse_newline(tokens)
 
-    node_tokens = [set_token] + first_arg.tokens + second_arg.tokens + [newline_token]
+    node_tokens = [set_token] + first_arg.tokens + second_arg.tokens + noop.tokens
     return DBNSetNode(
         children=[first_arg, second_arg],
         tokens=node_tokens,
@@ -185,9 +192,9 @@ def parse_repeat(tokens):
     end = parse_arg(tokens)
     body = parse_block(tokens)
 
-    newline_token = get_terminating_newline_token(tokens)
+    noop = parse_newline(tokens)
 
-    node_tokens = [repeat_token] + var.tokens + start.tokens + end.tokens + body.tokens + [newline_token]
+    node_tokens = [repeat_token] + var.tokens + start.tokens + end.tokens + body.tokens + noop.tokens
     return DBNRepeatNode(
         children=[var, start, end, body],
         tokens=node_tokens,
@@ -203,10 +210,10 @@ def parse_question(tokens):
     second_arg = parse_arg(tokens)
     body = parse_block(tokens)
     
-    newline_token = get_terminating_newline_token(tokens)
+    noop = parse_newline(tokens)
 
     question_name = question_token.value
-    node_tokens = [question_token] + first_arg.tokens + second_arg.tokens + body.tokens + [newline_token]
+    node_tokens = [question_token] + first_arg.tokens + second_arg.tokens + body.tokens + noop.tokens
     return DBNQuestionNode(
         name=question_name,
         children=[first_arg, second_arg, body],
@@ -231,7 +238,7 @@ def parse_command(tokens):
 
         if first_token.type == 'NEWLINE':
             parsing_args = False
-            newline_token = tokens.pop(0)
+            noop = parse_newline(tokens)
         else:
             args.append(parse_arg(tokens))
 
@@ -240,7 +247,7 @@ def parse_command(tokens):
     node_tokens = [command_token]
     for arg in args:
         node_tokens.extend(arg.tokens)
-    node_tokens += [newline_token]
+    node_tokens += noop.tokens
 
     return DBNCommandNode(
         name=command_name,
@@ -249,25 +256,16 @@ def parse_command(tokens):
         line_no=command_token.line_no
     )
 
-##### statement utils
-## TODO: test this, refactor this?
-def get_terminating_newline_token(tokens):
+def parse_newline(tokens):
     """
-    trys to get a terminating newline token
-    will raise a value error if nothing is left
-    or if the first token isnt' a newline
+    returns a noop if its a newline
     """
-    newline_token = None
-    
-    if len(tokens) > 0:
-        first_token = tokens[0]
-        if first_token.type == 'NEWLINE':
-            newline_token = tokens.pop(0)
-    
-    if not newline_token:
-        raise ValueError("statement must be terminated with a newline")
-    
-    return newline_token
+    first_token = tokens[0]
+    if not first_token.type == 'NEWLINE':
+        raise ValueError("parse_newline called without newline as first token (%s)" % first_token.type)
+
+    newline_token = tokens.pop(0)
+    return DBNNoopNode(tokens=[newline_token])
 
 
 def parse_arg(tokens):
