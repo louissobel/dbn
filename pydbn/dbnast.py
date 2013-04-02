@@ -209,5 +209,14 @@ class DBNWordNode(DBNBaseNode):
     
     def pformat(self, depth, indent):
         return "%s(word %s)\n" % (" "*depth*indent, self.name)
+
+
+class DBNNoopNode(DBNBaseNode):
+    """
+    a noop
+    """
+    type = 'noop'
     
+    def pformat(self, depth, indent):
+        return "%s(noop)" % (" "*depth*indent, )
 
