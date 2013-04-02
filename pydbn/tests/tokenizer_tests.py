@@ -68,6 +68,7 @@ expected3 = [
     'WORD',
     'NEWLINE',
     'CLOSEBRACE',
+    'NEWLINE',
 ]
 
 bad_input = """
@@ -77,9 +78,9 @@ Paper 6
 """
 
 tokenizer_test_cases = [
-    ("*", ['OPERATOR']),
-    (teststring1, ['WORD', 'OPENPAREN']),
-    (teststring2, ['NEWLINE', 'SET', 'REPEAT', 'NUMBER', 'NEWLINE', 'WORD', 'NEWLINE', 'WORD', 'NEWLINE', 'QUESTION', 'NEWLINE', 'OPERATOR']),
+    ("*", ['OPERATOR', 'NEWLINE']),
+    (teststring1, ['WORD', 'OPENPAREN', 'NEWLINE']),
+    (teststring2, ['NEWLINE', 'SET', 'REPEAT', 'NUMBER', 'NEWLINE', 'WORD', 'NEWLINE', 'WORD', 'NEWLINE', 'QUESTION', 'NEWLINE', 'OPERATOR', 'NEWLINE']),
     (teststring3, expected3),
 ]
 
