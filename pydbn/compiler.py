@@ -21,46 +21,25 @@ class DBNCompiler:
     def compile(self, node, offset=0):
         new = DBNCompiler(counter=self.counter + offset)
 
-        if   isinstance(node, DBNBlockNode):
-            new.compile_block(node)
+        node_class_name = node.__class__.__name__
+        
+        compile_command_name = "compile_%s" % node_class_name
+        
+        try:
+            compile_command = getattr(new, compile_command_name)
+            compile_command(node)
 
-        elif isinstance(node, DBNSetNode):
-            new.compile_set(node)
-        
-        elif isinstance(node, DBNRepeatNode):
-            new.compile_repeat(node)
-        
-        elif isinstance(node, DBNQuestionNode):
-            new.compile_question(node)
-        
-        elif isinstance(node, DBNCommandNode):
-            new.compile_command(node)
-        
-        elif isinstance(node, DBNCommandDefinitionNode):
-            new.compile_command_definition(node)
-        
-        elif isinstance(node, DBNBracketNode):
-            new.compile_bracket(node)
-        
-        elif isinstance(node, DBNBinaryOpNode):
-            new.compile_binary_op(node)
-        
-        elif isinstance(node, DBNNumberNode):
-            new.compile_number(node)
-        
-        elif isinstance(node, DBNWordNode):
-            new.compile_word(node)
-        
+        except AttributeError:
+            raise ValueError("Unknown node type! (%s)" % str(type(node)))
+
         else:
-            raise ValueError("Unknown node type!")
+            return new
         
-        return new
-        
-    def compile_block(self, node):
+    def compile_DBNBlockNode(self, node):
         for sub_node in node.children:
             self.extend(self.compile(sub_node))
 
-    def compile_set(self, node):
+    def compile_DBNSetNode(self, node):
         self.add('SET_LINE_NO', node.line_no)
 
         self.extend(self.compile(node.right))
@@ -79,7 +58,7 @@ class DBNCompiler:
         elif isinstance(left, DBNWordNode):
             self.add('STORE', left.name)
 
-    def compile_repeat(self, node):
+    def compile_DBNRepeatNode(self, node):
         self.add('SET_LINE_NO', node.line_no)
 
         # push on end
@@ -124,7 +103,7 @@ class DBNCompiler:
         # ok, now this stuff is cleanup - pop away
         self.add('POP_TOPX', 2)
 
-    def compile_question(self, node):
+    def compile_DBNQuestionNode(self, node):
         self.add('SET_LINE_NO', node.line_no)
 
         self.extend(self.compile(node.right))
@@ -144,7 +123,7 @@ class DBNCompiler:
         self.add('POP_JUMP_IF_FALSE', body_code.counter)
         self.extend(body_code)
 
-    def compile_command(self, node):
+    def compile_DBNCommandNode(self, node):
         self.add('SET_LINE_NO', node.line_no)
 
         # get the children on the stack in reverse order
@@ -160,7 +139,7 @@ class DBNCompiler:
         # command return value always gets thrown away
         self.add('POP_TOPX', 1)
 
-    def compile_command_definition(self, node):
+    def compile_DBNCommandDefinitionNode(self, node):
         self.add('SET_LINE_NO', node.line_no)
         # When I build Number... going to have to 
         # refactor / restructure this all i think
@@ -185,13 +164,13 @@ class DBNCompiler:
         self.add('JUMP', after_body)
         self.extend(body_code)
 
-    def compile_bracket(self, node):
+    def compile_DBNBracketNode(self, node):
         self.extend(self.compile(node.right))
         self.extend(self.compile(node.left))
 
         self.add('GET_DOT')
 
-    def compile_binary_op(self, node):
+    def compile_DBNBinaryOpNode(self, node):
         self.extend(self.compile(node.right))
         self.extend(self.compile(node.left))        
 
@@ -203,11 +182,14 @@ class DBNCompiler:
         }
         self.add(ops[node.name])
 
-    def compile_number(self, node):
+    def compile_DBNNumberNode(self, node):
         self.add('LOAD_INTEGER', node.name)
 
-    def compile_word(self, node):
+    def compile_DBNWordNode(self, node):
         self.add('LOAD', node.name)
+    
+    def compile_DBNNoopNode(self, node):
+        pass #NOOP
 
 
 
