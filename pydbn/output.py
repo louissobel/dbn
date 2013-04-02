@@ -59,13 +59,13 @@ def draw_window(interpreter):
     
     def check_draw():
         #racy
-        if image_adapter.new:
-            tkinter_image = ImageTk.PhotoImage(image_adapter.image().resize((202, 202)))
-            image_adapter.new = False
+        #if image_adapter.new:
+        tkinter_image = ImageTk.PhotoImage(image_adapter.image().resize((202, 202)))
+        image_adapter.new = False
 
-            w.image = tkinter_image
-            w.itemconfigure(im, image=tkinter_image)
-            master.update_idletasks()
+        w.image = tkinter_image
+        w.itemconfigure(im, image=tkinter_image)
+        master.update_idletasks()
         master.after(TIMEOUT, check_draw)
     
     master.after(0, check_draw)
