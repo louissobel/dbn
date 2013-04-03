@@ -14,6 +14,7 @@ option_parser = OptionParser()
 option_parser.add_option('-c', '--compile', action="store_true", dest="compile", help="compile code", default=False)
 option_parser.add_option('-n', '--numbers', action="store_true", dest="numbers", help="show opcode numbers", default=False)
 
+option_parser.add_option('-f', '--file', action="store", dest="filename", help="file for output", default=None)
 option_parser.add_option('-t', '--trace', action="store_true", dest="trace", help="trace interpretation", default=False)
 
 
@@ -40,6 +41,12 @@ if __name__ == "__main__":
         interpreter = DBNInterpreter(compilation.bytecodes)
         builtins.load_builtins(interpreter)
 
-        threading.Thread(target = lambda: interpreter.run(trace=options.trace)).start()
-        output.draw_window(interpreter)
+        if options.filename:
+            # save it
+            interpreter.run()
+            output.output_png(interpreter, options.filename)
+
+        else:
+            threading.Thread(target = lambda: interpreter.run(trace=options.trace)).start()
+            output.draw_window(interpreter)
         

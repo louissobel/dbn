@@ -71,6 +71,12 @@ def draw_window(interpreter):
     master.after(0, check_draw)
     master.mainloop()
 
+def output_png(interpreter, filename):
+    """
+    given an interpreter with image at .image,
+    save it as png
+    """
+    interpreter.image._image.save(filename, 'bmp')
 
 def print_line_numbers(state):
     """
