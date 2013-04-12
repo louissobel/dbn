@@ -65,8 +65,8 @@ class DBNImage():
         if not 0 <= y <= 100:
             return False
         
-        # y needs to be flipped
-        y = 100 - y
+        x = utils.pixel_to_coord(x, 'x')
+        y = utils.pixel_to_coord(y, 'y')
         
         self._image_array[x, y] = utils.scale_100(value)
         return True
