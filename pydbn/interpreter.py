@@ -4,10 +4,11 @@ import dbnstate
 import structures
 import adapter_bus
 
+import adapters.loader
+
 DEFAULT_VARIABLE_VALUE = 0
 DEFAULT_INITIAL_PAPER_COLOR = 0
 DEFAULT_INITIAL_PEN_COLOR = 100
-
 
 import time
 
@@ -22,6 +23,9 @@ class DBNInterpreter:
         # the adpater bus to the external world
         self.adapter_bus = adapter_bus.AdapterBus()
         self.adapter_bus.connect(self)
+        
+        loader = adapters.loader.LoadAdapter()
+        self.adapter_bus.attach(loader)
         
         self.image = dbnstate.DBNImage(DEFAULT_INITIAL_PAPER_COLOR)
         self.pen_color = DEFAULT_INITIAL_PEN_COLOR
@@ -60,13 +64,17 @@ class DBNInterpreter:
         trace = kwargs.get('trace', False)
         
         ops = 0
-        while self.pointer < len(self.bytecode):
+        terminated = False
+        while not terminated:
 
             op, arg = self.bytecode[self.pointer]
             if trace:
                 print self.pointer, '%s %s' % (op, arg)
 
-            if   op == 'SET_LINE_NO':
+            if   op == 'END':
+                terminated = True
+
+            elif op == 'SET_LINE_NO':
                 line_no = int(arg)
                 if line_no == -1:
                     raise RuntimeError("Why is line_no being set to -1??")
@@ -248,6 +256,19 @@ class DBNInterpreter:
                 # and jump!
                 self.pointer = return_location
 
+            elif op == 'LOAD_CODE':
+                # loaded code is responsible for ensuring we return to the next adress
+                filename = self.stack.pop()
+                offset = len(self.bytecode) # the position of the first bytecode of the foreign code
+                return_pos = self.pointer + 1
+                compiled_foreign_code = self.adapter_bus.send('loader', 'load', filename, offset, return_pos)
+
+                # we trust that this bytecode has a jump at the end to `return_pos`
+                self.bytecode.extend(compiled_foreign_code)
+                
+                self.pointer = offset
+
+            #print self.bytecode, self.pointer
             ops += 1
         
 

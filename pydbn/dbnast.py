@@ -66,6 +66,11 @@ class DBNBaseNode(object):
     def pprint(self, indent=2):
         print self.pformat(depth=0, indent=indent)
 
+class DBNProgramNode(DBNBaseNode):
+    """
+    a whole DBNProgram
+    """
+    type = 'program'
 
 class DBNBlockNode(DBNBaseNode):
     """

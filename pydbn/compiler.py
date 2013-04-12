@@ -34,6 +34,10 @@ class DBNCompiler:
 
         else:
             return new
+    
+    def compile_DBNProgramNode(self, node):
+        self.compile_DBNBlockNode(node)
+        self.add('END')
         
     def compile_DBNBlockNode(self, node):
         for sub_node in node.children:

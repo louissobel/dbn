@@ -5,7 +5,7 @@ import parser
 from dbnast import *
 from tests.parser_tests.base_test import ParserTestCase
 
-class ParseBlockTest(ParserTestCase):
+class ParseProgramTest(ParserTestCase):
     """
     tests parse block
     """
@@ -22,7 +22,7 @@ class ParseBlockTest(ParserTestCase):
         it should parse an empty program
         """
         tokens = []
-        result, result_tokens = self.run_parse(parser.parse_program, tokens, expected=DBNBlockNode)
+        result, result_tokens = self.run_parse(parser.parse_program, tokens, expected=DBNProgramNode)
     
     def test_parse_just_newlines(self):
         """
@@ -32,7 +32,7 @@ class ParseBlockTest(ParserTestCase):
             ('NEWLINE', ''),
             ('NEWLINE', ''),
         )
-        result, result_tokens = self.run_parse(parser.parse_program, tokens, expected=DBNBlockNode)
+        result, result_tokens = self.run_parse(parser.parse_program, tokens, expected=DBNProgramNode)
         self.assert_block_node(result, (DBNNoopNode, DBNNoopNode))
     
     def test_parse_simple_program(self):
@@ -51,7 +51,7 @@ class ParseBlockTest(ParserTestCase):
             ('NUMBER', '100'),
             ('NEWLINE', ''),
         )
-        result, result_tokens = self.run_parse(parser.parse_program, tokens, expected=DBNBlockNode)
+        result, result_tokens = self.run_parse(parser.parse_program, tokens, expected=DBNProgramNode)
         self.assert_block_node(result, (DBNCommandNode, DBNCommandNode))
         
     def test_no_trailing_newline_program(self):
@@ -72,7 +72,7 @@ class ParseBlockTest(ParserTestCase):
         )
 
         with self.assertRaises(ValueError):
-            self.run_parse(parser.parse_program, tokens, expected=DBNBlockNode)
+            self.run_parse(parser.parse_program, tokens, expected=DBNProgramNode)
     
     def test_throw_error_bad_statement(self):
         """
@@ -87,7 +87,7 @@ class ParseBlockTest(ParserTestCase):
         )
         
         with self.assertRaises(ValueError):
-            self.run_parse(parser.parse_program, tokens, expected=DBNBlockNode)
+            self.run_parse(parser.parse_program, tokens, expected=DBNProgramNode)
         
     def test_big_ol_program(self):
         """
@@ -129,7 +129,7 @@ class ParseBlockTest(ParserTestCase):
              ('NEWLINE', ''),
 
         )
-        result, result_tokens = self.run_parse(parser.parse_program, tokens, expected=DBNBlockNode)
+        result, result_tokens = self.run_parse(parser.parse_program, tokens, expected=DBNProgramNode)
         self.assert_block_node(result,
             (DBNNoopNode, DBNCommandDefinitionNode, DBNSetNode, DBNNoopNode, DBNQuestionNode, DBNCommandNode)
         )

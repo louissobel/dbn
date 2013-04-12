@@ -1,3 +1,9 @@
+END
+  ends the program
+  
+SET_LINE_NO (no)
+  line_no <-- no
+
 STORE (name):
   pop
   env[name] <-- top
@@ -96,7 +102,7 @@ COMMAND (n):
   TOP is name of command
   n is number of arguments, pops that many
 
-LOAD
+LOAD_CODE
   filename <-- pop
   compile and interpret the given file. defined commands and numbers
   should be accessible from the calling file

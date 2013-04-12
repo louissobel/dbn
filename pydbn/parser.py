@@ -29,7 +29,7 @@ def parse_program(tokens):
     for node in program_nodes:
         node_tokens.extend(node.tokens)
 
-    return DBNBlockNode(
+    return DBNProgramNode(
         children=program_nodes,
         tokens=node_tokens,
     )
