@@ -61,16 +61,12 @@ class DBNInterpreter:
         
         ops = 0
         while self.pointer < len(self.bytecode):
-            #print self.pointer, self.stack, self.env, self.commands
 
             op, arg = self.bytecode[self.pointer]
             if trace:
                 print self.pointer, '%s %s' % (op, arg)
 
             if   op == 'SET_LINE_NO':
-                # lame
-                self.adapter_bus.send('image', 'refresh')
-                
                 line_no = int(arg)
                 if line_no == -1:
                     raise RuntimeError("Why is line_no being set to -1??")
@@ -253,9 +249,6 @@ class DBNInterpreter:
                 self.pointer = return_location
 
             ops += 1
-        #print self.pointer, self.stack, self.env, self.commands
-        #
-        self.adapter_bus.send('image', 'refresh')
         
 
 if __name__ == "__main__":
