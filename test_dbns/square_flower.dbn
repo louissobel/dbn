@@ -1,0 +1,46 @@
+// Commands with recursion
+
+// Defines a Command then runs it
+
+Command SquareWithSquareCorners A B C D S Depth {
+  Set width (A - C)
+  Smaller? width 0 {
+    Set width (0 - width)
+  }
+
+  Pen (100 - (Depth * 15))
+
+  Line A B A D
+  Line A D C D
+  Line C D C B
+  Line C B A B
+
+  Set new_width (width / 2)
+  Set new_depth (Depth + 1)
+
+  NotSmaller? new_width 1 {
+    NotSame? S 1 {
+      SquareWithSquareCorners (A - new_width) (B - new_width) A B 3 new_depth
+    }
+
+    NotSame? S 2 {
+      SquareWithSquareCorners C (B - new_width) (C + new_width) B 4 new_depth
+    }
+
+    NotSame? S 3 {
+      SquareWithSquareCorners C D (C + new_width) (D + new_width) 1 new_depth
+    }
+
+    NotSame? S 4 {
+      SquareWithSquareCorners (A - new_width) D A (D + new_width) 2 new_depth
+    }
+  }
+
+}
+
+
+Paper 0
+
+SquareWithSquareCorners 33 33 67 67 0 0
+
+
