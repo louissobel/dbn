@@ -8,6 +8,9 @@ DEFAULT_VARIABLE_VALUE = 0
 DEFAULT_INITIAL_PAPER_COLOR = 0
 DEFAULT_INITIAL_PEN_COLOR = 100
 
+
+import time
+
 class DBNInterpreter:
 
     def __init__(self, code):
@@ -60,11 +63,9 @@ class DBNInterpreter:
         while self.pointer < len(self.bytecode):
             #print self.pointer, self.stack, self.env, self.commands
 
-            if trace:
-                print self.pointer
-
             op, arg = self.bytecode[self.pointer]
-            #print '%s %s' % (op, arg)
+            if trace:
+                print self.pointer, '%s %s' % (op, arg)
 
             if   op == 'SET_LINE_NO':
                 # lame
@@ -254,7 +255,6 @@ class DBNInterpreter:
             ops += 1
         #print self.pointer, self.stack, self.env, self.commands
         #
-        print 'END', ops
         self.adapter_bus.send('image', 'refresh')
         
 
