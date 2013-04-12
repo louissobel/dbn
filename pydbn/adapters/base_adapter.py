@@ -10,5 +10,5 @@ class BaseAdapter(object):
     def interpreter(self):
         return self.adapter_bus.interpreter
     
-    def identifers(self):
+    def identifer(self):
         raise NotImplementedError
