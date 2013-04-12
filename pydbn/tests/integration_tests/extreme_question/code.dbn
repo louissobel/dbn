@@ -1,0 +1,55 @@
+// a script to show the capabilities of questions
+// from page 133 of DBN
+
+Paper 0
+
+Repeat B 0 100 {
+  Repeat A 0 100 {
+    Same? A 20 {
+      Same? B 20 {
+        Set [A B] 0
+      }
+      NotSame? B 50 {
+        Smaller? B 50 {
+          Set [A B] (B * 2)
+        }
+        NotSmaller? B 50 {
+          Set [A B] (2 * (100-B))
+        }
+      }
+    }
+    NotSame? A 20 {
+      Same? B 50 {
+        Set [A B] 50
+      }
+      NotSame? B 50 {
+        Smaller? (B-A) 0 {
+          Smaller? A 80 {
+            Smaller? B 20 {
+              Set [A B] (A - B)
+            }
+            NotSmaller? B 20 {
+              Set [A B] (A + B)
+            }
+          }
+          NotSmaller? A 80 {
+            Set [A B] (2 * (A - B))
+          }
+        }
+        NotSmaller? (B-A) 0 {
+          Smaller? A 40 {
+            Smaller? A 20 {
+              Set [A B] (A*4)
+            }
+            NotSmaller? A 20 {
+              Set [A B] (100 - A)
+            }
+          }
+          NotSmaller? A 40 {
+            Set [A B] A
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+// Defines a Command then runs it
+
+Command Square A B C D {
+  Line A B A D
+  Line A D C D
+  Line C D C B
+  Line C B A B
+}
+
+
+Paper 30
+Pen 60
+
+Square 25 25 75 75

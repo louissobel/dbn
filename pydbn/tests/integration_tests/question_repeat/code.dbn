@@ -1,0 +1,38 @@
+// split area into 4 fields
+
+
+Set ONE 20
+Set TWO 40
+Set THREE 60
+Set FOUR 80
+
+
+Repeat X 0 100 {
+  Repeat Y 0 100 {
+  
+    Smaller? X 50 {
+    
+      Smaller? Y 50 {
+        // bottom left
+        Set [X Y] THREE
+      }
+      NotSmaller? Y 50 {
+        // top left
+        Set [X Y] TWO
+      }
+
+    }
+    NotSmaller? X 50 {
+        
+      Smaller? Y 50 {
+        // bottom right
+        Set [X Y] FOUR
+      }
+      NotSmaller? Y 50 {
+        // top right
+        Set [X Y] ONE
+      }
+    }
+  }
+}
+
