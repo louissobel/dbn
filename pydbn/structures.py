@@ -15,8 +15,6 @@ class DBNDot:
         
 class DBNProcedure():
     """
-    never created by the parser, only by the evaluation of a command definition node!
-
     root class for commands, builtin commands, numbers, builtin numbers
     """
     def __init__(self, argc, line_no=-1):
@@ -34,6 +32,7 @@ class DBNProcedure():
     def __repr__(self):
         return self.__str__()
 
+
 class DBNCommand(DBNProcedure):
     """
     A userspace command
@@ -45,7 +44,8 @@ class DBNCommand(DBNProcedure):
 
     def __str__(self):
         return "[C:%s@%d]" % (','.join(self.formal_args), self.body_pointer)
-        
+
+
 class DBNBuiltinCommand(DBNProcedure):
     """
     A builtin command (think Line, Paper, Pen)
