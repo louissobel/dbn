@@ -96,3 +96,8 @@ COMMAND (n):
   TOP is name of command
   n is number of arguments, pops that many
 
+LOAD
+  filename <-- pop
+  compile and interpret the given file. defined commands and numbers
+  should be accessible from the calling file
+
