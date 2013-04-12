@@ -12,8 +12,8 @@ class AdapterBus:
         return self
     
     def attach(self, adapter):
-        for identifier in adapter.identifiers():
-            self._inner[identifier] = adapter
+        identifier = adapter.identifier():
+        self._inner[identifier] = adapter
         adapter.connect(self)
     
     def detach(self, identifier):
