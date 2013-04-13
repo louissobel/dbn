@@ -3,23 +3,28 @@ from dbnast import *
 
 class DBNCompiler:
     
-    def __init__(self, counter=0):
+    def __init__(self, counter=0, module=False):
         self.bytecodes = []
         self.commands = {}
+        self.module = module
         self.counter = counter
         self.start = counter
     
-    def add(self, code, arg=None):
+    def add(self, code, arg='_'):
         self.bytecodes.append((code, arg))
         self.counter += 1
         return self
     
+    def add_set_line_no_unless_module(self, line_no):
+        if not self.module:
+            self.add('SET_LINE_NO', line_no)
+
     def extend(self, other):
         for bc in other.bytecodes:
             self.add(*bc)
 
     def compile(self, node, offset=0):
-        new = DBNCompiler(counter=self.counter + offset)
+        new = DBNCompiler(counter=self.counter + offset, module=self.module)
 
         node_class_name = node.__class__.__name__
         
@@ -34,17 +39,18 @@ class DBNCompiler:
 
         else:
             return new
-    
+
     def compile_DBNProgramNode(self, node):
         self.compile_DBNBlockNode(node)
-        self.add('END')
+        if not self.module:
+            self.add('END')
         
     def compile_DBNBlockNode(self, node):
         for sub_node in node.children:
             self.extend(self.compile(sub_node))
 
     def compile_DBNSetNode(self, node):
-        self.add('SET_LINE_NO', node.line_no)
+        self.add_set_line_no_unless_module(node.line_no)
 
         self.extend(self.compile(node.right))
         left = node.left
@@ -63,7 +69,7 @@ class DBNCompiler:
             self.add('STORE', left.name)
 
     def compile_DBNRepeatNode(self, node):
-        self.add('SET_LINE_NO', node.line_no)
+        self.add_set_line_no_unless_module(node.line_no)
 
         # push on end
         self.extend(self.compile(node.end))
@@ -108,7 +114,7 @@ class DBNCompiler:
         self.add('POP_TOPX', 2)
 
     def compile_DBNQuestionNode(self, node):
-        self.add('SET_LINE_NO', node.line_no)
+        self.add_set_line_no_unless_module(node.line_no)
 
         self.extend(self.compile(node.right))
         self.extend(self.compile(node.left))
@@ -128,7 +134,7 @@ class DBNCompiler:
         self.extend(body_code)
 
     def compile_DBNCommandNode(self, node):
-        self.add('SET_LINE_NO', node.line_no)
+        self.add_set_line_no_unless_module(node.line_no)
 
         # get the children on the stack in reverse order
         for arg_node in reversed(node.args):
@@ -144,7 +150,7 @@ class DBNCompiler:
         self.add('POP_TOPX', 1)
 
     def compile_DBNCommandDefinitionNode(self, node):
-        self.add('SET_LINE_NO', node.line_no)
+        self.add_set_line_no_unless_module(node.line_no)
         # When I build Number... going to have to 
         # refactor / restructure this all i think
         # sweet
