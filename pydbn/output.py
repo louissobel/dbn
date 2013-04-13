@@ -49,10 +49,6 @@ def draw_window(interpreter):
 
     w = Tkinter.Canvas(master, width=302, height=302)
     w.pack()
-    
-    # some kind of pub / sub ability will be nice
-    image_adapter = BasicImageRefresher()
-    interpreter.adapter_bus.attach(image_adapter)
 
     w.create_rectangle(49, 49, 252, 252)
     im = w.create_image((151,151), anchor='center')
@@ -60,8 +56,7 @@ def draw_window(interpreter):
     def check_draw():
         #racy
         #if image_adapter.new:
-        tkinter_image = ImageTk.PhotoImage(image_adapter.image().resize((202, 202)))
-        image_adapter.new = False
+        tkinter_image = ImageTk.PhotoImage(interpreter.image._image.resize((202, 202)))
 
         w.image = tkinter_image
         w.itemconfigure(im, image=tkinter_image)
