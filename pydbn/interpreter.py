@@ -14,7 +14,7 @@ import time
 
 class DBNInterpreter:
 
-    def __init__(self, code):
+    def __init__(self, code, debug=False):
         self.bytecode = code
 
         self.commands = {}
@@ -39,6 +39,22 @@ class DBNInterpreter:
 
         # program count
         self.pointer = 0
+        
+        self._DEBUG = debug
+
+    def debug(self, msg):
+        if self._DEBUG:
+            print msg
+
+    def dump_bytecode(self):
+        """
+        for debug - dumps bytecode
+        """
+        out = "------Bytecode:"
+        for n, (o, a) in enumerate(self.bytecode):
+            out += "%s %s %s" % (n, o, a)
+        out += "--------"
+        return out
 
     def set_frame(self, frame):
         self.frame = frame
@@ -258,27 +274,36 @@ class DBNInterpreter:
 
             elif op == 'LOAD_CODE':
                 # loaded code is responsible for ensuring we return to the next adress
-                filename = self.stack.pop()
+                filename = arg
                 offset = len(self.bytecode) # the position of the first bytecode of the foreign code
                 return_pos = self.pointer + 1
                 compiled_foreign_code = self.adapter_bus.send('loader', 'load', filename, offset, return_pos)
 
                 # we trust that this bytecode has a jump at the end to `return_pos`
                 self.bytecode.extend(compiled_foreign_code)
-                
-                self.pointer = offset
 
-            #print self.bytecode, self.pointer
+                self.debug(self.dump_bytecode())
+
+                self.pointer = offset
             ops += 1
         
 
 if __name__ == "__main__":
+    import builtins
+    import output
+
     bytecode = []
 
     for line in sys.stdin:
-        n, o, a = line.strip().split()
+        parts = line.strip().split()
+        if len(parts) == 2:
+            o, a = parts
+        else:
+            n, o, a = parts
         bytecode.append((o, a))
     
     i = DBNInterpreter(bytecode)
-    i.run()
+    builtins.load_builtins(i)
+    i.run(trace = True)
+    output.draw_window(i)
     
