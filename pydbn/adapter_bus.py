@@ -12,7 +12,7 @@ class AdapterBus:
         return self
     
     def attach(self, adapter):
-        identifier = adapter.identifier():
+        identifier = adapter.identifier()
         self._inner[identifier] = adapter
         adapter.connect(self)
     
@@ -25,5 +25,5 @@ class AdapterBus:
             method = getattr(recipient_adapter, message)
             if callable(method):
                 return method(*args)
-        return 0
+        raise RuntimeError('No compatiable adapter for %s %s' % (recipient, message))
                 
