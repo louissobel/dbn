@@ -50,7 +50,7 @@ class DBNTokenizer:
         self.register('WHITESPACE',   r'[^\S\n]+')
 
         # operators next
-        self.register('OPERATOR',     r'([*-/+])')
+        self.register('OPERATOR',     r'([*\-/+])')
 
         # the groupers
         self.register('OPENPAREN',    r'(\()')

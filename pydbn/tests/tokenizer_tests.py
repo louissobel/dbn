@@ -14,8 +14,10 @@ def build_test_builder(function):
 
 class TokenizerTest(unittest.TestCase):
     def test_bad_token(self):
-        self.assertRaises(ValueError, tokenizer_tester, bad_input)
+        self.assertRaises(ValueError, tokenizer_tester, bad_input1)
 
+    def test_bad_token2(self):
+        self.assertRaises(ValueError, tokenizer_tester, bad_input2)
 
 teststring1 = """horse ("""
 
@@ -71,17 +73,22 @@ expected3 = [
     'NEWLINE',
 ]
 
-bad_input = """
+#teststring4 = "Load . /foo/ba_r.dbn"
+
+bad_input1 = """
 Pen 0
 Paper 6
 : Goo
 """
+
+bad_input2 = "."
 
 tokenizer_test_cases = [
     ("*", ['OPERATOR', 'NEWLINE']),
     (teststring1, ['WORD', 'OPENPAREN', 'NEWLINE']),
     (teststring2, ['NEWLINE', 'SET', 'REPEAT', 'NUMBER', 'NEWLINE', 'WORD', 'NEWLINE', 'WORD', 'NEWLINE', 'QUESTION', 'NEWLINE', 'OPERATOR', 'NEWLINE']),
     (teststring3, expected3),
+    #(teststring4, ['LOAD', 'PATH', 'NEWLINE'])
 ]
 
 def tokenizer_tester(string):
@@ -93,9 +100,8 @@ for index, (string, expected) in enumerate(tokenizer_test_cases):
     test_method = tokenizer_test_builder(string, expected)
     test_method.__name__ = "test_tokenizer_%d" % index
     setattr(TokenizerTest, test_method.__name__, test_method)
-    
-    
+
+
 if __name__ == "__main__":
     unittest.main()
 
-    
