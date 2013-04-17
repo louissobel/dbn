@@ -73,7 +73,7 @@ expected3 = [
     'NEWLINE',
 ]
 
-#teststring4 = "Load . /foo/ba_r.dbn"
+teststring4 = "Load /foo/ba_r.dbn"
 
 bad_input1 = """
 Pen 0
@@ -88,7 +88,7 @@ tokenizer_test_cases = [
     (teststring1, ['WORD', 'OPENPAREN', 'NEWLINE']),
     (teststring2, ['NEWLINE', 'SET', 'REPEAT', 'NUMBER', 'NEWLINE', 'WORD', 'NEWLINE', 'WORD', 'NEWLINE', 'QUESTION', 'NEWLINE', 'OPERATOR', 'NEWLINE']),
     (teststring3, expected3),
-    #(teststring4, ['LOAD', 'PATH', 'NEWLINE'])
+    (teststring4, ['LOAD', 'PATH', 'NEWLINE'])
 ]
 
 def tokenizer_tester(string):

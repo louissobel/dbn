@@ -21,7 +21,7 @@ class DBNToken:
         self.char_no = char_no
 
         self.raw = raw
-        
+
     def get_end_char_no(self):
         return self.char_no + len(self.value)
     end_char_no = property(get_end_char_no)
@@ -47,6 +47,11 @@ class DBNTokenizer:
 
         # comment, whitespace garbage first
         self.register('COMMENT',      r'//(.+)')
+
+        # then path - above whitespace because of the lookbehind
+        self.register('PATH',         r'(?<=Load)\s+([\w\.\\/\-]+)')
+
+        # then real whitespace
         self.register('WHITESPACE',   r'[^\S\n]+')
 
         # operators next
@@ -65,6 +70,7 @@ class DBNTokenizer:
         self.register('REPEAT',       r'(Repeat)')
         self.register('QUESTION',     r'(Same|NotSame|Smaller|NotSmaller)\?'),
         self.register('COMMAND',      r'(Command)'),
+        self.register('LOAD',         r'(Load)'),
 
         # then literals
         self.register('WORD',         r'([A-z_][\w\d]*)')
@@ -93,14 +99,14 @@ class DBNTokenizer:
 
         return self
 
-    def classify(self, token_string):
+    def classify(self, string, pos):
         """
-        given a string matching a token, returns
-        a tuple of its (type_, value)
+        given a string and a position where a token match has been found,
+        returns a tuple of its (type_, value)
         we try token types in the order they were registered
         """
         for type_, type_re in self.type_re_pairs:
-            match = type_re.match(token_string)
+            match = type_re.match(string, pos)
             if match:
                 try:
                     value = match.group(1)
@@ -108,7 +114,7 @@ class DBNTokenizer:
                     value = ''
                 return (type_, value)
 
-        raise ValueError("No matching token type for token %s" % token_string)
+        raise ValueError("No matching token type for token at pos %d (%s)" % (pos, string[pos:pos+10]))
 
     def token_re(self):
         """
@@ -137,7 +143,7 @@ class DBNTokenizer:
             token_char_no = token_match.start() - line_start_char_no + 1
 
             try:
-                token_type, token_value = self.classify(token_string)
+                token_type, token_value = self.classify(string, token_match.start())
             except ValueError as e:
                 raise ValueError(str(e) + " at %d:%d" % (line_no, token_char_no))
 
