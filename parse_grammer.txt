@@ -1,9 +1,12 @@
 [DBN_PROGRAM] := ([DBN_PROGRAM_STATEMENT] | NEWLINE)*
 
 [DBN_PROGRAM_STATEMENT] := [DBN_DEFINE_COMMAND] |
+                           [DBN_LOAD] |
                            [DBN_STATEMENT]
 
 [DBN_DEFINE_COMMAND] := COMMAND WORD (WORD)* [DBN_STATEMENT_BLOCK]
+
+[DBN_LOAD] := LOAD PATH
 
 [DBN_STATEMENT] := [DBN_SET] |
                    [DBN_REPEAT] |

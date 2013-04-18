@@ -25,10 +25,10 @@ class ParseWordTest(ParserTestCase):
         a NUMBER
         """
         token_value = 'hi'
-        tokens = self.make_tokens(('WORD', token_value))
+        tokens = self.make_tokens(('NUMBER', token_value))
 
         with self.assertRaises(ValueError):
-            self.run_parse(parser.parse_number, tokens)
+            self.run_parse(parser.parse_word, tokens)
 
 
 if __name__ == "__main__":

@@ -19,6 +19,9 @@ def parse_program(tokens):
             # then it is a command declaration
             next_node = parse_define_command(tokens)
 
+        elif first_token.type == 'LOAD':
+            next_node = parse_load(tokens)
+
         else:
             next_node = parse_block_statement(tokens)
 
@@ -78,6 +81,24 @@ def parse_define_command(tokens):
         tokens=node_tokens,
         line_no=command_token.line_no,
     )
+
+def parse_load(tokens):
+    load_token = tokens.pop(0)
+
+    # next token must be path
+    path_token = tokens.pop(0)
+    if not path_token.type == 'PATH':
+        raise ValueError("PATH token must be after LOAD (its a %s)" % path_token.type)
+
+    noop = parse_newline(tokens)
+
+    node_tokens = [load_token] + [path_token] + noop.tokens
+    return DBNLoadNode(
+        name=path_token.value,
+        tokens=node_tokens,
+        line_no=load_token.line_no,
+    )
+
 
 def parse_block(tokens):
     block_nodes = []

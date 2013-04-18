@@ -99,6 +99,27 @@ class ParseBlockTest(ParserTestCase):
         
         with self.assertRaises(ValueError):
             self.run_parse(parser.parse_block, tokens, expected=DBNBlockNode)
+
+    def test_error_on_load(self):
+        """
+        will not parse a load statement
+        """
+        tokens = self.make_tokens(
+            ('OPENBRACE', ''),
+
+            # noop
+            ('NEWLINE', ''),
+
+            # load
+            ('LOAD', ''),
+            ('PATH', 'foo.dbn'),
+            ('NEWLINE', ''),
+
+            ('CLOSEBRACE', ''),
+        )
+
+        with self.assertRaises(ValueError):
+            self.run_parse(parser.parse_block, tokens, expected=DBNBlockNode)
     
     def test_multi_statement_block(self):
         """

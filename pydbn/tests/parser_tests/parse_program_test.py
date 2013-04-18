@@ -128,10 +128,15 @@ class ParseProgramTest(ParserTestCase):
              ('WORD', 'Square'),
              ('NEWLINE', ''),
 
+             # load
+             ('LOAD', ''),
+             ('PATH', 'foo.dbn'),
+             ('NEWLINE', ''),
+
         )
         result, result_tokens = self.run_parse(parser.parse_program, tokens, expected=DBNProgramNode)
         self.assert_block_node(result,
-            (DBNNoopNode, DBNCommandDefinitionNode, DBNSetNode, DBNNoopNode, DBNQuestionNode, DBNCommandNode)
+            (DBNNoopNode, DBNCommandDefinitionNode, DBNSetNode, DBNNoopNode, DBNQuestionNode, DBNCommandNode, DBNLoadNode)
         )
     
 

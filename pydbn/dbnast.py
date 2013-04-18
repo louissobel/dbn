@@ -25,7 +25,7 @@ class DBNBaseNode(object):
         self.tokens = tokens or []
         self.children = children or []
         self.name = name or self.type
-    
+
     def start_location(self):
         """
         returns a "lineno.charno" of where it starts
@@ -36,7 +36,7 @@ class DBNBaseNode(object):
             return "%d.%d" % (first_token.line_no, first_token.char_no - 1)
         else:
             return None
-    
+
     def end_location(self):
         """
         retusn a "lineno.charno" of where it ends
@@ -48,7 +48,6 @@ class DBNBaseNode(object):
         else:
             return None
 
-    
     def pformat(self, depth=0, indent=None):
         
         if indent is None:
@@ -194,6 +193,16 @@ class DBNBinaryOpNode(DBNBaseNode):
     @property
     def right(self):
         return self.children[1]
+
+
+class DBNLoadNode(DBNBaseNode):
+    """
+    A load statement
+    """
+    type = 'load'
+
+    def pformat(self, depth, indent):
+        return "%s(load %s)\n" % (" "*depth*indent, self.name)
 
 
 class DBNNumberNode(DBNBaseNode):
