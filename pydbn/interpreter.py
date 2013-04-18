@@ -273,7 +273,7 @@ class DBNInterpreter:
                 self.pointer = return_location
 
             elif op == 'LOAD_CODE':
-                # loaded code is responsible for ensuring we return to the next adress
+                # loaded code is responsible for ensuring we return to the next address
                 filename = arg
                 offset = len(self.bytecode) # the position of the first bytecode of the foreign code
                 return_pos = self.pointer + 1
