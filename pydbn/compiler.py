@@ -174,6 +174,10 @@ class DBNCompiler:
         self.add('JUMP', after_body)
         self.extend(body_code)
 
+    def compile_DBNLoadNode(self, node):
+        self.add_set_line_no_unless_module(node.line_no)
+        self.add('LOAD_CODE', node.name)
+
     def compile_DBNBracketNode(self, node):
         self.extend(self.compile(node.right))
         self.extend(self.compile(node.left))
