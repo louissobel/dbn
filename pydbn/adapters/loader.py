@@ -37,8 +37,9 @@ class LoadAdapter(base_adapter.BaseAdapter):
             search_path.insert(0, cwd)
 
         # check the set env var for more paths
-        env_var = os.environ.get(PATH_ENV_VAR, '')
-        search_path.extend(env_var.split(os.path.sep))
+        env_var = os.environ.get(PATH_ENV_VAR)
+        if env_var:
+            search_path.extend(env_var.split(os.path.sep))
         
         self.search_path = search_path
 
