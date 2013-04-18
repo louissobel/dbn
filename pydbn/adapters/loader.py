@@ -4,17 +4,27 @@ the loader adapter
 import os
 import os.path
 
-import base_adapter
-
 from tokenizer import DBNTokenizer
 from parser import DBNParser
 from compiler import DBNCompiler
+import base_adapter
+
+# TODO prevent circular imports
+
+PATH_ENV_VAR = 'DBN_LOAD_PATH'
 
 class LoadAdapter(base_adapter.BaseAdapter):
+    """
+    The adapter responsible for searching for and compiling and `Load`ed files
+    """
 
-    def __init__(self, cwd=None, search_path=None):
+    def __init__(self, cwd=None, search_path=None, check_env=True):
         """
-        save the search path, blah blah blah
+        save the search path
+
+        cwd can be prevented from being added to search path by passing False
+
+        will check env var
         """
         if cwd is None:
             cwd = os.getcwd()
@@ -23,7 +33,13 @@ class LoadAdapter(base_adapter.BaseAdapter):
             search_path = []
 
         # TODO validate the search path (make sure all directories are real)
-        search_path.insert(0, cwd)
+        if not cwd is False:
+            search_path.insert(0, cwd)
+
+        # check the set env var for more paths
+        env_var = os.environ.get(PATH_ENV_VAR, '')
+        search_path.extend(env_var.split(os.path.sep))
+        
         self.search_path = search_path
 
     def identifier(self):
@@ -40,12 +56,20 @@ class LoadAdapter(base_adapter.BaseAdapter):
             self.interpreter().debug("searching in %s" % directory)
 
             possible_file = os.path.join(directory, filename)
-            if os.path.exists(possible_file) and os.path.isfile(possible_file):
+            if os.path.isfile(possible_file):
                 return possible_file
+
         return None
 
     def compile(self, filepath, offset):
-        code_h = open(filepath, 'r')
+        """
+        Reads and compiles the given file at the given offset (the offset is for the compiler)
+        """
+        try:
+            code_h = open(filepath, 'r')
+        except OSError as e:
+            raise RuntimeError('Problem loading file %s: %s' % (filepath, str(e)))
+
         code = code_h.read()
         code_h.close()
 
@@ -56,6 +80,7 @@ class LoadAdapter(base_adapter.BaseAdapter):
         try:
             compilation = compiler.compile(parser.parse(tokenizer.tokenize(code)), offset=offset)
         except ValueError:
+            # This is a little hairy. Correct, but be wary.
             raise RuntimeError('Error in loaded code')
 
         return compilation
@@ -63,6 +88,10 @@ class LoadAdapter(base_adapter.BaseAdapter):
     def load(self, filename, offset_pos, return_pos):
         """
         returns the compiled bytecodes of the given file
+
+        adds a `JUMP` byte code with a target to the given return_pos
+        this allows the interpreter to jump to the start of this code,
+        then get sent back to the correct place
         """
         self.interpreter().debug("load being called (%s, %d, %d)" % (filename, offset_pos, return_pos))
 
@@ -71,4 +100,6 @@ class LoadAdapter(base_adapter.BaseAdapter):
             raise RuntimeError('Trying to load file %s, but cannot be found in %s' % (filename, str(self.search_path)))
 
         compilation = self.compile(filepath, offset_pos)
+
+        # add the jump for the interpreter
         return compilation.bytecodes + [('JUMP', return_pos)]
