@@ -8,12 +8,14 @@ directory = os.path.dirname(__file__)
 
 test_cases = [os.path.join(directory, d) for d in os.listdir(directory) if not (d.startswith('.') or d.startswith('_'))]
 
-# assume each subdir has code.dbn and expected.bmp
+PATH_ENV_VAR = 'DBN_LOAD_PATH'
 
+# assume each subdir has code.dbn and expected.bmp
 
 class ImageMatchTestCase():
   
   def get_actual(self):
+
     terp = run_dbn(compile_dbn(self.directory + '/code.dbn'))
     
     outFile = self.directory + '/actual.bmp'
@@ -22,6 +24,8 @@ class ImageMatchTestCase():
     
 
   def runTest(self):
+    os.environ[PATH_ENV_VAR] = self.directory
+
     actual = self.get_actual()
     expected = open(self.directory + '/expected.bmp', 'rb').read()
     

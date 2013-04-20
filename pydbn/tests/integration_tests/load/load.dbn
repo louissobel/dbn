@@ -1,0 +1,6 @@
+Pen 50
+Line 0 100 100 0
+
+Command TestCommand A {
+  Line A 0 A A
+}
