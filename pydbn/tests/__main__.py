@@ -7,6 +7,7 @@ test_modules = [
     'tokenizer_tests',
     'parser_tests',
     'integration_tests',
+    'load_adapter_tests',
 ]
 
 for mod in test_modules:

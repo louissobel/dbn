@@ -9,8 +9,6 @@ from parser import DBNParser
 from compiler import DBNCompiler
 import base_adapter
 
-# TODO prevent circular imports
-
 PATH_ENV_VAR = 'DBN_LOAD_PATH'
 
 class LoadAdapter(base_adapter.BaseAdapter):
@@ -31,17 +29,28 @@ class LoadAdapter(base_adapter.BaseAdapter):
 
         if search_path is None:
             search_path = []
+        else:
+            # copy it
+            search_path = search_path[:]
 
-        # TODO validate the search path (make sure all directories are real)
         if not cwd is False:
             search_path.insert(0, cwd)
 
-        # check the set env var for more paths
-        env_var = os.environ.get(PATH_ENV_VAR)
-        if env_var:
-            search_path.extend(env_var.split(os.path.pathsep))
-        
+        # check the set env var for more paths, if check_env
+        if check_env:
+            env_var = os.environ.get(PATH_ENV_VAR)
+            if env_var:
+                search_path.extend(env_var.split(os.path.pathsep))
+
+        # validate the search path ahead of time (make sure all paths exist and are directories)
+        for path in search_path:
+            if not os.path.isdir(path):
+                raise ValueError("Path in load path %s is not an existing directory" % path)
+
         self.search_path = search_path
+
+        # set of paths of loaded files - to prevent duplicates (loops)
+        self.loaded_paths_set = set()
 
     def identifier(self):
         return 'loader'
@@ -54,7 +63,7 @@ class LoadAdapter(base_adapter.BaseAdapter):
             return filename
 
         for directory in self.search_path:
-            self.interpreter().debug("searching in %s" % directory)
+            self.debug("searching in %s" % directory)
 
             possible_file = os.path.join(directory, filename)
             if os.path.isfile(possible_file):
@@ -94,11 +103,18 @@ class LoadAdapter(base_adapter.BaseAdapter):
         this allows the interpreter to jump to the start of this code,
         then get sent back to the correct place
         """
-        self.interpreter().debug("load being called (%s, %d, %d)" % (filename, offset_pos, return_pos))
+        self.debug("load being called (%s, %d, %d)" % (filename, offset_pos, return_pos))
 
         filepath = self.find_file(filename)
         if filepath is None:
             raise RuntimeError('Trying to load file %s, but cannot be found in %s' % (filename, str(self.search_path)))
+
+        # assert that we havent already loaded this path
+        # (and add the path if we havent)
+        if filepath in self.loaded_paths_set:
+            raise RuntimeError('Already loaded filepath %s!' % filepath)
+        else:
+            self.loaded_paths_set.add(filepath)
 
         compilation = self.compile(filepath, offset_pos)
 

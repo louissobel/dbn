@@ -1,1 +1,1 @@
-from basic_image_refresher import BasicImageRefresher
+import loader
