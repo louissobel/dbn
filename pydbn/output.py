@@ -12,9 +12,6 @@ import time
 
 import dbngui
 
-from adapters import BasicImageRefresher
-
-
 def animate_state(state, direction):
     master = Tkinter.Tk()
 

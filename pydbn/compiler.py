@@ -1,11 +1,9 @@
-
 from dbnast import *
 
 class DBNCompiler:
     
     def __init__(self, counter=0, module=False):
         self.bytecodes = []
-        self.commands = {}
         self.module = module
         self.counter = counter
         self.start = counter
