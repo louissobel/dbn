@@ -6,8 +6,8 @@ import StringIO
 test_modules = [
     'tokenizer_tests',
     'parser_tests',
-    'integration_tests',
     'load_adapter_tests',
+    'integration_tests',
 ]
 
 for mod in test_modules:
