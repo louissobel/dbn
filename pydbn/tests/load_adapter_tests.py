@@ -23,8 +23,8 @@ EXPECTED_BYTECODE = [
     ('STORE', 'A'),
 ]
 
-FIRST_SUB_DIR = 'load_adapter_test_dir'
-SECOND_SUB_DIR = 'another_load_adapter_test_dir'
+FIRST_SUB_DIR = os.path.abspath('load_adapter_test_dir')
+SECOND_SUB_DIR = os.path.abspath('another_load_adapter_test_dir')
 
 FIRST_DIR_FILENAME = 'first_dir_load.dbn'
 SECOND_DIR_FILENAME = 'second_dir_load.dbn'
@@ -32,6 +32,10 @@ SECOND_DIR_FILENAME = 'second_dir_load.dbn'
 LOAD_NOT_FILENAME = 'i_dont_exist.dbn'
 
 class LoadAdapterTestCase(unittest.TestCase):
+
+    def __init__(self, *args, **kwargs):
+        unittest.TestCase.__init__(self, *args, **kwargs)
+        self.addCleanup(self.cleanUp)
 
     def setUp(self):
         """
@@ -63,7 +67,7 @@ class LoadAdapterTestCase(unittest.TestCase):
         # and of course, initialize the loader (to a default one)
         self.loader = LoadAdapter()
 
-    def tearDown(self):
+    def cleanUp(self):
         """
         delete the directories
         """
@@ -173,13 +177,22 @@ class TestBadDirThrowsValueError(LoadAdapterTestCase):
     if we provide something that does not exist or is not direcotry, should throw value error
     """
     def runTest(self):
-        MADE_UP = ['dlfjsdlkfjsdlkfjsdlk']
+        MADE_UP = ['/dlfjsdlkfjsdlkfjsdlk']
         with self.assertRaises(ValueError):
             loader = LoadAdapter(search_path=MADE_UP)
 
-        NOT_DIRECTORY = [LOADED_DBN_FILENAME]
+        NOT_DIRECTORY = [os.path.join(self.actual_cwd, LOADED_DBN_FILENAME)]
         with self.assertRaises(ValueError):
             loader = LoadAdapter(search_path=NOT_DIRECTORY)
+
+class TestNonAbsPathThrowsValueError(LoadAdapterTestCase):
+    """
+    non abs path should throw error
+    """
+    def runTest(self):
+        NON_ABS = [os.path.basename(FIRST_SUB_DIR)]
+        with self.assertRaises(ValueError):
+            loader = LoadAdapter(search_path=NON_ABS)
 
 ## identifier tests
 class TestIdentifier(LoadAdapterTestCase):
@@ -190,20 +203,116 @@ class TestIdentifier(LoadAdapterTestCase):
         self.assertEqual('loader', self.loader.identifier())
 
 ## find_file tests
-# abs file - existing and non-existing, non-existing but existing relatively!
-# relative file - top level, in a directory, in another directory!
+class TestFindAbsoluteFile(LoadAdapterTestCase):
+    """
+    should find an absolute filename, returning the filename
+    """
+    def runTest(self):
+        PATH = os.path.join(self.actual_cwd, LOADED_DBN_FILENAME)
+        self.assertEqual(PATH, self.loader.find_file(PATH))
 
-## compile
-# everything OK
-# offset should set
-# permission error.. runtime
-# value error.. runtime
+class TestFindNonExistingAbsoluteFile(LoadAdapterTestCase):
+    """
+    should return None if the absolute file does not exist
+    """
+    def runTest(self):
+        PATH = os.path.join(self.actual_cwd, LOAD_NOT_FILENAME)
+        self.assertIsNone(self.loader.find_file(PATH))
 
-## load
-# everything ok (adds the JUMP!)
-# nonexisting file.. runtime
-# duplicate load.. runtime
+class TestFindNonExistingAbsoluteFileThatExistsRelatively(LoadAdapterTestCase):
+    """
+    if an absolute path does not exist but it would exist relatively,
+    should still return None
+    (regression)
+    """
+    def runTest(self):
+        PATH = os.path.join('/', LOADED_DBN_FILENAME)
+        self.assertIsNone(self.loader.find_file(PATH))
 
+class TestFindExistingRelativeFile(LoadAdapterTestCase):
+    """
+    should find and return absolute path of relative filename
+    """
+    def runTest(self):
+        ABS_PATH = os.path.join(self.actual_cwd, SECOND_SUB_DIR, SECOND_DIR_FILENAME)
+        self.assertEqual(ABS_PATH, self.loader.find_file(SECOND_DIR_FILENAME))
+
+class TestFindExistingRelativePath(LoadAdapterTestCase):
+    """
+    should find a relative path
+    Load a/b
+    """
+    def runTest(self):
+        FILE_PATH = os.path.join(os.path.basename(SECOND_SUB_DIR), SECOND_DIR_FILENAME)
+        ABS_PATH = os.path.join(self.actual_cwd, SECOND_SUB_DIR, SECOND_DIR_FILENAME)
+        self.assertEqual(ABS_PATH, self.loader.find_file(FILE_PATH))
+
+class TestFindNonExistingPath(LoadAdapterTestCase):
+    """
+    return should return for a file that does not exist
+    """
+    def runTest(self):
+        self.assertIsNone(self.loader.find_file(LOAD_NOT_FILENAME))
+
+## compile tests
+class TestCompileExistingFile(LoadAdapterTestCase):
+    """
+    we should compile a filepath - not here to test the compiler though
+    """
+    def runTest(self):
+        FILE_PATH = os.path.join(self.actual_cwd, LOADED_DBN_FILENAME)
+        OFFSET = 7
+        compilation = self.loader.compile(FILE_PATH, OFFSET)
+        self.assertEquals(OFFSET + 2, compilation.counter)
+        self.assertEquals(EXPECTED_BYTECODE, compilation.bytecodes)
+
+class TestCompileReadError(LoadAdapterTestCase):
+    """
+    when there is a error opening the file, it should throw runtime error
+    """
+    def runTest(self):
+        FILE_PATH = os.path.join(self.actual_cwd, PERMERROR_DBN_FILENAME)
+        with self.assertRaises(RuntimeError):
+            self.loader.compile(FILE_PATH, 0)
+
+class TestCompileCodeError(LoadAdapterTestCase):
+    """
+    when there is an error in the loaded code, should raise runtime error
+    """
+    def runTest(self):
+        FILE_PATH = os.path.join(self.actual_cwd, ERROR_DBN_FILENAME)
+        with self.assertRaises(RuntimeError):
+            self.loader.compile(FILE_PATH, 0)
+
+## load tests
+class TestLoad(LoadAdapterTestCase):
+    """
+    should load and return bytecode
+    """
+    def runTest(self):
+        RETURN_POS = 8
+        OFFSET = 10
+        THIS_EXPECTED_BYTECODE = EXPECTED_BYTECODE + [('JUMP', '8')]
+
+        result = self.loader.load(LOADED_DBN_FILENAME, OFFSET, RETURN_POS)
+        self.assertEquals(THIS_EXPECTED_BYTECODE, result)
+
+class TestLoadFileNotFound(LoadAdapterTestCase):
+    """
+    should raise runtime error if a file does not exist
+    """
+    def runTest(self):
+        with self.assertRaises(RuntimeError):
+            self.loader.load(LOAD_NOT_FILENAME, 0, 0)
+
+class TestDuplicateLoad(LoadAdapterTestCase):
+    """
+    should raise runtime error if you try to load the same file twice
+    """
+    def runTest(self):
+        self.loader.load(LOADED_DBN_FILENAME, 0, 0)
+        with self.assertRaises(RuntimeError):
+            self.loader.load(LOADED_DBN_FILENAME, 0, 0)
 
 if __name__ == "__main__":
     unittest.main()

@@ -46,6 +46,8 @@ class LoadAdapter(base_adapter.BaseAdapter):
         for path in search_path:
             if not os.path.isdir(path):
                 raise ValueError("Path in load path %s is not an existing directory" % path)
+            if not os.path.isabs(path):
+                raise ValueError("Path in load path %s must be absolute")
 
         self.search_path = search_path
 
@@ -59,8 +61,11 @@ class LoadAdapter(base_adapter.BaseAdapter):
         """
         will return the absolute filename, or None if it can't be found
         """
-        if os.path.isabs(filename) and os.path.isfile(filename):
-            return filename
+        if os.path.isabs(filename):
+            if os.path.isfile(filename):
+                return filename
+            else:
+                return None
 
         for directory in self.search_path:
             self.debug("searching in %s" % directory)
@@ -77,7 +82,7 @@ class LoadAdapter(base_adapter.BaseAdapter):
         """
         try:
             code_h = open(filepath, 'r')
-        except OSError as e:
+        except (IOError, OSError) as e:
             raise RuntimeError('Problem loading file %s: %s' % (filepath, str(e)))
 
         code = code_h.read()
@@ -119,4 +124,4 @@ class LoadAdapter(base_adapter.BaseAdapter):
         compilation = self.compile(filepath, offset_pos)
 
         # add the jump for the interpreter
-        return compilation.bytecodes + [('JUMP', return_pos)]
+        return compilation.bytecodes + [('JUMP', str(return_pos))]

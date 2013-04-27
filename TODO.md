@@ -1,8 +1,5 @@
 TODO
 ======
-
- - tests for loader
- - loader has some todos in there
  
  - output_png should not be called that
  
