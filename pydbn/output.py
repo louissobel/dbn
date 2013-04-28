@@ -63,10 +63,10 @@ def draw_window(interpreter):
     master.after(0, check_draw)
     master.mainloop()
 
-def output_png(interpreter, filename):
+def output_bmp(interpreter, filename):
     """
     given an interpreter with image at .image,
-    save it as png
+    save it as bmp
     """
     interpreter.image._image.save(filename, 'bmp')
 

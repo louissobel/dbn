@@ -53,7 +53,7 @@ if __name__ == "__main__":
         if options.filename:
             # save it
             interpreter.run()
-            output.output_png(interpreter, options.filename)
+            output.output_bmp(interpreter, options.filename)
 
         else:
             threading.Thread(target = lambda: interpreter.run(trace=options.trace)).start()

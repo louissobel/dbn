@@ -19,7 +19,7 @@ class ImageMatchTestCase():
     terp = run_dbn(compile_dbn(self.directory + '/code.dbn'))
     
     outFile = self.directory + '/actual.bmp'
-    output.output_png(terp, outFile)
+    output.output_bmp(terp, outFile)
     return open(outFile, 'rb').read()
     
 

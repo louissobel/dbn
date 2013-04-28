@@ -1,8 +1,6 @@
 TODO
 ======
  
- - output_png should not be called that
- 
  - interpreter should have some load_module method that can be used to load builtins, and also any other python extension
  - clean up ast
    - type
@@ -21,4 +19,4 @@ TODO
  - settings module (all in one place)
  - bytecodes vs bytecode attribute naming difference between compiler / interpreter
  - make end / start location of ast node return something reasonable
- - move pygmentslexer to inside tokenizer?
+ - move pygmentslexer to inside tokenizer? contrib?
