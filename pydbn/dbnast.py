@@ -22,11 +22,11 @@ class DBNBaseNode(object):
     """
     type = 'base'
     
-    def __init__(self, name=None, children=None, tokens=None, line_no=-1):
+    def __init__(self, value=None, children=None, tokens=None, line_no=-1):
         self.line_no = line_no
+        self.value = value
         self.tokens = tokens or []
         self.children = children or []
-        self.name = name or self.type
 
     def start_location(self):
         """
@@ -53,11 +53,11 @@ class DBNBaseNode(object):
     def pformat(self, depth=0, indent=None):
         
         if indent is None:
-            return "(%s %s)" % (self.name, [c.pformat(depth, indent) for c in self.children])
+            return "(%s %s)" % (self.type, [c.pformat(depth, indent) for c in self.children])
         
         else:
             out = " " * indent * depth
-            out += "(%s\n" % self.name
+            out += "(%s\n" % self.type
             for child in self.children:
                 out += child.pformat(depth+1, indent)
             out += " " * indent * depth
@@ -205,7 +205,7 @@ class DBNLoadNode(DBNBaseNode):
     type = 'load'
 
     def pformat(self, depth, indent):
-        return "%s(load %s)\n" % (" "*depth*indent, self.name)
+        return "%s(load %s)\n" % (" "*depth*indent, self.value)
 
 
 class DBNNumberNode(DBNBaseNode):
@@ -215,7 +215,7 @@ class DBNNumberNode(DBNBaseNode):
     type = 'number'
     
     def pformat(self, depth, indent):
-        return "%s(number %s)\n" % (" "*depth*indent, self.name)
+        return "%s(number %s)\n" % (" "*depth*indent, self.value)
 
 
 class DBNWordNode(DBNBaseNode):
@@ -225,7 +225,7 @@ class DBNWordNode(DBNBaseNode):
     type = 'word'
     
     def pformat(self, depth, indent):
-        return "%s(word %s)\n" % (" "*depth*indent, self.name)
+        return "%s(word %s)\n" % (" "*depth*indent, self.value)
 
 
 class DBNNoopNode(DBNBaseNode):

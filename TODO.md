@@ -1,12 +1,9 @@
 TODO
 ======
  
- - interpreter should have some load_module method that can be used to load builtins, and also any other python extension
  - clean up ast
-   - type
-   - value instead of name
    - change name of file
-   - compiler can then compile based on meta-magic of _type_
+   - move pformat up
   
  - interpreter should not use a else if / else bloop
  - compiler tests (basic but important)

@@ -60,7 +60,7 @@ class DBNCompiler:
             self.add('SET_DOT')
 
         elif isinstance(left, DBNWordNode):
-            self.add('STORE', left.name)
+            self.add('STORE', left.value)
 
     def compile_repeat_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
@@ -75,7 +75,7 @@ class DBNCompiler:
 
         # dup current for store
         self.add('DUP_TOPX', 1)
-        self.add('STORE', node.var.name)
+        self.add('STORE', node.var.value)
 
         self.extend(self.compile(node.body))
 
@@ -120,7 +120,7 @@ class DBNCompiler:
             'NotSmaller': 'COMPARE_NSMALLER'
         }
 
-        self.add(questions[node.name])
+        self.add(questions[node.value])
 
         body_code = self.compile(node.body, offset=1)
 
@@ -135,7 +135,7 @@ class DBNCompiler:
             self.extend(self.compile(arg_node))
 
         # load the name of the command
-        self.add('LOAD_STRING', node.name)
+        self.add('LOAD_STRING', node.value)
 
         # run the command!
         self.add('COMMAND', len(node.args))
@@ -150,9 +150,9 @@ class DBNCompiler:
         # sweet
 
         for arg in reversed(node.args):
-            self.add('LOAD_STRING', arg.name)
+            self.add('LOAD_STRING', arg.value)
 
-        self.add('LOAD_STRING', node.command_name.name)
+        self.add('LOAD_STRING', node.command_name.value)
 
         body_code = self.compile(node.body, offset = 3)
 
@@ -170,7 +170,7 @@ class DBNCompiler:
 
     def compile_load_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
-        self.add('LOAD_CODE', node.name)
+        self.add('LOAD_CODE', node.value)
 
     def compile_bracket_node(self, node):
         self.extend(self.compile(node.right))
@@ -188,13 +188,13 @@ class DBNCompiler:
             '/': 'BINARY_DIV',
             '*': 'BINARY_MUL',
         }
-        self.add(ops[node.name])
+        self.add(ops[node.value])
 
     def compile_number_node(self, node):
-        self.add('LOAD_INTEGER', node.name)
+        self.add('LOAD_INTEGER', node.value)
 
     def compile_word_node(self, node):
-        self.add('LOAD', node.name)
+        self.add('LOAD', node.value)
     
     def compile_noop_node(self, node):
         pass #NOOP

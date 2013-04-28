@@ -94,7 +94,7 @@ def parse_load(tokens):
 
     node_tokens = [load_token] + [path_token] + noop.tokens
     return DBNLoadNode(
-        name=path_token.value,
+        value=path_token.value,
         tokens=node_tokens,
         line_no=load_token.line_no,
     )
@@ -236,7 +236,7 @@ def parse_question(tokens):
     question_name = question_token.value
     node_tokens = [question_token] + first_arg.tokens + second_arg.tokens + body.tokens + noop.tokens
     return DBNQuestionNode(
-        name=question_name,
+        value=question_name,
         children=[first_arg, second_arg, body],
         tokens=node_tokens,
         line_no=question_token.line_no,
@@ -271,7 +271,7 @@ def parse_command(tokens):
     node_tokens += noop.tokens
 
     return DBNCommandNode(
-        name=command_name,
+        value=command_name,
         children=args,
         tokens=node_tokens,
         line_no=command_token.line_no
@@ -412,7 +412,7 @@ def parse_arithmetic(tokens):
         # ok but here, we know that they are both nodes (and that they both exist!)
         node_tokens = left_node.tokens + [nodes_and_ops[operation_index]] + right_node.tokens
         new_node = DBNBinaryOpNode(
-            name=operation,
+            value=operation,
             children=[left_node, right_node],
             tokens=node_tokens,
         )
@@ -453,7 +453,7 @@ def parse_word(tokens):
     if not word_token.type == 'WORD':
         raise ValueError("parse_word called but first token on stack is not a word (its a %s)" % word_token.type)
     return DBNWordNode(
-        name=word_token.value,
+        value=word_token.value,
         tokens=[word_token],
     )
 
@@ -465,7 +465,7 @@ def parse_number(tokens):
     if not number_token.type == 'NUMBER':
         raise ValueError("parse_number called but first token on stack is not a number (its a %s)" % number_token.type)
     return DBNNumberNode(
-        name=number_token.value,
+        value=number_token.value,
         tokens=[number_token],
     )
 
