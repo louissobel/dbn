@@ -2,9 +2,7 @@ TODO
 ======
 
 
- - interpreter should not use a else if / else bloop
  - interpreter unit tests (one byte code at a time)
- - step method of the interpreter... run is a layer on top of step
  
  - compiler tests (basic but important)
  
