@@ -56,6 +56,20 @@ class DBNInterpreter:
         out += "--------"
         return out
 
+    def load(self, module):
+        """
+        looks for attributes in passed module
+         - COMMANDS, adds them to the proper place
+        """
+        try:
+            commands = module.COMMANDS
+        except AttributeError:
+            pass
+        else:
+            for command_klass in commands:
+                command = command_klass()
+                self.commands[command.keyword()] = command
+
     def set_frame(self, frame):
         self.frame = frame
         self.stack = frame.stack
@@ -303,7 +317,7 @@ if __name__ == "__main__":
         bytecode.append((o, a))
     
     i = DBNInterpreter(bytecode)
-    builtins.load_builtins(i)
+    i.load(builtins)
     i.run(trace = True)
     output.draw_window(i)
     

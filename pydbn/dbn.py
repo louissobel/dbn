@@ -30,7 +30,7 @@ def compile_dbn(filename):
 
 def run_dbn(compilation):
     interpreter = DBNInterpreter(compilation.bytecodes)
-    builtins.load_builtins(interpreter)
+    interpreter.load(builtins)
     interpreter.run()
     return interpreter
 
@@ -48,7 +48,7 @@ if __name__ == "__main__":
                 print "%s %s" % (str(o), str(a))
     else:
         interpreter = DBNInterpreter(compilation.bytecodes)
-        builtins.load_builtins(interpreter)
+        interpreter.load(builtins)
 
         if options.filename:
             # save it

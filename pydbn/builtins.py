@@ -42,14 +42,9 @@ class PenCommand(DBNBuiltinCommand):
     def call(self, interpreter, color):
         interpreter.pen_color = color
         
-BUILTIN_COMMANDS = [
+COMMANDS = [
     LineCommand,
     PaperCommand,
     PenCommand,
 ]
-
-def load_builtins(interpreter):
-    for command_klass in BUILTIN_COMMANDS:
-        command = command_klass()
-        interpreter.commands[command.keyword()] = command
     
