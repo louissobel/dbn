@@ -28,27 +28,10 @@ class DBNBaseNode(object):
         self.tokens = tokens or []
         self.children = children or []
 
-    def start_location(self):
-        """
-        returns a "lineno.charno" of where it starts
-        or None if it has no tokens
-        """
-        if self.tokens:
-            first_token = self.tokens[0]
-            return "%d.%d" % (first_token.line_no, first_token.char_no - 1)
-        else:
-            return None
-
-    def end_location(self):
-        """
-        retusn a "lineno.charno" of where it ends
-        or None if it has no tokens
-        """
-        if self.tokens:
-            last_token = self.tokens[-1]
-            return "%d.%d" % (last_token.line_no, last_token.end_char_no - 1)
-        else:
-            return None
+    def pformat_terminal(self, depth=0, indent=None):
+        if indent is None:
+            indent = 0
+        return "%s(%s %s)\n" % (" "*depth*indent, self.type, self.value)
 
     def pformat(self, depth=0, indent=None):
         
@@ -66,6 +49,21 @@ class DBNBaseNode(object):
     
     def pprint(self, indent=2):
         print self.pformat(depth=0, indent=indent)
+
+
+def terminal_node(cls):
+    """
+    class decorator for terminals
+    Currently just sets pformat to new pformat
+    """
+
+    # The replaced pformat
+    def pformat(self, *args, **kwargs):
+        return self.pformat_terminal(*args, **kwargs)
+
+    cls.pformat = pformat
+
+    return cls
 
 class DBNProgramNode(DBNBaseNode):
     """
@@ -198,42 +196,33 @@ class DBNBinaryOpNode(DBNBaseNode):
         return self.children[1]
 
 
+@terminal_node
 class DBNLoadNode(DBNBaseNode):
     """
     A load statement
     """
     type = 'load'
 
-    def pformat(self, depth, indent):
-        return "%s(load %s)\n" % (" "*depth*indent, self.value)
 
-
+@terminal_node
 class DBNNumberNode(DBNBaseNode):
     """
     A number literal
     """
     type = 'number'
-    
-    def pformat(self, depth, indent):
-        return "%s(number %s)\n" % (" "*depth*indent, self.value)
 
 
+@terminal_node
 class DBNWordNode(DBNBaseNode):
     """
     a variable literal
     """
     type = 'word'
-    
-    def pformat(self, depth, indent):
-        return "%s(word %s)\n" % (" "*depth*indent, self.value)
 
 
+@terminal_node
 class DBNNoopNode(DBNBaseNode):
     """
     a noop
     """
     type = 'noop'
-    
-    def pformat(self, depth, indent):
-        return "%s(noop)" % (" "*depth*indent, )
-
