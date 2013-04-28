@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
         if options.filename:
             # save it
-            interpreter.run()
+            interpreter.run(trace=options.trace)
             output.output_bmp(interpreter, options.filename)
 
         else:

@@ -8,6 +8,8 @@ TODO
  
  - compiler tests (basic but important)
  
+ - BUG IN LOOKUP VARIABLE
+ 
  - use the debug mode output in the interpreter consistently
  - shunting yard precedence parsing
  - structure / state module structure
