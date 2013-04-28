@@ -12,6 +12,7 @@ DEFAULT_INITIAL_PEN_COLOR = 100
 
 import time
 
+
 class DBNInterpreter:
 
     def __init__(self, code, debug=False):
@@ -19,14 +20,14 @@ class DBNInterpreter:
 
         self.commands = {}
         self.numbers = {}
-        
+
         # the adpater bus to the external world
         self.adapter_bus = adapter_bus.AdapterBus()
         self.adapter_bus.connect(self)
-        
+
         loader = adapters.loader.LoadAdapter()
         self.adapter_bus.attach(loader)
-        
+
         self.image = dbnstate.DBNImage(DEFAULT_INITIAL_PAPER_COLOR)
         self.pen_color = DEFAULT_INITIAL_PEN_COLOR
 
@@ -39,8 +40,14 @@ class DBNInterpreter:
 
         # program count
         self.pointer = 0
-        
+
+        # status
+        self.terminated = False
+
         self._DEBUG = debug
+
+    ####
+    # The debug methods
 
     def debug(self, msg):
         if self._DEBUG:
@@ -56,6 +63,9 @@ class DBNInterpreter:
         out += "--------"
         return out
 
+    ####
+    # The module loading methods
+
     def load(self, module):
         """
         looks for attributes in passed module
@@ -70,6 +80,9 @@ class DBNInterpreter:
                 command = command_klass()
                 self.commands[command.keyword()] = command
 
+    ####
+    # The frame manaagement methods
+
     def set_frame(self, frame):
         self.frame = frame
         self.stack = frame.stack
@@ -82,225 +95,243 @@ class DBNInterpreter:
             depth = self.frame.depth + 1,
         )
         self.set_frame(new_frame)
-    
+
     def pop_frame(self):
         old_frame = self.frame.parent
         if old_frame is None:
             raise RuntimeError("Pop frame with no parent")
-        
+
         self.set_frame(old_frame)
+
+    ####
+    # The interpretation methods
 
     def run(self, **kwargs):
         trace = kwargs.get('trace', False)
-        
-        ops = 0
-        terminated = False
-        while not terminated:
 
-            op, arg = self.bytecode[self.pointer]
-            if trace:
-                print self.pointer, '%s %s' % (op, arg)
+        step = self.step
+        alive = True
+        while alive:
+            alive = step(trace=trace)
 
-            if   op == 'END':
-                terminated = True
+    def step(self, trace=False):
+        op, arg = self.bytecode[self.pointer]
+        if trace:
+            print self.pointer, '%s %s' % (op, arg)
 
-            elif op == 'SET_LINE_NO':
-                line_no = int(arg)
-                if line_no == -1:
-                    raise RuntimeError("Why is line_no being set to -1??")
-                else:
-                    self.line_no = line_no
-                self.pointer += 1
-    
-            elif op == 'STORE':
-                val = self.stack.pop()
-                self.frame.bind_variable(arg, val)
-                self.pointer += 1
-    
-            elif op == 'LOAD':
-                val = self.frame.lookup_variable(arg, default=DEFAULT_VARIABLE_VALUE)
-                self.stack.append(val)
-                self.pointer += 1
-    
-            elif op == 'LOAD_INTEGER':
-                self.stack.append(int(arg))
-                self.pointer += 1
-    
-            elif op == 'LOAD_STRING':
-                self.stack.append(arg)
-                self.pointer += 1
+        op_handler_name = "_op_%s" % op
 
-            elif op == 'SET_DOT':
-                x = self.stack.pop()
-                y = self.stack.pop()
-                val = self.stack.pop()
-                self.image.set_pixel(x, y, val)
-                self.pointer += 1
-    
-            elif op == 'GET_DOT':
-                x = self.stack.pop()
-                y = self.stack.pop()
-                val = self.image.query_pixel(x, y)
-                self.stack.append(val)
-                self.pointer += 1
-        
-            elif op == 'BINARY_ADD':
-                top = self.stack.pop()
-                top1 = self.stack.pop()
-                self.stack.append(top + top1)
-                self.pointer += 1
-    
-            elif op == 'BINARY_SUB':
-                top = self.stack.pop()
-                top1 = self.stack.pop()
-                self.stack.append(top - top1)
-                self.pointer += 1
-    
-            elif op == 'BINARY_DIV':
-                top = self.stack.pop()
-                top1 = self.stack.pop()
-                self.stack.append(top / top1)
-                self.pointer += 1
-    
-            elif op == 'BINARY_MUL':
-                top = self.stack.pop()
-                top1 = self.stack.pop()
-                self.stack.append(top * top1)
-                self.pointer += 1
-    
-            elif op == 'COMPARE_SAME':
-                top = self.stack.pop()
-                top1 = self.stack.pop()
-                self.stack.append(int(top == top1))
-                self.pointer += 1
-        
-            elif op == 'COMPARE_NSAME':
-                top = self.stack.pop()
-                top1 = self.stack.pop()
-                self.stack.append(int(top != top1))
-                self.pointer += 1
-    
-            elif op == 'COMPARE_SMALLER':
-                top = self.stack.pop()
-                top1 = self.stack.pop()
-                self.stack.append(int(top < top1))
-                self.pointer += 1
-    
-            elif op == 'COMPARE_NSMALLER':
-                top = self.stack.pop()
-                top1 = self.stack.pop()
-                self.stack.append(int(top >= top1))
-                self.pointer += 1
-    
-            elif op == 'DUP_TOPX':
-                c = int(arg)
-                dups = self.stack[-c:]
-                self.stack.extend(dups)
-                self.pointer += 1
-    
-            elif op == 'POP_TOPX':
-                c = int(arg)
-                for i in range(c):
-                    self.stack.pop()
-                self.pointer += 1
-    
-            elif op == 'ROT_TWO':
-                top = self.stack.pop()
-                top1 = self.stack.pop()
-                self.stack.append(top)
-                self.stack.append(top1)
-                self.pointer += 1
-    
-            elif op == 'JUMP':
-                target = int(arg)
-                self.pointer = target
-    
-            elif op == 'POP_JUMP_IF_FALSE':
-                target = int(arg)
-                top = self.stack.pop()
-                if not top:
-                    self.pointer = target
-                else:
-                    self.pointer += 1
-    
-            elif op == 'POP_JUMP_IF_TRUE':
-                target = int(arg)
-                top = self.stack.pop()
-                if top:
-                    self.pointer = target
-                else:
-                    self.pointer += 1
+        try:
+            op_handler = getattr(self, op_handler_name)
+        except AttributeError:
+            raise RuntimeError("Unknown opcode %s" % op)
+        else:
+            op_handler(arg)
 
-            elif op == 'DEFINE_COMMAND':
-                command_pointer = self.stack.pop()
-                command_name = self.stack.pop()
+        return not self.terminated
 
-                argc = int(arg)
-                formal_args = [self.stack.pop() for i in range(argc)]
-                command = structures.DBNCommand(formal_args, command_pointer)
-                self.commands[command_name] = command
-                self.pointer += 1
-        
-            elif op == 'COMMAND':
-                command_name = self.stack.pop()
+    ####
+    # The opcode handlers
 
-                command = self.commands.get(command_name)
-                if command is None:
-                    raise RuntimeError('No such command! %s' % command_name)
+    def _op_END(self, arg):
+        self.terminated = True
 
-                argc = int(arg)
-                if not argc == command.argc:
-                    raise RuntimeError('bad argc')
+    def _op_SET_LINE_NO(self, arg):
+        line_no = int(arg)
+        if line_no == -1:
+            raise RuntimeError("Why is line_no being set to -1??")
+        else:
+            self.line_no = line_no
+        self.pointer += 1
 
-                evaled_args = [self.stack.pop() for i in range(argc)]
-                
-                if command.is_builtin:
-                    command.call(self, *evaled_args)
-                    self.stack.append(0)
-                    self.pointer += 1
+    def _op_STORE(self, arg):
+        val = self.stack.pop()
+        self.frame.bind_variable(arg, val)
+        self.pointer += 1
 
-                else:
-                    # push a frame
-                    self.push_frame()
-                    
-                    # bind the variables
-                    self.frame.bind_variables(**dict(zip(command.formal_args, evaled_args)))
-                    
-                    # jump!
-                    self.pointer = command.body_pointer
-            
-            elif op == 'RETURN':
-                # return val is TOP
-                # TODO error guard / catch
-                retval = self.stack.pop()
+    def _op_LOAD(self, arg):
+        val = self.frame.lookup_variable(arg, default=DEFAULT_VARIABLE_VALUE)
+        self.stack.append(val)
+        self.pointer += 1
 
-                # save current rp
-                return_location = self.frame.return_pointer
-                
-                # restore the frame
-                self.pop_frame()
-                
-                # and put our retval in
-                self.stack.append(retval)
-                
-                # and jump!
-                self.pointer = return_location
+    def _op_LOAD_INTEGER(self, arg):
+        self.stack.append(int(arg))
+        self.pointer += 1
 
-            elif op == 'LOAD_CODE':
-                # loaded code is responsible for ensuring we return to the next address
-                filename = arg
-                offset = len(self.bytecode) # the position of the first bytecode of the foreign code
-                return_pos = self.pointer + 1
-                compiled_foreign_code = self.adapter_bus.send('loader', 'load', filename, offset, return_pos)
+    def _op_LOAD_STRING(self, arg):
+        self.stack.append(arg)
+        self.pointer += 1
 
-                # we trust that this bytecode has a jump at the end to `return_pos`
-                self.bytecode.extend(compiled_foreign_code)
+    def _op_SET_DOT(self, arg):
+        x = self.stack.pop()
+        y = self.stack.pop()
+        val = self.stack.pop()
+        self.image.set_pixel(x, y, val)
+        self.pointer += 1
 
-                self.debug(self.dump_bytecode())
+    def _op_GET_DOT(self, arg):
+        x = self.stack.pop()
+        y = self.stack.pop()
+        val = self.image.query_pixel(x, y)
+        self.stack.append(val)
+        self.pointer += 1
 
-                self.pointer = offset
-            ops += 1
-        
+    def _op_BINARY_ADD(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
+        self.stack.append(top + top1)
+        self.pointer += 1
+
+    def _op_BINARY_SUB(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
+        self.stack.append(top - top1)
+        self.pointer += 1
+
+    def _op_BINARY_DIV(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
+        self.stack.append(top / top1)
+        self.pointer += 1
+
+    def _op_BINARY_MUL(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
+        self.stack.append(top * top1)
+        self.pointer += 1
+
+    def _op_COMPARE_SAME(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
+        self.stack.append(int(top == top1))
+        self.pointer += 1
+
+    def _op_COMPARE_NSAME(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
+        self.stack.append(int(top != top1))
+        self.pointer += 1
+
+    def _op_COMPARE_SMALLER(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
+        self.stack.append(int(top < top1))
+        self.pointer += 1
+
+    def _op_COMPARE_NSMALLER(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
+        self.stack.append(int(top >= top1))
+        self.pointer += 1
+
+    def _op_DUP_TOPX(self, arg):
+        c = int(arg)
+        dups = self.stack[-c:]
+        self.stack.extend(dups)
+        self.pointer += 1
+
+    def _op_POP_TOPX(self, arg):
+        c = int(arg)
+        for i in range(c):
+            self.stack.pop()
+        self.pointer += 1
+
+    def _op_ROT_TWO(self, top, top1):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
+        self.stack.append(top)
+        self.stack.append(top1)
+        self.pointer += 1
+
+    def _op_JUMP(self, arg):
+        target = int(arg)
+        self.pointer = target
+
+    def _op_POP_JUMP_IF_FALSE(self, arg):
+        target = int(arg)
+        top = self.stack.pop()
+        if not top:
+            self.pointer = target
+        else:
+            self.pointer += 1
+
+    def _op_POP_JUMP_IF_TRUE(self, arg):
+        target = int(arg)
+        top = self.stack.pop()
+        if top:
+            self.pointer = target
+        else:
+            self.pointer += 1
+
+    def _op_DEFINE_COMMAND(self, arg):
+        command_pointer = self.stack.pop()
+        command_name = self.stack.pop()
+
+        argc = int(arg)
+        formal_args = [self.stack.pop() for i in range(argc)]
+        command = structures.DBNCommand(formal_args, command_pointer)
+        self.commands[command_name] = command
+        self.pointer += 1
+
+    def _op_COMMAND(self, arg):
+        command_name = self.stack.pop()
+
+        command = self.commands.get(command_name)
+        if command is None:
+            raise RuntimeError('No such command! %s' % command_name)
+
+        argc = int(arg)
+        if not argc == command.argc:
+            raise RuntimeError('bad argc')
+
+        evaled_args = [self.stack.pop() for i in range(argc)]
+
+        if command.is_builtin:
+            command.call(self, *evaled_args)
+            self.stack.append(0)
+            self.pointer += 1
+
+        else:
+            # push a frame
+            self.push_frame()
+
+            # bind the variables
+            self.frame.bind_variables(**dict(zip(command.formal_args, evaled_args)))
+
+            # jump!
+            self.pointer = command.body_pointer
+
+    def _op_RETURN(self, arg):
+        # return val is TOP
+        # TODO error guard / catch
+        retval = self.stack.pop()
+
+        # save current rp
+        return_location = self.frame.return_pointer
+
+        # restore the frame
+        self.pop_frame()
+
+        # and put our retval in
+        self.stack.append(retval)
+
+        # and jump!
+        self.pointer = return_location
+
+    def _op_LOAD_CODE(self, arg):
+        # loaded code is responsible for ensuring we return to the next address
+        filename = arg
+        offset = len(self.bytecode) # the position of the first bytecode of the foreign code
+        return_pos = self.pointer + 1
+        compiled_foreign_code = self.adapter_bus.send('loader', 'load', filename, offset, return_pos)
+
+        # we trust that this bytecode has a jump at the end to `return_pos`
+        self.bytecode.extend(compiled_foreign_code)
+
+        self.debug(self.dump_bytecode())
+
+        self.pointer = offset
+
 
 if __name__ == "__main__":
     import builtins
@@ -315,9 +346,8 @@ if __name__ == "__main__":
         else:
             n, o, a = parts
         bytecode.append((o, a))
-    
+
     i = DBNInterpreter(bytecode)
     i.load(builtins)
     i.run(trace = True)
     output.draw_window(i)
-    
