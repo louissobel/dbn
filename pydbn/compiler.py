@@ -24,30 +24,26 @@ class DBNCompiler:
     def compile(self, node, offset=0):
         new = DBNCompiler(counter=self.counter + offset, module=self.module)
 
-        node_class_name = node.__class__.__name__
-        
-        compile_command_name = "compile_%s" % node_class_name
-        
+        compile_command_name = "compile_%s_node" % node.type
+
         try:
             compile_command = getattr(new, compile_command_name)
-            compile_command(node)
-
         except AttributeError:
             raise ValueError("Unknown node type! (%s)" % str(type(node)))
-
         else:
+            compile_command(node)
             return new
 
-    def compile_DBNProgramNode(self, node):
-        self.compile_DBNBlockNode(node)
+    def compile_program_node(self, node):
+        self.compile_block_node(node)
         if not self.module:
             self.add('END')
         
-    def compile_DBNBlockNode(self, node):
+    def compile_block_node(self, node):
         for sub_node in node.children:
             self.extend(self.compile(sub_node))
 
-    def compile_DBNSetNode(self, node):
+    def compile_set_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
 
         self.extend(self.compile(node.right))
@@ -66,7 +62,7 @@ class DBNCompiler:
         elif isinstance(left, DBNWordNode):
             self.add('STORE', left.name)
 
-    def compile_DBNRepeatNode(self, node):
+    def compile_repeat_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
 
         # push on end
@@ -111,7 +107,7 @@ class DBNCompiler:
         # ok, now this stuff is cleanup - pop away
         self.add('POP_TOPX', 2)
 
-    def compile_DBNQuestionNode(self, node):
+    def compile_question_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
 
         self.extend(self.compile(node.right))
@@ -131,7 +127,7 @@ class DBNCompiler:
         self.add('POP_JUMP_IF_FALSE', body_code.counter)
         self.extend(body_code)
 
-    def compile_DBNCommandNode(self, node):
+    def compile_command_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
 
         # get the children on the stack in reverse order
@@ -147,7 +143,7 @@ class DBNCompiler:
         # command return value always gets thrown away
         self.add('POP_TOPX', 1)
 
-    def compile_DBNCommandDefinitionNode(self, node):
+    def compile_command_definition_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
         # When I build Number... going to have to 
         # refactor / restructure this all i think
@@ -172,17 +168,17 @@ class DBNCompiler:
         self.add('JUMP', after_body)
         self.extend(body_code)
 
-    def compile_DBNLoadNode(self, node):
+    def compile_load_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
         self.add('LOAD_CODE', node.name)
 
-    def compile_DBNBracketNode(self, node):
+    def compile_bracket_node(self, node):
         self.extend(self.compile(node.right))
         self.extend(self.compile(node.left))
 
         self.add('GET_DOT')
 
-    def compile_DBNBinaryOpNode(self, node):
+    def compile_binary_op_node(self, node):
         self.extend(self.compile(node.right))
         self.extend(self.compile(node.left))        
 
@@ -194,13 +190,13 @@ class DBNCompiler:
         }
         self.add(ops[node.name])
 
-    def compile_DBNNumberNode(self, node):
+    def compile_number_node(self, node):
         self.add('LOAD_INTEGER', node.name)
 
-    def compile_DBNWordNode(self, node):
+    def compile_word_node(self, node):
         self.add('LOAD', node.name)
     
-    def compile_DBNNoopNode(self, node):
+    def compile_noop_node(self, node):
         pass #NOOP
 
 

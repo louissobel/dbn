@@ -17,7 +17,9 @@ from structures import DBNDot, DBNVariable, DBNProcedure
 VERBOSE = False
 
 class DBNBaseNode(object):
-    
+    """
+    base node
+    """
     type = 'base'
     
     def __init__(self, name=None, children=None, tokens=None, line_no=-1):
@@ -70,6 +72,7 @@ class DBNProgramNode(DBNBaseNode):
     a whole DBNProgram
     """
     type = 'program'
+
 
 class DBNBlockNode(DBNBaseNode):
     """
@@ -184,7 +187,7 @@ class DBNBinaryOpNode(DBNBaseNode):
     """
     arbitrary binary operation
     """
-    type = 'operation'
+    type = 'binary_op'
     
     @property
     def left(self):
