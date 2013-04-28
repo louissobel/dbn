@@ -13,29 +13,6 @@ DEFAULT_INITIAL_PEN_COLOR = 100
 import time
 
 
-
-####
-# Op code decorators
-
-def increments_pc(fn):
-    """
-    decorator that will increment the pointer
-    """
-    def inner(self, *args, **kwargs):
-        fn(self, *args, **kwargs)
-        self.pointer += 1
-    return inner
-
-def pops_top(n):
-    """
-    returns decorator that calls fn with top n args
-    """
-    def decorator(fn):
-        def inner(self, *args, **kwargs):
-            fn(self, *[self.stack.pop() for i in range(n)])
-        return inner
-    return decorator
-
 class DBNInterpreter:
 
     def __init__(self, code, debug=False):
@@ -43,14 +20,14 @@ class DBNInterpreter:
 
         self.commands = {}
         self.numbers = {}
-        
+
         # the adpater bus to the external world
         self.adapter_bus = adapter_bus.AdapterBus()
         self.adapter_bus.connect(self)
-        
+
         loader = adapters.loader.LoadAdapter()
         self.adapter_bus.attach(loader)
-        
+
         self.image = dbnstate.DBNImage(DEFAULT_INITIAL_PAPER_COLOR)
         self.pen_color = DEFAULT_INITIAL_PEN_COLOR
 
@@ -63,7 +40,10 @@ class DBNInterpreter:
 
         # program count
         self.pointer = 0
-        
+
+        # status
+        self.terminated = False
+
         self._DEBUG = debug
 
     ####
@@ -115,12 +95,12 @@ class DBNInterpreter:
             depth = self.frame.depth + 1,
         )
         self.set_frame(new_frame)
-    
+
     def pop_frame(self):
         old_frame = self.frame.parent
         if old_frame is None:
             raise RuntimeError("Pop frame with no parent")
-        
+
         self.set_frame(old_frame)
 
     ####
@@ -128,11 +108,11 @@ class DBNInterpreter:
 
     def run(self, **kwargs):
         trace = kwargs.get('trace', False)
-        
-        ops = 0
-        self.terminated = False
-        while not self.terminated:
-            self.step(trace=trace)
+
+        step = self.step
+        alive = True
+        while alive:
+            alive = step(trace=trace)
 
     def step(self, trace=False):
         op, arg = self.bytecode[self.pointer]
@@ -148,106 +128,120 @@ class DBNInterpreter:
         else:
             op_handler(arg)
 
+        return not self.terminated
+
     ####
     # The opcode handlers
 
     def _op_END(self, arg):
         self.terminated = True
 
-    @increments_pc
     def _op_SET_LINE_NO(self, arg):
         line_no = int(arg)
         if line_no == -1:
             raise RuntimeError("Why is line_no being set to -1??")
         else:
             self.line_no = line_no
+        self.pointer += 1
 
-    @increments_pc
     def _op_STORE(self, arg):
         val = self.stack.pop()
         self.frame.bind_variable(arg, val)
+        self.pointer += 1
 
-    @increments_pc
     def _op_LOAD(self, arg):
         val = self.frame.lookup_variable(arg, default=DEFAULT_VARIABLE_VALUE)
         self.stack.append(val)
+        self.pointer += 1
 
-    @increments_pc
     def _op_LOAD_INTEGER(self, arg):
         self.stack.append(int(arg))
+        self.pointer += 1
 
-    @increments_pc
     def _op_LOAD_STRING(self, arg):
         self.stack.append(arg)
+        self.pointer += 1
 
-    @increments_pc
-    @pops_top(3)
-    def _op_SET_DOT(self, x, y, val):
+    def _op_SET_DOT(self, arg):
+        x = self.stack.pop()
+        y = self.stack.pop()
+        val = self.stack.pop()
         self.image.set_pixel(x, y, val)
+        self.pointer += 1
 
-    @increments_pc
-    @pops_top(2)
-    def _op_GET_DOT(self, x, y):
+    def _op_GET_DOT(self, arg):
+        x = self.stack.pop()
+        y = self.stack.pop()
         val = self.image.query_pixel(x, y)
         self.stack.append(val)
+        self.pointer += 1
 
-    @increments_pc
-    @pops_top(2)
-    def _op_BINARY_ADD(self, top, top1):
+    def _op_BINARY_ADD(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
         self.stack.append(top + top1)
+        self.pointer += 1
 
-    @increments_pc
-    @pops_top(2)
-    def _op_BINARY_SUB(self, top, top1):
+    def _op_BINARY_SUB(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
         self.stack.append(top - top1)
+        self.pointer += 1
 
-    @increments_pc
-    @pops_top(2)
-    def _op_BINARY_DIV(self, top, top1):
+    def _op_BINARY_DIV(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
         self.stack.append(top / top1)
+        self.pointer += 1
 
-    @increments_pc
-    @pops_top(2)
-    def _op_BINARY_MUL(self, top, top1):
+    def _op_BINARY_MUL(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
         self.stack.append(top * top1)
+        self.pointer += 1
 
-    @increments_pc
-    @pops_top(2)
-    def _op_COMPARE_SAME(self, top, top1):
+    def _op_COMPARE_SAME(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
         self.stack.append(int(top == top1))
+        self.pointer += 1
 
-    @increments_pc
-    @pops_top(2)
-    def _op_COMPARE_NSAME(self, top, top1):
+    def _op_COMPARE_NSAME(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
         self.stack.append(int(top != top1))
+        self.pointer += 1
 
-    @increments_pc
-    @pops_top(2)
-    def _op_COMPARE_SMALLER(self, top, top1):
+    def _op_COMPARE_SMALLER(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
         self.stack.append(int(top < top1))
+        self.pointer += 1
 
-    @increments_pc
-    @pops_top(2)
-    def _op_COMPARE_NSMALLER(self, top, top1):
+    def _op_COMPARE_NSMALLER(self, arg):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
         self.stack.append(int(top >= top1))
+        self.pointer += 1
 
-    @increments_pc
     def _op_DUP_TOPX(self, arg):
         c = int(arg)
         dups = self.stack[-c:]
         self.stack.extend(dups)
+        self.pointer += 1
 
-    @increments_pc
     def _op_POP_TOPX(self, arg):
         c = int(arg)
         for i in range(c):
             self.stack.pop()
+        self.pointer += 1
 
-    @increments_pc
-    @pops_top(2)
     def _op_ROT_TWO(self, top, top1):
+        top = self.stack.pop()
+        top1 = self.stack.pop()
         self.stack.append(top)
         self.stack.append(top1)
+        self.pointer += 1
 
     def _op_JUMP(self, arg):
         target = int(arg)
@@ -269,7 +263,6 @@ class DBNInterpreter:
         else:
             self.pointer += 1
 
-    @increments_pc
     def _op_DEFINE_COMMAND(self, arg):
         command_pointer = self.stack.pop()
         command_name = self.stack.pop()
@@ -278,6 +271,7 @@ class DBNInterpreter:
         formal_args = [self.stack.pop() for i in range(argc)]
         command = structures.DBNCommand(formal_args, command_pointer)
         self.commands[command_name] = command
+        self.pointer += 1
 
     def _op_COMMAND(self, arg):
         command_name = self.stack.pop()
@@ -291,7 +285,7 @@ class DBNInterpreter:
             raise RuntimeError('bad argc')
 
         evaled_args = [self.stack.pop() for i in range(argc)]
-        
+
         if command.is_builtin:
             command.call(self, *evaled_args)
             self.stack.append(0)
@@ -300,27 +294,27 @@ class DBNInterpreter:
         else:
             # push a frame
             self.push_frame()
-            
+
             # bind the variables
             self.frame.bind_variables(**dict(zip(command.formal_args, evaled_args)))
-            
+
             # jump!
             self.pointer = command.body_pointer
-    
-    @pops_top(1)
-    def _op_RETURN(self, retval):
+
+    def _op_RETURN(self, arg):
         # return val is TOP
         # TODO error guard / catch
+        retval = self.stack.pop()
 
         # save current rp
         return_location = self.frame.return_pointer
-        
+
         # restore the frame
         self.pop_frame()
-        
+
         # and put our retval in
         self.stack.append(retval)
-        
+
         # and jump!
         self.pointer = return_location
 
@@ -352,9 +346,8 @@ if __name__ == "__main__":
         else:
             n, o, a = parts
         bytecode.append((o, a))
-    
+
     i = DBNInterpreter(bytecode)
     i.load(builtins)
     i.run(trace = True)
     output.draw_window(i)
-    
