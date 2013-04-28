@@ -3,7 +3,7 @@ a module that implements the parsing classes
 
 simple parsing, because next node can be exactly determined by next token and current node (LL(1)?)
 """
-from dbnast import *
+from ast_nodes import *
 from tokenizer import DBNToken
 
 def parse_program(tokens):

@@ -1,4 +1,4 @@
-from dbnast import *
+from ast_nodes import *
 
 class DBNCompiler:
     

@@ -2,7 +2,7 @@ import unittest
 import random
 
 import parser
-from dbnast import *
+from ast_nodes import *
 from tests.parser_tests.base_test import ParserTestCase
 
 class ParseBlockTest(ParserTestCase):
