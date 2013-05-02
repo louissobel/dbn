@@ -14,6 +14,7 @@ DEFAULT_INITIAL_PEN_COLOR = 100
 
 import time
 
+USE_C = True
 
 class DBNInterpreter:
 
@@ -124,9 +125,16 @@ class DBNInterpreter:
         op_handler_name = "_op_%s" % op
 
         op_handler = None
-        try:
-            op_handler = getattr(_opcodes, op_handler_name)
-        except AttributeError:
+
+        if USE_C:
+            try:
+                op_handler = getattr(_opcodes, op_handler_name)
+            except AttributeError:
+                try:
+                    op_handler = getattr(self.__class__, op_handler_name)
+                except AttributeError:
+                    raise RuntimeError("Unknown opcode %s" % op)
+        else:
             try:
                 op_handler = getattr(self.__class__, op_handler_name)
             except AttributeError:
