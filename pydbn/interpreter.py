@@ -1,5 +1,7 @@
 import sys
 
+import _opcodes
+
 import dbnstate
 import structures
 import adapter_bus
@@ -121,12 +123,16 @@ class DBNInterpreter:
 
         op_handler_name = "_op_%s" % op
 
+        op_handler = None
         try:
-            op_handler = getattr(self, op_handler_name)
+            op_handler = getattr(_opcodes, op_handler_name)
         except AttributeError:
-            raise RuntimeError("Unknown opcode %s" % op)
-        else:
-            op_handler(arg)
+            try:
+                op_handler = getattr(self.__class__, op_handler_name)
+            except AttributeError:
+                raise RuntimeError("Unknown opcode %s" % op)
+
+        op_handler(self, arg)
 
         return not self.terminated
 
