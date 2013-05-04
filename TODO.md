@@ -10,7 +10,6 @@ TODO
  
  - use the debug mode output in the interpreter consistently
  - shunting yard precedence parsing
- - structure / state module structure
  - add_set_line_no_unless_module decorator
  - settings module (all in one place)
  - bytecodes vs bytecode attribute naming difference between compiler / interpreter

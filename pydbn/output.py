@@ -6,7 +6,7 @@ import ttk
 import dbn
 import sys
 import os
-from tokenizer import DBNTokenizer
+from parser import DBNTokenizer
 import parser
 import time
 

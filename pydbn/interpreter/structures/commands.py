@@ -2,17 +2,6 @@
 Module to hold DBN data datastructures
 """
 
-class DBNVariable:
-    def __init__(self, name):
-        self.name = name
-            
-            
-class DBNDot:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        
-        
 class DBNProcedure():
     """
     root class for commands, builtin commands, numbers, builtin numbers

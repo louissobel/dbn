@@ -4,9 +4,10 @@ the loader adapter
 import os
 import os.path
 
-from tokenizer import DBNTokenizer
+from parser import DBNTokenizer
 from parser import DBNParser
 from compiler import DBNCompiler
+
 import base_adapter
 
 PATH_ENV_VAR = 'DBN_LOAD_PATH'

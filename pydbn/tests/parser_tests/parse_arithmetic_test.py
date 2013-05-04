@@ -1,7 +1,7 @@
 import unittest
 
 import parser
-from ast_nodes import *
+from parser.structures.ast_nodes import *
 from tests.parser_tests.base_test import ParserTestCase
 
 
@@ -14,7 +14,7 @@ class ParseArithmeticTest(ParserTestCase):
     
     def assert_binary_op(self, binop, operator, childs):        
         self.assertEquals(len(binop.children), 2)
-        self.assertEquals(binop.name, operator)
+        self.assertEquals(binop.value, operator)
         for type_, node in zip(childs, binop.children):
             self.assertIsInstance(node, type_)
     
@@ -48,8 +48,8 @@ class ParseArithmeticTest(ParserTestCase):
             result, result_tokens = self.run_parse(parser.parse_arithmetic, tokens, expected=DBNBinaryOpNode)
 
             self.assert_binary_op(result, operator, (DBNNumberNode, DBNNumberNode))
-            self.assertEquals('3', result.children[0].name)
-            self.assertEquals('2', result.children[1].name)
+            self.assertEquals('3', result.children[0].value)
+            self.assertEquals('2', result.children[1].value)
 
 
     def test_left_associativity(self):
@@ -72,12 +72,12 @@ class ParseArithmeticTest(ParserTestCase):
             result, result_tokens = self.run_parse(parser.parse_arithmetic, tokens, expected=DBNBinaryOpNode)
 
             self.assert_binary_op(result, operator, (DBNBinaryOpNode, DBNNumberNode))
-            self.assertEquals('3', result.children[1].name)
+            self.assertEquals('3', result.children[1].value)
 
             left_child = result.children[0]
             self.assert_binary_op(left_child, operator, (DBNNumberNode, DBNNumberNode))
-            self.assertEquals('1', left_child.children[0].name)
-            self.assertEquals('2', left_child.children[1].name)
+            self.assertEquals('1', left_child.children[0].value)
+            self.assertEquals('2', left_child.children[1].value)
     
     def test_mixed_precedence(self):
         """
@@ -97,12 +97,12 @@ class ParseArithmeticTest(ParserTestCase):
         result, result_tokens = self.run_parse(parser.parse_arithmetic, tokens, expected=DBNBinaryOpNode)
 
         self.assert_binary_op(result, '+', (DBNNumberNode, DBNBinaryOpNode))
-        self.assertEquals('1', result.children[0].name)
+        self.assertEquals('1', result.children[0].value)
 
         right_child = result.children[1]
         self.assert_binary_op(right_child, '*', (DBNNumberNode, DBNNumberNode))
-        self.assertEquals('2', right_child.children[0].name)
-        self.assertEquals('3', right_child.children[1].name)
+        self.assertEquals('2', right_child.children[0].value)
+        self.assertEquals('3', right_child.children[1].value)
 
     def test_complex_mixed_precedence(self):
         """
@@ -129,16 +129,16 @@ class ParseArithmeticTest(ParserTestCase):
         div_op = result.children[1]
 
         self.assert_binary_op(plus_op, '+', (DBNNumberNode, DBNBinaryOpNode))
-        self.assertEquals(plus_op.children[0].name, '1')
+        self.assertEquals(plus_op.children[0].value, '1')
         mul_op = plus_op.children[1]
 
         self.assert_binary_op(mul_op, '*', (DBNNumberNode, DBNNumberNode))
-        self.assertEquals('2', mul_op.children[0].name)
-        self.assertEquals('3', mul_op.children[1].name)
+        self.assertEquals('2', mul_op.children[0].value)
+        self.assertEquals('3', mul_op.children[1].value)
 
         self.assert_binary_op(div_op, '/', (DBNNumberNode, DBNNumberNode))
-        self.assertEquals('4', div_op.children[0].name)
-        self.assertEquals('5', div_op.children[1].name)
+        self.assertEquals('4', div_op.children[0].value)
+        self.assertEquals('5', div_op.children[1].value)
 
     def test_double_operator_error(self):
         """

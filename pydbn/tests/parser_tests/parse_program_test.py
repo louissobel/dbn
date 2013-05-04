@@ -2,7 +2,7 @@ import unittest
 import random
 
 import parser
-from ast_nodes import *
+from parser.structures.ast_nodes import *
 from tests.parser_tests.base_test import ParserTestCase
 
 class ParseProgramTest(ParserTestCase):

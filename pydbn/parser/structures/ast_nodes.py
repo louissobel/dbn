@@ -12,9 +12,7 @@ are the ones that this matters for
 Also, note that the line_no of the stored procedure created by the
 DefineCommandNode gets set to the line_no of the DefineCommandNode
 """
-from structures import DBNDot, DBNVariable, DBNProcedure
 
-VERBOSE = False
 
 class DBNBaseNode(object):
     """

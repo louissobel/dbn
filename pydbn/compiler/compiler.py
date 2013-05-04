@@ -1,4 +1,4 @@
-from ast_nodes import *
+from parser.structures.ast_nodes import *
 
 class DBNCompiler:
     

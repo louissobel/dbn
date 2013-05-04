@@ -2,7 +2,7 @@ import random
 import unittest
 
 import parser
-from ast_nodes import *
+from parser.structures.ast_nodes import *
 from tests.parser_tests.base_test import ParserTestCase
 
 
@@ -23,7 +23,7 @@ class ParseCommandTest(ParserTestCase):
         result, result_tokens = self.run_parse(parser.parse_command, tokens, expected=DBNCommandNode, line_no=line_no)
     
         self.assertEqual([], result.children)
-        self.assertEqual('Line', result.name)
+        self.assertEqual('Line', result.value)
     
     def test_args(self):
         """
@@ -41,7 +41,7 @@ class ParseCommandTest(ParserTestCase):
         for type_, child in zip((DBNNumberNode, DBNNumberNode), result.children):
             self.assertIsInstance(child, type_)
     
-        self.assertEqual('Floop', result.name)
+        self.assertEqual('Floop', result.value)
 
     def test_missing_newline(self):
         """

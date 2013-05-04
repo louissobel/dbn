@@ -1,11 +1,9 @@
 import sys
 from optparse import OptionParser
 
-from tokenizer import DBNTokenizer
-from parser import DBNParser
+from parser import DBNParser, DBNTokenizer
 from compiler import DBNCompiler
-from interpreter import DBNInterpreter
-import builtins
+from interpreter import DBNInterpreter, builtins
 
 import output
 import threading

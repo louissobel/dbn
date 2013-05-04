@@ -2,7 +2,7 @@ import random
 import unittest
 
 import parser
-from ast_nodes import *
+from parser.structures.ast_nodes import *
 from tests.parser_tests.base_test import ParserTestCase
 
 
@@ -24,7 +24,7 @@ class ParseLoadTest(ParserTestCase):
         )
 
         result, result_tokens = self.run_parse(parser.parse_load, tokens, expected=DBNLoadNode, line_no=line_no)
-        self.assertEquals('foo.dbn', result.name)
+        self.assertEquals('foo.dbn', result.value)
 
     def test_bad_arg(self):
         """

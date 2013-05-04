@@ -2,7 +2,7 @@ import random
 import unittest
 
 import parser
-from ast_nodes import *
+from parser.structures.ast_nodes import *
 from tests.parser_tests.base_test import ParserTestCase
 
 
@@ -11,12 +11,12 @@ class ParseQuestionTest(ParserTestCase):
     parses a question
     """
 
-    def assert_question_node(self, node, name, arg_types):
+    def assert_question_node(self, node, value, arg_types):
         """
         checks that arg_types match the args
         and that the third child is a body
         """
-        self.assertEquals(name, node.name)
+        self.assertEquals(value, node.value)
         
         self.assertEquals(3, len(node.children))
         

@@ -1,10 +1,7 @@
 import sys
 
-import dbnstate
 import structures
-import adapter_bus
-
-import adapters.loader
+import adapters
 
 DEFAULT_VARIABLE_VALUE = 0
 DEFAULT_INITIAL_PAPER_COLOR = 0
@@ -22,17 +19,17 @@ class DBNInterpreter:
         self.numbers = {}
 
         # the adpater bus to the external world
-        self.adapter_bus = adapter_bus.AdapterBus()
+        self.adapter_bus = structures.AdapterBus()
         self.adapter_bus.connect(self)
 
-        loader = adapters.loader.LoadAdapter()
+        loader = adapters.LoadAdapter()
         self.adapter_bus.attach(loader)
 
-        self.image = dbnstate.DBNImage(DEFAULT_INITIAL_PAPER_COLOR)
+        self.image = structures.DBNImage(DEFAULT_INITIAL_PAPER_COLOR)
         self.pen_color = DEFAULT_INITIAL_PEN_COLOR
 
         # initialize base frame
-        base_frame = dbnstate.DBNFrame()
+        base_frame = structures.DBNFrame()
         self.set_frame(base_frame)
 
         # line no
@@ -89,7 +86,7 @@ class DBNInterpreter:
         self.env = frame.env
 
     def push_frame(self):
-        new_frame = dbnstate.DBNFrame(
+        new_frame = structures.DBNFrame(
             parent=self.frame,
             return_pointer=self.pointer + 1,
             depth = self.frame.depth + 1,
@@ -334,7 +331,7 @@ class DBNInterpreter:
 
 
 if __name__ == "__main__":
-    import builtins
+    import interpreter.builtins
     import output
 
     bytecode = []
@@ -348,6 +345,6 @@ if __name__ == "__main__":
         bytecode.append((o, a))
 
     i = DBNInterpreter(bytecode)
-    i.load(builtins)
+    i.load(interpreter.builtins)
     i.run(trace = True)
     output.draw_window(i)

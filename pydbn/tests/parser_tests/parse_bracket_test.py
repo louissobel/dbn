@@ -1,7 +1,7 @@
 import unittest
 
 import parser
-from ast_nodes import *
+from parser.structures.ast_nodes import *
 from tests.parser_tests.base_test import ParserTestCase
 
 class ParseBracketTest(ParserTestCase):
@@ -26,8 +26,8 @@ class ParseBracketTest(ParserTestCase):
             self.assertIsInstance(child, DBNNumberNode)
         
         self.assertEquals(len(result.children), 2)
-        self.assertEquals(result.children[0].name, '0')
-        self.assertEquals(result.children[1].name, '100')
+        self.assertEquals(result.children[0].value, '0')
+        self.assertEquals(result.children[1].value, '100')
 
 
 if __name__ == "__main__":

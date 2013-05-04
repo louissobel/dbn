@@ -1,18 +1,18 @@
 import unittest
 
 import parser
-from ast_nodes import *
+from parser.structures.ast_nodes import *
 from tests.parser_tests.base_test import ParserTestCase
 
 class ParseDefineCommandTest(ParserTestCase):
     """
     tests the parse_block function
     """
-    def assert_define_command(self, result, name, argc):
+    def assert_define_command(self, result, value, argc):
         """
         asserts a define command node
         """
-        self.assertEqual(result.children[0].name, name)
+        self.assertEqual(result.children[0].value, value)
         self.assertEqual(len(result.children) - 2, argc)
         self.assertIsInstance(result.children[-1], DBNBlockNode)
     

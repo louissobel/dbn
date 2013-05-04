@@ -3,7 +3,7 @@ import os
 import os.path
 import shutil
 
-from adapters.loader import LoadAdapter, PATH_ENV_VAR
+from interpreter.adapters.loader import LoadAdapter, PATH_ENV_VAR
 
 LOADED_DBN = """
 Set A 0

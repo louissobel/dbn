@@ -1,6 +1,6 @@
 import unittest
 
-from tokenizer import DBNToken
+from parser.structures import DBNToken
 
 class ParserTestCase(unittest.TestCase):
 
