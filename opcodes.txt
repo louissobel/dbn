@@ -87,7 +87,15 @@ POP_JUMP_IF_FALSE (x):
 POP_JUMP_IF_TRUE (x):
   pop
   if TOP is true, jumps to x
-  
+
+REPEAT_STEP:
+  pop
+  pop
+  if TOP < TOP1, NEW = TOP + 1
+  if TOP > TOP1, NEW = TOP - 1
+  push TOP1
+  push new
+
 DEFINE_COMMAND (n):
   makes a command expecting n arguments
   pop

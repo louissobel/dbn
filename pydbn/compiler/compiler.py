@@ -39,6 +39,9 @@ class DBNCompiler(DBNAstVisitor):
         self.visit(node)
         return self.code
 
+    ####
+    # Visitor methods
+
     def visit_program_node(self, node):
         self.visit_block_node(node)
         if not self.module:
@@ -70,9 +73,7 @@ class DBNCompiler(DBNAstVisitor):
     def visit_repeat_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
 
-        # push on end
         self.visit(node.end)
-        # push on start
         self.visit(node.start)
 
         # body entry - [end, current]
@@ -88,33 +89,16 @@ class DBNCompiler(DBNAstVisitor):
 
         self.visit(node.body)
 
-        # dup [end, current] for comparison
+        # Comparison
         self.add('DUP_TOPX', 2)
-
-        # compare
         self.add('COMPARE_SAME')
-        # now stack is [end, current, current<end]
+        # now stack is [end, current, current==end]
         # if current is the same as end, lets GTFO
         self.add('POP_JUMP_IF_TRUE', repeat_end_label)
 
         # if we are here, we need either to increment or decrement
-        repeat_decrement_setup_label = self.generate_label('repeat_decrement_setup')
-        repeat_step_label = self.generate_label('repeat_step')
-
-        self.add('DUP_TOPX', 2)
-        self.add('COMPARE_SMALLER')
-        self.add('POP_JUMP_IF_FALSE', repeat_decrement_setup_label) # the else
-
-        self.add('LOAD_INTEGER', 1)
-        self.add('JUMP', repeat_step_label)
-
-        self.add_label(repeat_decrement_setup_label)
-        self.add('LOAD_INTEGER', -1)
-
-        # ok if we are here, we are good to increment (decrement) and repeat
-        # (these are the ones counted in skip_count)
-        self.add_label(repeat_step_label)
-        self.add('BINARY_ADD')
+        # going to deletegate this to an opcode
+        self.add('REPEAT_STEP')
         self.add('JUMP', body_entry_label)
 
         # ok, now this stuff is cleanup - pop away
@@ -160,31 +144,24 @@ class DBNCompiler(DBNAstVisitor):
 
     def visit_command_definition_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
-        # When I build Number... going to have to
-        # refactor / restructure this all i think
-        # sweet
-
-        for arg in reversed(node.args):
-            self.add('LOAD_STRING', arg.value)
-
-        self.add('LOAD_STRING', node.command_name.value)
 
         command_start_label = self.generate_label('command_definition_%s' % node.command_name.value)
         after_command_label = self.generate_label('after_command_definition')
 
+        for arg in reversed(node.args):
+            self.add('LOAD_STRING', arg.value)
+        self.add('LOAD_STRING', node.command_name.value)
+
         self.add('LOAD_INTEGER', command_start_label)
         self.add('DEFINE_COMMAND', len(node.args))
 
-
-
+        # Move execution to after the command body
         self.add('JUMP', after_command_label)
 
         self.add_label(command_start_label)
-
         self.visit(node.body)
 
-        # Implicitly add Return 0
-        # if not node.has_return_value
+        # Implicitly add fallback return 0
         self.add('LOAD_INTEGER', 0)
         self.add('RETURN')
 
