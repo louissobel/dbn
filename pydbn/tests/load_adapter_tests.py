@@ -4,6 +4,7 @@ import os.path
 import shutil
 
 from interpreter.adapters.loader import LoadAdapter, PATH_ENV_VAR
+from compiler.structures import Bytecode
 
 LOADED_DBN = """
 Set A 0
@@ -19,8 +20,8 @@ ERROR_DBN = """
 ERROR_DBN_FILENAME = "test_error.dbn"
 
 EXPECTED_BYTECODE = [
-    ('LOAD_INTEGER', '0'),
-    ('STORE', 'A'),
+    Bytecode('LOAD_INTEGER', '0'),
+    Bytecode('STORE', 'A'),
 ]
 
 FIRST_SUB_DIR = os.path.abspath('load_adapter_test_dir')
@@ -262,9 +263,8 @@ class TestCompileExistingFile(LoadAdapterTestCase):
     def runTest(self):
         FILE_PATH = os.path.join(self.actual_cwd, LOADED_DBN_FILENAME)
         OFFSET = 7
-        compilation = self.loader.compile(FILE_PATH, OFFSET)
-        self.assertEquals(OFFSET + 2, compilation.counter)
-        self.assertEquals(EXPECTED_BYTECODE, compilation.bytecodes)
+        bytecode = self.loader.compile(FILE_PATH, OFFSET)
+        self.assertEquals(EXPECTED_BYTECODE, bytecode)
 
 class TestCompileReadError(LoadAdapterTestCase):
     """
@@ -292,7 +292,7 @@ class TestLoad(LoadAdapterTestCase):
     def runTest(self):
         RETURN_POS = 8
         OFFSET = 10
-        THIS_EXPECTED_BYTECODE = EXPECTED_BYTECODE + [('JUMP', '8')]
+        THIS_EXPECTED_BYTECODE = EXPECTED_BYTECODE + [Bytecode('JUMP', '8')]
 
         result = self.loader.load(LOADED_DBN_FILENAME, OFFSET, RETURN_POS)
         self.assertEquals(THIS_EXPECTED_BYTECODE, result)

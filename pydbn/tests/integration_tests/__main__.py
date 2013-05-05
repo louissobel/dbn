@@ -16,7 +16,8 @@ class ImageMatchTestCase():
   
   def get_actual(self):
 
-    terp = run_dbn(compile_dbn(self.directory + '/code.dbn'))
+    b = compile_dbn(self.directory + '/code.dbn')
+    terp = run_dbn(b)
     
     outFile = self.directory + '/actual.bmp'
     output.output_bmp(terp, outFile)
