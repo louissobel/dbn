@@ -18,6 +18,7 @@ class DBNBaseNode(object):
     """
     base node
     """
+
     type = 'base'
     
     def __init__(self, value=None, children=None, tokens=None, line_no=-1):
@@ -48,6 +49,14 @@ class DBNBaseNode(object):
     def pprint(self, indent=2):
         print self.pformat(depth=0, indent=indent)
 
+AST_NODE_CLASSES = []
+def node(cls):
+    """
+    class decorator for nodes
+    Currently just registers their name
+    """
+    AST_NODE_CLASSES.append(cls)
+    return cls
 
 def terminal_node(cls):
     """
@@ -63,6 +72,7 @@ def terminal_node(cls):
 
     return cls
 
+@node
 class DBNProgramNode(DBNBaseNode):
     """
     a whole DBNProgram
@@ -70,6 +80,7 @@ class DBNProgramNode(DBNBaseNode):
     type = 'program'
 
 
+@node
 class DBNBlockNode(DBNBaseNode):
     """
     A block of DBN code
@@ -77,6 +88,7 @@ class DBNBlockNode(DBNBaseNode):
     type = 'block'
 
 
+@node
 class DBNSetNode(DBNBaseNode):
     """
     takes care of the special handling for Set
@@ -92,6 +104,7 @@ class DBNSetNode(DBNBaseNode):
         return self.children[1]
 
 
+@node
 class DBNRepeatNode(DBNBaseNode):
     """
     A repeat
@@ -115,6 +128,7 @@ class DBNRepeatNode(DBNBaseNode):
         return self.children[3]
 
 
+@node
 class DBNQuestionNode(DBNBaseNode):
     """
     Represents a question
@@ -134,6 +148,7 @@ class DBNQuestionNode(DBNBaseNode):
         return self.children[2]
 
 
+@node
 class DBNCommandNode(DBNBaseNode):
     """
     A command invocation
@@ -145,6 +160,7 @@ class DBNCommandNode(DBNBaseNode):
         return self.children
 
 
+@node
 class DBNCommandDefinitionNode(DBNBaseNode):
     """
     The definition of a command
@@ -164,6 +180,7 @@ class DBNCommandDefinitionNode(DBNBaseNode):
         return self.children[-1]
 
 
+@node
 class DBNBracketNode(DBNBaseNode):
     """
     Represents a bracket notation pixel reference
@@ -179,6 +196,7 @@ class DBNBracketNode(DBNBaseNode):
         return self.children[1]
 
 
+@node
 class DBNBinaryOpNode(DBNBaseNode):
     """
     arbitrary binary operation
@@ -194,6 +212,7 @@ class DBNBinaryOpNode(DBNBaseNode):
         return self.children[1]
 
 
+@node
 @terminal_node
 class DBNLoadNode(DBNBaseNode):
     """
@@ -202,6 +221,7 @@ class DBNLoadNode(DBNBaseNode):
     type = 'load'
 
 
+@node
 @terminal_node
 class DBNNumberNode(DBNBaseNode):
     """
@@ -210,6 +230,7 @@ class DBNNumberNode(DBNBaseNode):
     type = 'number'
 
 
+@node
 @terminal_node
 class DBNWordNode(DBNBaseNode):
     """
@@ -218,6 +239,7 @@ class DBNWordNode(DBNBaseNode):
     type = 'word'
 
 
+@node
 @terminal_node
 class DBNNoopNode(DBNBaseNode):
     """

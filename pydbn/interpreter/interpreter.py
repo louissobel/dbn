@@ -12,8 +12,8 @@ import time
 
 class DBNInterpreter:
 
-    def __init__(self, code, debug=False):
-        self.bytecode = code
+    def __init__(self, bytecode, debug=False):
+        self.bytecode = bytecode
 
         self.commands = {}
         self.numbers = {}
@@ -55,8 +55,8 @@ class DBNInterpreter:
         for debug - dumps bytecode
         """
         out = "------Bytecode:"
-        for n, (o, a) in enumerate(self.bytecode):
-            out += "%s %s %s" % (n, o, a)
+        for n, b in enumerate(self.bytecode):
+            out += "%s %s" % (n, b)
         out += "--------"
         return out
 
@@ -112,7 +112,9 @@ class DBNInterpreter:
             alive = step(trace=trace)
 
     def step(self, trace=False):
-        op, arg = self.bytecode[self.pointer]
+        code = self.bytecode[self.pointer]
+        op, arg = code.op, code.arg
+
         if trace:
             print self.pointer, '%s %s' % (op, arg)
 
@@ -331,7 +333,7 @@ class DBNInterpreter:
 
 
 if __name__ == "__main__":
-    import interpreter.builtins
+    import builtins
     import output
 
     bytecode = []
@@ -345,6 +347,6 @@ if __name__ == "__main__":
         bytecode.append((o, a))
 
     i = DBNInterpreter(bytecode)
-    i.load(interpreter.builtins)
+    i.load(builtins)
     i.run(trace = True)
     output.draw_window(i)
