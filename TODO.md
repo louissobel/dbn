@@ -9,7 +9,6 @@ TODO
  - BUG IN LOOKUP VARIABLE
  
  - use the debug mode output in the interpreter consistently
- - shunting yard precedence parsing
  - add_set_line_no_unless_module decorator
  - settings module (all in one place)
  - move pygmentslexer to inside tokenizer? contrib?

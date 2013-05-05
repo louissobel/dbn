@@ -3,6 +3,8 @@ a module that implements the parsing classes
 
 simple parsing, because next node can be exactly determined by next token and current node (LL(1)?)
 """
+import operator
+
 from structures.ast_nodes import *
 from structures import DBNToken
 
@@ -146,11 +148,11 @@ def parse_block_statement(tokens):
     Parses one statement out from tokens
     Set, Repeat,  Question, Word (command invocation)
     will raise an error if unable to build a statement
-    
+
     Also handles extra newlines by popping them and returning None
     Could handle newlines by having a DBNNoOpNode, which is a NOOP
     Would remove necessity of checking if return value is None. Hmmm
-    
+
     Each statement is responsbile for ensuring that it ends with a new line
     and that that newline is popped from the token stack
     """
@@ -168,11 +170,11 @@ def parse_block_statement(tokens):
     elif first_token.type == 'WORD':
         # then it is a command invocation
         return parse_command(tokens)
-        
+
     elif first_token.type == 'NEWLINE':
         # then it is just an extra newline (noop)
         return parse_newline(tokens)
-        
+
 
     else:
         raise ValueError("I don't know how to parse %s as a statement!" % first_token.type)
@@ -230,7 +232,7 @@ def parse_question(tokens):
     first_arg = parse_arg(tokens)
     second_arg = parse_arg(tokens)
     body = parse_block(tokens)
-    
+
     noop = parse_newline(tokens)
 
     question_name = question_token.value
@@ -313,116 +315,81 @@ def parse_arg(tokens):
 
 def parse_arithmetic(tokens):
     """
-    mega function to parse a set of tokens representing 'arithmatic'
+    parse a set of tokens representing 'arithmetic'
+    triggered by an open parenthesis
 
-    so algorithm:
-    we walk down to precedence levels, looking for things.
-    if we find one, look for its left,
-    and its right, combine them!
-
-    would love to make this recrusive to match the rest of how I parse.
-    but. I'd also love to be an astronaut
+    parses using Dijkstras shunting yard
     """
-    PRECEDENCE = [
-     (['*', '/'], 'LEFT'),
-     (['-', '+'], 'LEFT'),
-    ]
+    PRECEDENCE = {
+        '+' : (0, 'LEFT'),
+        '-' : (0, 'LEFT'),
+        '*' : (1, 'LEFT'),
+        '/' : (1, 'LEFT')
+    }
+
     # grab the open paren token
     open_paren_token = tokens.pop(0)
 
-    # now build a list of nodes, separated by operation tokens
-    nodes_and_ops = []
-    parsing_nodes = True
-    while parsing_nodes:
+    # Shunting yard algorithm for precedence parsing
+    # http://en.wikipedia.org/wiki/Shunting-yard_algorithm
+    output_stack = []
+    op_stack = []
+
+    # Functions for managing the output stack
+    def add_op(op_token):
+        try:
+            right = output_stack.pop()
+            left = output_stack.pop()
+        except IndexError:
+            raise ValueError('Not enough operands for %s!' % op_token.value)
+
+        node_tokens = left.tokens + [op_token] + right.tokens
+        new_node = DBNBinaryOpNode(
+            value=op_token.value,
+            children=[left, right],
+            tokens=node_tokens,
+        )
+        output_stack.append(new_node)
+
+    parsing = True
+    while parsing:
         first_token = tokens[0]
 
-        if   first_token.type == 'CLOSEPAREN':
-            parsing_nodes = False
+        if  first_token.type == 'CLOSEPAREN':
+            parsing = False
             close_paren_token = tokens.pop(0)
 
         elif first_token.type == 'OPERATOR':
-            operator_token = tokens.pop(0)
-            nodes_and_ops.append(operator_token)
+            op_token = tokens.pop(0)
+            precedence, assoc = PRECEDENCE[op_token.value]
+
+            while op_stack:
+                top_precedence, _ = PRECEDENCE[op_stack[-1].value]
+                compare = operator.gt if assoc == 'LEFT' else operator.ge
+                if compare(precedence, top_precedence):
+                    break
+                else:
+                    add_op(op_stack.pop())
+
+            # Now append this token to the op_stack
+            op_stack.append(op_token)
 
         else:
-            # we assume an argument is next on stack
-            # parse_args will raise error if thats not true
-            node = parse_arg(tokens)
-            nodes_and_ops.append(node)
+            # We assume an argument is next on stack
+            output_stack.append(parse_arg(tokens))
 
-    # so we have a flat list like (5 + 3 * 9):
-    # [<NumberNode:5>, <Token:OPERATOR(+)>, <NumberNode:3>, <Token:OPERATOR(*)>, <NumberNode:9>]
-    # now we take multiple passes over that list, reducing
-    # it by making binary operations, until it only has one
-    # root binary operation node
-    while len(nodes_and_ops) > 1:
-        #look down the operator precedence chain
-        #find a location where that operator occurs
-        operation = None
-        operation_index = None  # within the nodes_and_ops list
+    # finish it up
+    while op_stack:
+        add_op(op_stack.pop())
 
-        # PRECEDENCELOOP
-        for searched_operators, associativity in PRECEDENCE:
-            found = False
-            
-            if associativity == 'LEFT':
-                node_iterator = enumerate(nodes_and_ops)
-            elif associativity == 'RIGHT':
-                node_iterator = reversed(list(enumerate(nodes_and_ops)))
-            else:
-                raise AssertionError("unknown associativity %s" % associativity)
-
-            # NODELOOP
-            for index, node_or_op in node_iterator:
-                if isinstance(node_or_op, DBNToken):
-                    if node_or_op.value in searched_operators:
-                        found = True
-                        operation_index = index
-                        operation = node_or_op.value
-                        break # NODELOOP
-            if found:
-                break #PRECEDENCELOOP
-        
-        if operation is None:
-            raise ValueError('No operator found... bad arithmetic!')
-
-        # so now we now where we have to do our thing
-        # operation_index is the index in node_or_op where
-        # the operation that we are going to fold is found
-        left_index = operation_index - 1
-        right_index = operation_index + 1
-
-        if left_index < 0:
-            raise ValueError("There is nothing to the left of the %s operation" % operation)
-
-        if right_index >= len(nodes_and_ops):
-            raise ValueError("There is no nothing to the right of the %s operation" % operation)
-        
-        left_node = nodes_and_ops[left_index]
-        right_node = nodes_and_ops[right_index]
-
-        # some semantic? validation...
-        if isinstance(left_node, DBNToken):
-            raise ValueError("The node to the left is not a node, but a token! %s" % left_node)
-
-        if isinstance(right_node, DBNToken):
-            raise ValueError("The node to the right is not a node, but a token! %s" % right_node)
-
-        # ok but here, we know that they are both nodes (and that they both exist!)
-        node_tokens = left_node.tokens + [nodes_and_ops[operation_index]] + right_node.tokens
-        new_node = DBNBinaryOpNode(
-            value=operation,
-            children=[left_node, right_node],
-            tokens=node_tokens,
-        )
-
-        # ok now the list mungeing
-        nodes_and_ops[left_index:right_index + 1] = [new_node]
+    # if result_stack is greater than one, we have problems
+    if len(output_stack) > 1:
+        raise ValueError("Bad arithmetic!")
 
     # so now the root op node is the one element in the list
-    final_op = nodes_and_ops[0]
+    final_op = output_stack[0]
 
-    # adding the close parens
+    # adding the parenthesis tokens
     final_op.tokens = [open_paren_token] + final_op.tokens + [close_paren_token]
     return final_op
 

@@ -192,7 +192,7 @@ class ParseArithmeticTest(ParserTestCase):
         tokens = self.make_tokens(
             ('OPENPAREN', ''),
             ('NUMBER', '2'),
-            ('OPERATOR', '2'),
+            ('NUMBER', '2'),
             ('CLOSEPAREN', ''),
         )
 
