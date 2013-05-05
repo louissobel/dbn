@@ -53,20 +53,10 @@ COMPARE_SAME:
   pop
   push TOP == TOP1
 
-COMPARE_NSAME:
-  pop
-  pop
-  push TOP != TOP1
-
 COMPARE_SMALLER:
   pop
   pop
   push TOP < TOP1
-
-COMPARE_NSMALLER:
-  pop
-  pop
-  push TOP >= TOP1
 
 DUP_TOPX (x):
   duplicates top x

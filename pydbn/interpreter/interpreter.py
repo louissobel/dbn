@@ -205,22 +205,10 @@ class DBNInterpreter:
         self.stack.append(int(top == top1))
         self.pointer += 1
 
-    def _op_COMPARE_NSAME(self, arg):
-        top = self.stack.pop()
-        top1 = self.stack.pop()
-        self.stack.append(int(top != top1))
-        self.pointer += 1
-
     def _op_COMPARE_SMALLER(self, arg):
         top = self.stack.pop()
         top1 = self.stack.pop()
         self.stack.append(int(top < top1))
-        self.pointer += 1
-
-    def _op_COMPARE_NSMALLER(self, arg):
-        top = self.stack.pop()
-        top1 = self.stack.pop()
-        self.stack.append(int(top >= top1))
         self.pointer += 1
 
     def _op_DUP_TOPX(self, arg):

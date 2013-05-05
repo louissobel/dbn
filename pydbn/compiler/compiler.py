@@ -112,17 +112,17 @@ class DBNCompiler(DBNAstVisitor):
         self.visit(node.left)
 
         questions = {
-            'Same': 'COMPARE_SAME',
-            'NotSame': 'COMPARE_NSAME',
-            'Smaller': 'COMPARE_SMALLER',
-            'NotSmaller': 'COMPARE_NSMALLER'
+            'Same': ('COMPARE_SAME', 'POP_JUMP_IF_FALSE'),
+            'NotSame': ('COMPARE_SAME', 'POP_JUMP_IF_TRUE'),
+            'Smaller': ('COMPARE_SMALLER', 'POP_JUMP_IF_FALSE'),
+            'NotSmaller': ('COMPARE_SMALLER', 'POP_JUMP_IF_TRUE'),
         }
-
-        self.add(questions[node.value])
+        compare_op, jump_op = questions[node.value]
+        self.add(compare_op)
 
         after_body_label = self.generate_label('question_after_body')
+        self.add(jump_op, after_body_label)
 
-        self.add('POP_JUMP_IF_FALSE', after_body_label)
         self.visit(node.body)
         self.add_label(after_body_label)
 
