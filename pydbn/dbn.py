@@ -2,7 +2,7 @@ import sys
 from optparse import OptionParser
 
 from parser import DBNParser, DBNTokenizer
-from compiler import DBNCompiler
+from compiler import DBNCompiler, DBNAssembler
 from interpreter import DBNInterpreter, builtins
 
 import output
@@ -20,14 +20,16 @@ def compile_dbn(filename):
     tokenizer = DBNTokenizer()
     parser = DBNParser()
     compiler = DBNCompiler()
+    assembler = DBNAssembler()
 
     tokens = tokenizer.tokenize(dbn_script)
     dbn_ast = parser.parse(tokens)
     compilation = compiler.compile(dbn_ast)
-    return compilation
+    assembly = assembler.assemble(compilation)
+    return assembly
 
-def run_dbn(compilation):
-    interpreter = DBNInterpreter(compilation.bytecodes)
+def run_dbn(bytecode):
+    interpreter = DBNInterpreter(bytecode)
     interpreter.load(builtins)
     interpreter.run()
     return interpreter
@@ -36,16 +38,14 @@ if __name__ == "__main__":
     (options, args) = option_parser.parse_args()
 
     filename = args[0]
-    compilation = compile_dbn(filename)
+    bytecode = compile_dbn(filename)
 
     if options.compile:
-        for i, (o, a) in enumerate(compilation.bytecodes):
-            if options.numbers:
-                print "%d %s %s" % (i, str(o), str(a))
-            else:
-                print "%s %s" % (str(o), str(a))
+        for i, b in enumerate(bytecode):
+            print i, b
+
     else:
-        interpreter = DBNInterpreter(compilation.bytecodes)
+        interpreter = DBNInterpreter(bytecode)
         interpreter.load(builtins)
 
         if options.filename:
