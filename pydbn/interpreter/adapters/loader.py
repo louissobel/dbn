@@ -4,9 +4,9 @@ the loader adapter
 import os
 import os.path
 
-from parser import DBNTokenizer
-from parser import DBNParser
-from compiler import DBNCompiler
+from parser import DBNTokenizer, DBNParser
+from compiler import DBNCompiler, DBNAssembler
+from compiler.structures import Bytecode
 
 import base_adapter
 
@@ -92,14 +92,16 @@ class LoadAdapter(base_adapter.BaseAdapter):
         tokenizer = DBNTokenizer()
         parser = DBNParser()
         compiler = DBNCompiler(module=True)
+        assembler = DBNAssembler()
 
         try:
-            compilation = compiler.compile(parser.parse(tokenizer.tokenize(code)), offset=offset)
+            compilation = compiler.compile(parser.parse(tokenizer.tokenize(code)))
         except ValueError:
             # This is a little hairy. Correct, but be wary.
             raise RuntimeError('Error in loaded code')
 
-        return compilation
+        bytecode = assembler.assemble(compilation, offset=offset)
+        return bytecode
 
     def load(self, filename, offset_pos, return_pos):
         """
@@ -122,7 +124,9 @@ class LoadAdapter(base_adapter.BaseAdapter):
         else:
             self.loaded_paths_set.add(filepath)
 
-        compilation = self.compile(filepath, offset_pos)
+        bytecode = self.compile(filepath, offset_pos)
 
         # add the jump for the interpreter
-        return compilation.bytecodes + [('JUMP', str(return_pos))]
+        bytecode.append(Bytecode('JUMP', str(return_pos)))
+
+        return bytecode
