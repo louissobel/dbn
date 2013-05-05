@@ -1,7 +1,6 @@
 TODO
 ======
 
-
  - interpreter unit tests (one byte code at a time)
  
  - compiler tests (basic but important)
@@ -11,4 +10,3 @@ TODO
  - use the debug mode output in the interpreter consistently
  - add_set_line_no_unless_module decorator
  - settings module (all in one place)
- - move pygmentslexer to inside tokenizer? contrib?

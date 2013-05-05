@@ -4,11 +4,15 @@ from structures import DBNToken
 
 class DBNTokenizer:
 
-    def __init__(self):
+    def __init__(self, filter=True):
         """
         initializes the tokenizer to a newborn state,
         then registers the DBNTokenTypes
+
+        if filter is True, then will throw away whitespace and Comments
         """
+        self.filter = filter
+
         self.type_re_pairs = []
         self.raw_patterns = []
 
@@ -44,7 +48,7 @@ class DBNTokenizer:
         self.register('NUMBER',       r'(\d+)')
 
         # then newline (command seperator)
-        self.register('NEWLINE',      r'\n')
+        self.register('NEWLINE',      r'(\n)')
 
         # then everything else... we need this to catch illegal tokens
         self.register(None,           r".")
@@ -126,7 +130,7 @@ class DBNTokenizer:
                 line_no += 1
                 line_start_char_no = token_match.end()
 
-            if not token.type == 'WHITESPACE' and not token.type == 'COMMENT':
+            if not self.filter or (not token.type == 'WHITESPACE' and not token.type == 'COMMENT'):
                 yield token
 
         # always yield an extra newline
