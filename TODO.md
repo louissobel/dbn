@@ -12,5 +12,4 @@ TODO
  - shunting yard precedence parsing
  - add_set_line_no_unless_module decorator
  - settings module (all in one place)
- - bytecodes vs bytecode attribute naming difference between compiler / interpreter
  - move pygmentslexer to inside tokenizer? contrib?
