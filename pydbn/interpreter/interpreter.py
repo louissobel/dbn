@@ -12,7 +12,7 @@ import time
 
 class DBNInterpreter:
 
-    def __init__(self, bytecode, debug=False):
+    def __init__(self, bytecode):
         self.bytecode = bytecode
 
         self.commands = {}
@@ -40,25 +40,6 @@ class DBNInterpreter:
 
         # status
         self.terminated = False
-
-        self._DEBUG = debug
-
-    ####
-    # The debug methods
-
-    def debug(self, msg):
-        if self._DEBUG:
-            print msg
-
-    def dump_bytecode(self):
-        """
-        for debug - dumps bytecode
-        """
-        out = "------Bytecode:"
-        for n, b in enumerate(self.bytecode):
-            out += "%s %s" % (n, b)
-        out += "--------"
-        return out
 
     ####
     # The module loading methods
