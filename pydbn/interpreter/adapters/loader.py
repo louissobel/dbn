@@ -5,7 +5,7 @@ import os
 import os.path
 
 from parser import DBNTokenizer, DBNParser
-from compiler import DBNCompiler, DBNAssembler
+from compiler import DBNCompiler, assemble
 from compiler.structures import Bytecode
 
 import base_adapter
@@ -91,16 +91,15 @@ class LoadAdapter(base_adapter.BaseAdapter):
 
         tokenizer = DBNTokenizer()
         parser = DBNParser()
-        compiler = DBNCompiler(module=True)
-        assembler = DBNAssembler()
+        compiler = DBNCompiler()
 
         try:
-            compilation = compiler.compile(parser.parse(tokenizer.tokenize(code)))
+            compilation = compiler.compile(parser.parse(tokenizer.tokenize(code)), module=True)
         except ValueError:
             # This is a little hairy. Correct, but be wary.
             raise RuntimeError('Error in loaded code')
 
-        bytecode = assembler.assemble(compilation, offset=offset)
+        bytecode = assemble(compilation, offset=offset)
         return bytecode
 
     def load(self, filename, offset_pos, return_pos):

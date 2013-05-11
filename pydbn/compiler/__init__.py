@@ -1,2 +1,2 @@
 from compiler import DBNCompiler
-from assembler import DBNAssembler
+from assemble import assemble

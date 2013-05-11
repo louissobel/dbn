@@ -2,7 +2,7 @@ import sys
 from optparse import OptionParser
 
 from parser import DBNParser, DBNTokenizer
-from compiler import DBNCompiler, DBNAssembler
+from compiler import DBNCompiler, assemble
 from interpreter import DBNInterpreter, builtins
 
 import output
@@ -20,12 +20,11 @@ def compile_dbn(filename):
     tokenizer = DBNTokenizer()
     parser = DBNParser()
     compiler = DBNCompiler()
-    assembler = DBNAssembler()
 
     tokens = tokenizer.tokenize(dbn_script)
     dbn_ast = parser.parse(tokens)
     compilation = compiler.compile(dbn_ast)
-    assembly = assembler.assemble(compilation)
+    assembly = assemble(compilation)
     return assembly
 
 def run_dbn(bytecode):

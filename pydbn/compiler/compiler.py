@@ -5,13 +5,6 @@ from parser import DBNAstVisitor
 
 class DBNCompiler(DBNAstVisitor):
 
-    def __init__(self, module=False):
-        self.code = []
-        self.module = module
-
-        # stuff for labels
-        self.label_prefix_counts = {}
-
     def add(self, code, arg='_'):
         self.code.append(structures.Bytecode(code, arg))
         return self
@@ -35,7 +28,11 @@ class DBNCompiler(DBNAstVisitor):
         """
         self.code.append(label)
 
-    def compile(self, node):
+    def compile(self, node, **kwargs):
+        self.code = []
+        self.module = kwargs.get('module', False)
+        self.label_prefix_counts = {}
+
         self.visit(node)
         return self.code
 
