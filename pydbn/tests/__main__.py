@@ -8,6 +8,7 @@ test_modules = [
     'parser_tests',
     'load_adapter_tests',
     'integration_tests',
+    'interpreter_tests',
 ]
 
 for mod in test_modules:

@@ -1,8 +1,6 @@
 TODO
 ======
 
- - interpreter unit tests (one byte code at a time)
- 
  - compiler tests (basic but important)
  
  - BUG IN LOOKUP VARIABLE
