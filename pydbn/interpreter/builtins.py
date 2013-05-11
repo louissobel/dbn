@@ -1,4 +1,3 @@
-import utils
 from structures import DBNBuiltinCommand
 
 class LineCommand(DBNBuiltinCommand):

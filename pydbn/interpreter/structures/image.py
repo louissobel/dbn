@@ -1,7 +1,5 @@
 from PIL import Image
 
-import interpreter.utils as utils
-
 class DBNImage():
     """
     Primitive wrapper around pil image
