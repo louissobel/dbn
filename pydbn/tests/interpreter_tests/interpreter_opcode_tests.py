@@ -488,7 +488,34 @@ class COMMAND_test(InterpreterOpCodeTest):
             self.do_step('8')
 
 
-# RETURN
+class RETURN_test(InterpreterOpCodeTest):
+
+    OPCODE = 'RETURN'
+
+    def test_stack_not_empty(self):
+        """
+        Normal operation
+        """
+        self.fabricate_interpreter(stack=[], pointer=80)
+        old_frame = self.interpreter.frame
+        self.interpreter.push_frame()
+
+        self.interpreter.stack.append(7)
+        self.interpreter.pointer = 80982
+        self.do_step(expected_pointer=81) # one after where we pushed the frame
+
+        self.assertIs(self.interpreter.frame, old_frame)
+        self.assert_interpreter(stack=[7])
+
+    def test_stack_empty(self):
+        """
+        unexpected return
+        """
+        self.fabricate_interpreter(stack=[3])
+        with self.assertRaises(RuntimeError):
+            self.do_step()
+
+
 # LOAD_CODE
 
 if __name__ == "__main__":
