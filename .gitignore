@@ -6,3 +6,7 @@ venv
 
 # gifs
 *.gif
+
+# coverage
+.coverage
+htmlcov
