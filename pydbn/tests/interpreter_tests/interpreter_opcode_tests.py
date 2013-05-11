@@ -339,7 +339,21 @@ class POP_JUMP_IF_TRUE_test(InterpreterOpCodeTest):
         self.do_step(str(loc), expected_pointer=loc)
         self.assert_interpreter(stack=[])
 
-# REPEAT_STEP
+
+class REPEAT_STEP_test(InterpreterOpCodeTest):
+
+    OPCODE = 'REPEAT_STEP'
+
+    def test_first_is_less(self):
+        self.fabricate_interpreter(stack=[90, 50])
+        self.do_step(expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[90, 51])
+
+    def test_first_is_more(self):
+        self.fabricate_interpreter(stack=[50, 90])
+        self.do_step(expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[50, 89])
+
 # DEFINE_COMMAND
 # COMMAND
 # RETURN
