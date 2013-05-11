@@ -26,13 +26,14 @@ class DBNCommand(DBNProcedure):
     """
     A userspace command
     """
-    def __init__(self, formal_args, body_pointer, line_no=-1):
+    def __init__(self, name, formal_args, body_pointer, line_no=-1):
         DBNProcedure.__init__(self, len(formal_args), line_no)
+        self.name = name
         self.formal_args = formal_args
         self.body_pointer = body_pointer
 
     def __str__(self):
-        return "[C:%s@%d]" % (','.join(self.formal_args), self.body_pointer)
+        return "[C%s:%s@%d]" % (self.name, ','.join(self.formal_args), self.body_pointer)
 
 
 class DBNBuiltinCommand(DBNProcedure):

@@ -261,7 +261,7 @@ class DBNInterpreter:
 
         argc = int(arg)
         formal_args = [self.stack.pop() for i in range(argc)]
-        command = structures.DBNCommand(formal_args, command_pointer)
+        command = structures.DBNCommand(command_name, formal_args, command_pointer)
         self.commands[command_name] = command
         self.pointer += 1
 
