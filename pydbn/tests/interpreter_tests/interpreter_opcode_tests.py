@@ -6,6 +6,7 @@ import unittest
 from interpreter import DBNInterpreter
 from interpreter.interpreter import DEFAULT_VARIABLE_VALUE
 from interpreter.structures import commands
+from interpreter.adapters import BaseAdapter
 
 # enum
 INCREMENT = -432
@@ -516,7 +517,26 @@ class RETURN_test(InterpreterOpCodeTest):
             self.do_step()
 
 
-# LOAD_CODE
+class LOAD_CODE_test(InterpreterOpCodeTest):
+
+    OPCODE = 'LOAD_CODE'
+
+    def runTest(self):
+
+        class MockLoader(BaseAdapter):
+            def identifier(self):
+                return 'loader'
+            def load(self, *args):
+                return [1, 3, 5]
+
+        self.fabricate_interpreter()
+        self.interpreter.adapter_bus.attach(MockLoader())
+
+        self.interpreter.bytecode = [0, 2, 4]
+
+        self.do_step('foo', expected_pointer=3) # the index after current bytecode
+        self.assertEqual(self.interpreter.bytecode, [0, 2, 4, 1, 3, 5])
+
 
 if __name__ == "__main__":
     unittest.main()
