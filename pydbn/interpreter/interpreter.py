@@ -250,12 +250,9 @@ class DBNInterpreter:
             self.pointer += 1
 
     def _op_REPEAT_STEP(self, arg):
-        top = self.stack.pop()
-        top1 = self.stack.pop()
+        top1, top = self.stack[-2:]
         direction = 1 if top < top1 else -1
-        new = top + direction
-        self.stack.append(top1)
-        self.stack.append(new)
+        self.stack[-1] = top + direction
         self.pointer += 1
 
     def _op_DEFINE_COMMAND(self, arg):
