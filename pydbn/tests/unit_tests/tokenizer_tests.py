@@ -2,104 +2,134 @@ from parser import DBNTokenizer
 
 import unittest
 
-def build_test_builder(function):
-    def build_test(arg, expected):
-        def test(self):
-            self.assertEqual(function(arg), expected)
-        return test
-    return build_test
+
+class TokenizerTestCase(unittest.TestCase):
+
+    def tokenize(self, input_string, expected=None):
+        tokenizer = DBNTokenizer()
+        out = [token.type for token in tokenizer.tokenize(input_string)]
+
+        if expected is not None:
+            self.assertEqual(out, expected)
+
+    def run_tokenizer_test(self):
+        self.tokenize(self.input_string, self.expected)
 
 
+class TestBadToken(TokenizerTestCase):
+
+    def runTest(self):
+        bad_input = """
+Pen 0
+Paper 6
+: Goo
+"""
+        with self.assertRaises(ValueError):
+            self.tokenize(bad_input)
 
 
-class TokenizerTest(unittest.TestCase):
-    def test_bad_token(self):
-        self.assertRaises(ValueError, tokenizer_tester, bad_input1)
+class TestAnotherBadToken(TokenizerTestCase):
+    """
+    Regression:
+    http://stackoverflow.com/questions/15992879/possible-bug-in-python-re
+    """
 
-    def test_bad_token2(self):
-        self.assertRaises(ValueError, tokenizer_tester, bad_input2)
+    def runTest(self):
+        bad_input = "."
+        with self.assertRaises(ValueError):
+            self.tokenize(bad_input)
 
-teststring1 = """horse ("""
 
-teststring2 = """//comment
+class Test1(TokenizerTestCase):
+    input_string = "*"
+    expected = ['OPERATOR', 'NEWLINE']
+    runTest = TokenizerTestCase.run_tokenizer_test
+
+class Test2(TokenizerTestCase):
+    input_string = """horse ("""
+    expected = ['WORD', 'OPENPAREN', 'NEWLINE']
+    runTest = TokenizerTestCase.run_tokenizer_test
+
+class Test3(TokenizerTestCase):
+    input_string = """//comment
 Set Repeat 98
 house
 goose //foo
 Same?
 *"""
+    expected = [
+        'NEWLINE',
+        'SET',
+        'REPEAT',
+        'NUMBER',
+        'NEWLINE',
+        'WORD',
+        'NEWLINE',
+        'WORD',
+        'NEWLINE',
+        'QUESTION',
+        'NEWLINE',
+        'OPERATOR',
+        'NEWLINE',
+    ]
+    runTest = TokenizerTestCase.run_tokenizer_test
 
-teststring3 = """Set [0 9] A
+
+class Test4(TokenizerTestCase):
+    input_string = """Set [0 9] A
 Repeat {
     Line 0 0 (5 + 7 * [6 (G + 9)]) H //fancy thing
     Paper 6
     Woof
 }"""
-expected3 = [
-    'SET',
-    'OPENBRACKET',
-    'NUMBER',
-    'NUMBER',
-    'CLOSEBRACKET',
-    'WORD',
-    'NEWLINE',
-    'REPEAT',
-    'OPENBRACE',
-    'NEWLINE',
-    'WORD',
-    'NUMBER',
-    'NUMBER',
-    'OPENPAREN',
-    'NUMBER',
-    'OPERATOR',
-    'NUMBER',
-    'OPERATOR',
-    'OPENBRACKET',
-    'NUMBER',
-    'OPENPAREN',
-    'WORD',
-    'OPERATOR',
-    'NUMBER',
-    'CLOSEPAREN',
-    'CLOSEBRACKET',
-    'CLOSEPAREN',
-    'WORD',
-    'NEWLINE',
-    'WORD',
-    'NUMBER',
-    'NEWLINE',
-    'WORD',
-    'NEWLINE',
-    'CLOSEBRACE',
-    'NEWLINE',
-]
+    expected = [
+        'SET',
+        'OPENBRACKET',
+        'NUMBER',
+        'NUMBER',
+        'CLOSEBRACKET',
+        'WORD',
+        'NEWLINE',
+        'REPEAT',
+        'OPENBRACE',
+        'NEWLINE',
+        'WORD',
+        'NUMBER',
+        'NUMBER',
+        'OPENPAREN',
+        'NUMBER',
+        'OPERATOR',
+        'NUMBER',
+        'OPERATOR',
+        'OPENBRACKET',
+        'NUMBER',
+        'OPENPAREN',
+        'WORD',
+        'OPERATOR',
+        'NUMBER',
+        'CLOSEPAREN',
+        'CLOSEBRACKET',
+        'CLOSEPAREN',
+        'WORD',
+        'NEWLINE',
+        'WORD',
+        'NUMBER',
+        'NEWLINE',
+        'WORD',
+        'NEWLINE',
+        'CLOSEBRACE',
+        'NEWLINE',
+    ]
+    runTest = TokenizerTestCase.run_tokenizer_test
 
-teststring4 = "Load /foo/ba_r.dbn"
 
-bad_input1 = """
-Pen 0
-Paper 6
-: Goo
-"""
-
-bad_input2 = "."
-
-tokenizer_test_cases = [
-    ("*", ['OPERATOR', 'NEWLINE']),
-    (teststring1, ['WORD', 'OPENPAREN', 'NEWLINE']),
-    (teststring2, ['NEWLINE', 'SET', 'REPEAT', 'NUMBER', 'NEWLINE', 'WORD', 'NEWLINE', 'WORD', 'NEWLINE', 'QUESTION', 'NEWLINE', 'OPERATOR', 'NEWLINE']),
-    (teststring3, expected3),
-    (teststring4, ['LOAD', 'PATH', 'NEWLINE'])
-]
-
-def tokenizer_tester(string):
-    tokenizer = DBNTokenizer()
-    return [token.type for token in tokenizer.tokenize(string)]
-
-tokenizer_test_builder = build_test_builder(tokenizer_tester)
-for index, (string, expected) in enumerate(tokenizer_test_cases):
-    test_method = tokenizer_test_builder(string, expected)
-    test_method.__name__ = "test_tokenizer_%d" % index
-    setattr(TokenizerTest, test_method.__name__, test_method)
+class Test5(TokenizerTestCase):
+    """
+    For the PATH token
+    """
+    input_string = "Load /foo/ba_r.dbn"
+    expected = ['LOAD', 'PATH', 'NEWLINE']
+    runTest = TokenizerTestCase.run_tokenizer_test
 
 
 if __name__ == "__main__":
