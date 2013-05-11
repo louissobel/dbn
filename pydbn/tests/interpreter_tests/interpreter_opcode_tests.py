@@ -295,9 +295,50 @@ class ROT_TWO_test(InterpreterOpCodeTest):
         self.do_step(expected_pointer=INCREMENT)
         self.assert_interpreter(stack=[1, 2, 3, 5, 4])
 
-# JUMP
-# POP_JUMP_IF_FALSE
-# POP_JUMP_IF_TRUE
+
+class JUMP_test(InterpreterOpCodeTest):
+
+    OPCODE = 'JUMP'
+
+    def runTest(self):
+        loc = 85
+        self.fabricate_interpreter()
+        self.do_step(str(loc), expected_pointer=loc)
+
+
+class POP_JUMP_IF_FALSE_test(InterpreterOpCodeTest):
+
+    OPCODE = 'POP_JUMP_IF_FALSE'
+
+    def test_value_is_false(self):
+        loc = 9898
+        self.fabricate_interpreter(stack=[0])
+        self.do_step(str(loc), expected_pointer=loc)
+        self.assert_interpreter(stack=[])
+
+    def test_value_is_true(self):
+        loc = 9898
+        self.fabricate_interpreter(stack=[1])
+        self.do_step(str(loc), expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[])
+
+
+class POP_JUMP_IF_TRUE_test(InterpreterOpCodeTest):
+
+    OPCODE = 'POP_JUMP_IF_TRUE'
+
+    def test_value_is_false(self):
+        loc = 9898
+        self.fabricate_interpreter(stack=[0])
+        self.do_step(str(loc), expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[])
+
+    def test_value_is_true(self):
+        loc = 9898
+        self.fabricate_interpreter(stack=[1])
+        self.do_step(str(loc), expected_pointer=loc)
+        self.assert_interpreter(stack=[])
+
 # REPEAT_STEP
 # DEFINE_COMMAND
 # COMMAND
