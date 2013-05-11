@@ -285,7 +285,16 @@ class POP_TOPX_test(InterpreterOpCodeTest):
         self.do_step('3', expected_pointer=INCREMENT)
         self.assert_interpreter(stack=[1, 2])
 
-# ROT_TWO
+
+class ROT_TWO_test(InterpreterOpCodeTest):
+
+    OPCODE = 'ROT_TWO'
+
+    def runTest(self):
+        self.fabricate_interpreter(stack=[1, 2, 3, 4, 5])
+        self.do_step(expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[1, 2, 3, 5, 4])
+
 # JUMP
 # POP_JUMP_IF_FALSE
 # POP_JUMP_IF_TRUE
