@@ -5,6 +5,7 @@ import unittest
 
 from interpreter import DBNInterpreter
 from interpreter.interpreter import DEFAULT_VARIABLE_VALUE
+from interpreter.structures import commands
 
 # enum
 INCREMENT = -432
@@ -21,6 +22,7 @@ class InterpreterOpCodeTest(unittest.TestCase):
         """
         # no bytecode
         interpreter = DBNInterpreter([])
+        interpreter.pointer = pointer
 
         # mess with the base frame
         frame = interpreter.frame
@@ -380,7 +382,112 @@ class DEFINE_COMMAND_test(InterpreterOpCodeTest):
         self.assert_interpreter(stack=['C'])
 
 
-# COMMAND
+class COMMAND_test(InterpreterOpCodeTest):
+
+    OPCODE = 'COMMAND'
+
+    def create_commands(self):
+        """
+        builds a fake built in and user command
+        """
+        user_command = commands.DBNCommand('test', ['A', 'B'], 80)
+        user_command_no_args = commands.DBNCommand('testnoargs', [], 876)
+
+        self.builtin_called = False
+        class TestBuiltinCommand(commands.DBNBuiltinCommand):
+
+            def __init__(self):
+                commands.DBNBuiltinCommand.__init__(self, 0)
+
+            def keyword(self):
+                return "test_builtin"
+
+            def call(command, interpreter):
+                # tell the test class
+                self.builtin_called = True
+
+        self.interpreter.commands['test'] = user_command
+        self.interpreter.commands['test_no_args'] = user_command_no_args
+
+        tb = TestBuiltinCommand()
+        self.interpreter.commands[tb.keyword()] = tb
+
+    def test_command_call(self):
+        """
+        Full test of most normal use
+        """
+        self.fabricate_interpreter(stack=[0, 9, 'test'], pointer=654)
+        self.create_commands()
+
+        self.old_frame = self.interpreter.frame
+        self.do_step('2', expected_pointer=80)
+
+        # assert the frame
+        self.assertIs(self.old_frame, self.interpreter.frame.parent)
+        self.assertEqual(self.interpreter.frame.lookup_variable('A'), 9)
+        self.assertEqual(self.interpreter.frame.lookup_variable('B'), 0)
+        self.assertEqual(self.interpreter.frame.return_pointer, 655)
+        self.assert_interpreter(stack=[])
+        self.assertEqual(self.old_frame.stack, [])
+
+    def test_command_no_args(self):
+        """
+        ok
+        """
+        self.fabricate_interpreter(stack=[0, 9, 'test_no_args'], pointer=6)
+        self.create_commands()
+
+        self.old_frame = self.interpreter.frame
+        self.do_step('0', expected_pointer=876)
+
+        # assert the frame
+        self.assertIs(self.old_frame, self.interpreter.frame.parent)
+        self.assertEqual(self.interpreter.frame.return_pointer, 7)
+        self.assert_interpreter(stack=[])
+        self.assertEqual(self.old_frame.stack, [0, 9])
+
+    def test_builtin_command(self):
+        """
+        a builtin command should be called
+        """
+        self.fabricate_interpreter(stack=['test_builtin'])
+        self.create_commands()
+
+        self.do_step('0', expected_pointer=INCREMENT)
+        self.assertTrue(self.builtin_called)
+        self.assert_interpreter(stack=[0])
+
+    def test_not_defined(self):
+        """
+        runtime if command not defined
+        """
+        self.fabricate_interpreter(stack=[0, 9, 'nope'])
+        self.create_commands()
+
+        with self.assertRaises(RuntimeError):
+            self.do_step('3')
+
+    def test_command_bad_argc_user(self):
+        """
+        a user command called with bad argc should throw error
+        """
+        self.fabricate_interpreter(stack=[0, 9, 'test'])
+        self.create_commands()
+
+        with self.assertRaises(RuntimeError):
+            self.do_step('8')
+
+    def test_command_bad_argc_builtin(self):
+        """
+        a builtin command called with bad argc should throw error
+        """
+        self.fabricate_interpreter(stack=['test_builtin'])
+        self.create_commands()
+
+        with self.assertRaises(RuntimeError):
+            self.do_step('8')
+
+
 # RETURN
 # LOAD_CODE
 
