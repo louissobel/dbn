@@ -164,6 +164,67 @@ class GET_DOT_test(InterpreterOpCodeTest):
         self.do_step()
         self.assert_interpreter(stack=[DEFAULT_VARIABLE_VALUE])
 
+
+class BINARY_ADD_test(InterpreterOpCodeTest):
+
+    OPCODE = 'BINARY_ADD'
+
+    def runTest(self):
+        self.fabricate_interpreter(stack=[40, 50])
+        self.do_step(expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[50 + 40])
+
+
+class BINARY_SUB_test(InterpreterOpCodeTest):
+
+    OPCODE = 'BINARY_SUB'
+
+    def test_positive_result(self):
+        self.fabricate_interpreter(stack=[40, 50])
+        self.do_step(expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[50 - 40])
+
+    def test_positive_result(self):
+        self.fabricate_interpreter(stack=[50, 40])
+        self.do_step(expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[40 - 50])
+
+
+class BINARY_MUL_test(InterpreterOpCodeTest):
+
+    OPCODE = 'BINARY_MUL'
+
+    def runTest(self):
+        self.fabricate_interpreter(stack=[40, 50])
+        self.do_step(expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[40 * 50])
+
+
+class BINARY_DIV_test(InterpreterOpCodeTest):
+
+    OPCODE = 'BINARY_DIV'
+
+    def test_no_remainder(self):
+        self.fabricate_interpreter(stack=[10, 50])
+        self.do_step(expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[50 / 10])
+
+    def test_floor_division(self):
+        """
+        we do floor division
+        """
+        self.fabricate_interpreter(stack=[12, 50])
+        self.do_step(expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[50 / 12]) # 4
+
+    def test_divide_by_0(self):
+        """
+        uh oh
+        """
+        self.fabricate_interpreter(stack=[0, 80])
+        with self.assertRaises(RuntimeError):
+            self.do_step()
+
 # BINARY_ADD
 # BINARY_SUB
 # BINARY_DIV
