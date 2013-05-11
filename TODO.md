@@ -2,6 +2,7 @@ TODO
 ======
 
  - compiler tests (basic but important)
+ - assembler tests
  
  - BUG IN LOOKUP VARIABLE
  
