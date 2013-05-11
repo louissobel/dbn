@@ -186,7 +186,10 @@ class DBNInterpreter:
     def _op_BINARY_DIV(self, arg):
         top = self.stack.pop()
         top1 = self.stack.pop()
-        self.stack.append(top / top1)
+        try:
+            self.stack.append(top / top1)
+        except ZeroDivisionError:
+            raise RuntimeError("You can't divide by 0!")
         self.pointer += 1
 
     def _op_BINARY_MUL(self, arg):
