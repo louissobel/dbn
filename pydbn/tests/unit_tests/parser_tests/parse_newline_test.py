@@ -2,7 +2,7 @@ import unittest
 
 import parser
 from parser.structures.ast_nodes import *
-from tests.parser_tests.base_test import ParserTestCase
+from tests.unit_tests.parser_tests.base_test import ParserTestCase
 
 class ParseNewlineTest(ParserTestCase):
     
