@@ -225,12 +225,36 @@ class BINARY_DIV_test(InterpreterOpCodeTest):
         with self.assertRaises(RuntimeError):
             self.do_step()
 
-# BINARY_ADD
-# BINARY_SUB
-# BINARY_DIV
-# BINARY_MUL
-# COMPARE_SAME
-# COMPARE_SMALLER
+
+class COMPARE_SAME_test(InterpreterOpCodeTest):
+
+    OPCODE = 'COMPARE_SAME'
+
+    def test_they_are_the_same(self):
+        self.fabricate_interpreter(stack=[50, 50])
+        self.do_step(expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[1])
+
+    def test_they_are_not_the_same(self):
+        self.fabricate_interpreter(stack=[45, 50])
+        self.do_step(expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[0])
+
+
+class COMPARE_SMALLER_test(InterpreterOpCodeTest):
+
+    OPCODE = 'COMPARE_SMALLER'
+
+    def test_first_is_smaller(self):
+        self.fabricate_interpreter(stack=[50, 30])
+        self.do_step(expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[1])
+
+    def test_first_is_not_smaller(self):
+        self.fabricate_interpreter(stack=[30, 50])
+        self.do_step(expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[0])
+
 # DUP_TOPX
 # POP_TOPX
 # ROT_TWO
