@@ -83,7 +83,6 @@ class DBNInterpreter:
     def set_frame(self, frame):
         self.frame = frame
         self.stack = frame.stack
-        self.env = frame.env
 
     def push_frame(self):
         new_frame = structures.DBNFrame(
