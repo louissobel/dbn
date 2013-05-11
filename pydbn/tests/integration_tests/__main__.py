@@ -1,4 +1,5 @@
 import os
+import os.path
 import unittest
 
 from dbn import run_dbn, compile_dbn
@@ -6,7 +7,8 @@ import output
 
 directory = os.path.dirname(__file__)
 
-test_cases = [os.path.join(directory, d) for d in os.listdir(directory) if not (d.startswith('.') or d.startswith('_'))]
+full_paths = [os.path.join(directory, d) for d in os.listdir(directory)]
+test_cases = [d for d in full_paths if os.path.isdir(d)]
 
 PATH_ENV_VAR = 'DBN_LOAD_PATH'
 
