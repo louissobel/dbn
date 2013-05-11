@@ -354,7 +354,32 @@ class REPEAT_STEP_test(InterpreterOpCodeTest):
         self.do_step(expected_pointer=INCREMENT)
         self.assert_interpreter(stack=[50, 89])
 
-# DEFINE_COMMAND
+
+class DEFINE_COMMAND_test(InterpreterOpCodeTest):
+
+    OPCODE = 'DEFINE_COMMAND'
+
+    def assert_command(self, name, pointer, args=None):
+        command = self.interpreter.commands.get(name)
+        self.assertIsNotNone(command)
+        self.assertEqual(command.name, name)
+        self.assertEqual(command.body_pointer, pointer)
+        if args:
+            self.assertEqual(tuple(command.formal_args), tuple(args))
+
+    def test_no_args(self):
+        self.fabricate_interpreter(stack=['bloop', 87])
+        self.do_step('0', expected_pointer=INCREMENT)
+        self.assert_command('bloop', 87)
+        self.assert_interpreter(stack=[])
+
+    def test_with_args(self):
+        self.fabricate_interpreter(stack=['C', 'B', 'A', 'bloop', 900])
+        self.do_step('2', expected_pointer=INCREMENT)
+        self.assert_command('bloop', 900, ['A', 'B'])
+        self.assert_interpreter(stack=['C'])
+
+
 # COMMAND
 # RETURN
 # LOAD_CODE
