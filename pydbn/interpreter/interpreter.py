@@ -222,7 +222,7 @@ class DBNInterpreter:
             self.stack.pop()
         self.pointer += 1
 
-    def _op_ROT_TWO(self, top, top1):
+    def _op_ROT_TWO(self, arg):
         top = self.stack.pop()
         top1 = self.stack.pop()
         self.stack.append(top)
