@@ -107,17 +107,16 @@ class DBNInterpreter:
         trace = kwargs.get('trace', False)
 
         step = self.step
-        alive = True
-        while alive:
-            alive = step(trace=trace)
+        while not self.terminated:
+            code = self.bytecode[self.pointer]
+            op, arg = code.op, code.arg
 
-    def step(self, trace=False):
-        code = self.bytecode[self.pointer]
-        op, arg = code.op, code.arg
+            if trace:
+                print self.pointer, '%s %s' % (op, arg)
 
-        if trace:
-            print self.pointer, '%s %s' % (op, arg)
+            self.step(op, arg)
 
+    def step(self, op, arg):
         op_handler_name = "_op_%s" % op
 
         try:
@@ -126,8 +125,6 @@ class DBNInterpreter:
             raise RuntimeError("Unknown opcode %s" % op)
         else:
             op_handler(arg)
-
-        return not self.terminated
 
     ####
     # The opcode handlers
