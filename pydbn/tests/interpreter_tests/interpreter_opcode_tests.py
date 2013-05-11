@@ -255,8 +255,36 @@ class COMPARE_SMALLER_test(InterpreterOpCodeTest):
         self.do_step(expected_pointer=INCREMENT)
         self.assert_interpreter(stack=[0])
 
-# DUP_TOPX
-# POP_TOPX
+
+class DUP_TOPX_test(InterpreterOpCodeTest):
+
+    OPCODE = 'DUP_TOPX'
+
+    def test_one(self):
+        self.fabricate_interpreter(stack=[60])
+        self.do_step('1', expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[60, 60])
+
+    def test_multiple(self):
+        self.fabricate_interpreter(stack=[1, 2, 3, 4, 5])
+        self.do_step('3', expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[1, 2, 3, 4, 5, 3, 4, 5])
+
+
+class POP_TOPX_test(InterpreterOpCodeTest):
+
+    OPCODE = 'POP_TOPX'
+
+    def test_one(self):
+        self.fabricate_interpreter(stack=[60])
+        self.do_step('1', expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[])
+
+    def test_multiple(self):
+        self.fabricate_interpreter(stack=[1, 2, 3, 4, 5])
+        self.do_step('3', expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[1, 2])
+
 # ROT_TWO
 # JUMP
 # POP_JUMP_IF_FALSE
