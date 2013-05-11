@@ -320,8 +320,6 @@ class DBNInterpreter:
         # we trust that this bytecode has a jump at the end to `return_pos`
         self.bytecode.extend(compiled_foreign_code)
 
-        self.debug(self.dump_bytecode())
-
         self.pointer = offset
 
 
