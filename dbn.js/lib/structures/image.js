@@ -1,11 +1,8 @@
 define(function (require, exports, module) {
   "use strict";
 
-  var producer  = require('lib/state/producer')
-    , bmpLib   = require('lib/bmp_lib')
-    , utils     = require('lib/utils')
-    ;
-    
+  var bmpLib   = require('dbn.js/lib/bmp_lib');
+
   /**
    * DBNImage
    * Stores the image data
@@ -13,43 +10,16 @@ define(function (require, exports, module) {
    * Not worrying about ghosting just now
    */
   var DBNImage = module.exports = function (options) {
+    options = options || {};
 
     this.width = 101;
     this.height = 101;
 
-    options = options || {};
-
-    var create;
-    if (typeof options.create === "undefined") {
-      create = true;
-    } else {
-      create = options.create;
-    }
-
-    if (create) {
-      var color;
-      if (typeof options.color === "undefined") {
-        // still in DBN mode here (0 - 100 greyscale), which is OK
-        color = 0;
-      } else {
-        color = options.color;
-      }
-
-      var clippedColor = utils.clip100(color);
-      this._initializeImageData(clippedColor);
-    }
+    var color = options.color;
+    this.repaper(color);
   };
   
   (function() {
-
-    this.copy = function () {
-      var newImg = new DBNImage({
-        create:false
-      });
-
-      newImg._image = this._cloneImageData();
-      return newImg;
-    };
 
     // define the palette Class Variable using self-invoking function
     this._PALETTE = (function() {
@@ -71,9 +41,9 @@ define(function (require, exports, module) {
 
       // we have a palette, and each element is a numerical index into that palette, which is perfect.
       var image = []
-        , i // row
-        , j // column
-        , r // the row
+        , i // row index
+        , j // column index
+        , r // the row itself
         ;
 
       for (i = 0; i < this.height; i++) {
@@ -87,28 +57,6 @@ define(function (require, exports, module) {
       this._image = image;
     };
 
-    this._cloneImageData = function () {
-      // returns a deep copy of the image data
-      var newImage = []
-        , i // row
-        , j // column
-        , or // the old row
-        , nr // the new row
-        ;
-
-      for (i = 0; i < this.height; i++) {
-        or = this._image[i];
-        nr = [];
-        for (j = 0; j < this.width; j++) {
-          nr.push(or[j]);
-        }
-
-        newImage.push(nr);
-      }
-
-      return newImage;
-    };
-
     this._dbnxToX = function (x) {
       // Converts DBN x coordinate to image format's.
       return x;
@@ -119,7 +67,22 @@ define(function (require, exports, module) {
       return (this.height - 1) - y;
     };
 
+    this._checkRange = function (x, y) {
+      // Check range
+      if (!(x >= 0 && x < this.width)) {
+        return false;
+      }
+
+      if (!(y >= 0 && y < this.height)) {
+        return false;
+      }
+
+      return true;
+    }
+
     this.queryPixel = function (x, y) {
+
+      if (!this._checkRange(x, y)) return this.baseColor;
 
       // Arguments given are DBN type coordinates
       x = this._dbnxToX(x);
@@ -129,40 +92,35 @@ define(function (require, exports, module) {
       return this._image[y][x];
     };
 
-    this._setPixel = function (x, y, value) {
+    this.setPixel = function (x, y, value) {
+
+      if (!this._checkRange(x, y)) return false;
+
       // X, Y arguments given are DBN type coordinates
       x = this._dbnxToX(x);
       y = this._dbnyToY(y);
 
-      // If x or y is out of range, fail silently.
-      // check x
-      if (!utils.inRange(x, 0, this.width - 1)) {
-        return false;
-      }
-
-      // check y
-      if (!utils.inRange(y, 0, this.height - 1)) {
-        return false;
-      }
-
-      // clip value;
-      value = utils.clip100(value);
+      // Clip value
+      if (value < 0) value = 0;
+      if (value > 100) value = 100;
 
       // assign it to internal hash.
       // remember, _image is row --> column
       this._image[y][x] = value;
     };
 
-    this.setPixel = producer(function (oldImg, newImg, x, y, value) {
-      newImg._setPixel(x, y, value);
-    });
-
-    this.setPixels = producer(function (oldImg, newImg, pixelArray) {
+    this.setPixels = function (pixelArray) {
       // pixel array is an array of [x, y, value] tuples
-      for (var i = 0; i < pixelArray.length; i++) {
-        newImg._setPixel.apply(newImg, pixelArray[i]);
+      var i;
+      for (i = 0; i < pixelArray.length; i++) {
+        this.setPixel.apply(this, pixelArray[i]);
       }
-    });
+    };
+
+    this.repaper = function (color) {
+      this._initializeImageData(color);
+      this.baseColor = color;
+    }
 
     this.dataUri = function() {
       // returns the DATAURI of this thing as a bitmap.
