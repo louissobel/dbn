@@ -98,85 +98,133 @@ define(function (require, exports, module) {
       this.pointer++;
     };
 
+    this._op_GET_DOT = function (arg) {
+      var x = this.stack.pop()
+        , y = this.stack.pop()
+        , val = this.image.queryPixel(x, y)
+        ;
+      this.stack.push(val);
+      this.pointer++;
+    };
+
+    this._op_BINARY_ADD = function (arg) {
+      var top = this.stack.pop()
+        , top1 = this.stack.pop()
+        , val = top + top1
+        ;
+      this.stack.push(val);
+      this.pointer++;
+    };
+
+    this._op_BINARY_SUB = function (arg) {
+      var top = this.stack.pop()
+        , top1 = this.stack.pop()
+        , val = top - top1
+        ;
+      this.stack.push(val);
+      this.pointer++;
+    };
+
+    this._op_BINARY_MUL = function (arg) {
+      var top = this.stack.pop()
+        , top1 = this.stack.pop()
+        , val = top * top1
+        ;
+      this.stack.push(val);
+      this.pointer++;
+    };
+
+    this._op_BINARY_DIV = function (arg) {
+      var top = this.stack.pop()
+        , top1 = this.stack.pop()
+        ;
+      if (top1 === 0) {
+        throw new Error("Divide by 0");
+      }
+      var val = Math.floor(top / top1);
+      this.stack.push(val);
+      this.pointer++;
+    };
+
+    this._op_COMPARE_SAME = function (arg) {
+      var top = this.stack.pop()
+        , top1 = this.stack.pop()
+        , val = +(top == top1)
+        ;
+      this.stack.push(val);
+      this.pointer++;
+    };
+
+    this._op_COMPARE_SMALLER = function (arg) {
+      var top = this.stack.pop()
+        , top1 = this.stack.pop()
+        , val = +(top < top1)
+        ;
+      this.stack.push(val);
+      this.pointer++;
+    };
+
+    this._op_DUP_TOPX = function (arg) {
+      var x = parseInt(arg, 10)
+        , dups = this.stack.slice(this.stack.length - x)
+        , spliceArgs = [this.stack.length, x].concat(dups)
+        ;
+      this.stack.splice.apply(this.stack, spliceArgs);
+      this.pointer++;
+    };
+
+    this._op_POP_TOPX = function (arg) {
+      var x = parseInt(arg, 10);
+      this.stack.splice(this.stack.length - x);
+      this.pointer++;
+    };
+
+    this._op_ROT_TWO = function (arg) {
+      var top = this.stack.pop()
+        , top1 = this.stack.pop()
+        ;
+      this.stack.push(top);
+      this.stack.push(top1)
+      this.pointer++;
+    };
+
+    this._op_JUMP = function (arg) {
+      var target = parseInt(arg, 10);
+      this.pointer = target;
+    };
+
+    this._op_POP_JUMP_IF_FALSE = function (arg) {
+      var target = parseInt(arg, 10)
+        , val = this.stack.pop()
+        ;
+      if (!val) {
+        this.pointer = target;
+      } else {
+        this.pointer++;
+      }
+    };
+
+    this._op_POP_JUMP_IF_TRUE = function (arg) {
+      var target = parseInt(arg, 10)
+        , val = this.stack.pop()
+        ;
+      if (val) {
+        this.pointer = target;
+      } else {
+        this.pointer++;
+      }
+    };
+
+    this._op_REPEAT_STEP = function (arg) {
+      var top = this.stack.pop()
+        , top1 = this.stack[this.stack.length - 1]
+        , val = top < top1 ? ++top : --top
+        ;
+      this.stack.push(val);
+      this.pointer++;
+    };
+
 /*
-    LOAD (name):
-      push env[name]
-
-    LOAD_INTEGER (n):
-      push n
-
-    LOAD_STRING (name):
-      push n
-
-    SET_DOT:
-      pop
-      pop
-      pop
-      Set [TOP TOP1] TOP2
-
-    GET_DOT:
-      pop
-      pop
-      push [TOP TOP1]
-
-    BINARY_ADD:
-      pop
-      pop
-      push TOP + TOP1
-
-    BINARY_SUB:
-      pop
-      pop
-      push TOP - TOP1
-
-    BINARY_DIV:
-      pop
-      pop
-      push TOP / TOP1
-
-    BINARY_MUL:
-      pop
-      pop
-      push TOP * TOP1
-
-    COMPARE_SAME:
-      pop
-      pop
-      push TOP == TOP1
-
-    COMPARE_SMALLER:
-      pop
-      pop
-      push TOP < TOP1
-
-    DUP_TOPX (x):
-      duplicates top x
-
-    POP_TOPX (x):
-      pops top x
-
-    ROT_TWO:
-      swaps top 2
-
-    JUMP (x):
-      jumps to x
-
-    POP_JUMP_IF_FALSE (x):
-      pop
-      if TOP is false, jumps to x
-
-    POP_JUMP_IF_TRUE (x):
-      pop
-      if TOP is true, jumps to x
-
-    REPEAT_STEP:
-      pop
-      pop
-      if TOP < TOP1, NEW = TOP + 1
-      if TOP > TOP1, NEW = TOP - 1
-      push TOP1
-      push new
-
     DEFINE_COMMAND (n):
       makes a command expecting n arguments
       pop
