@@ -29,13 +29,14 @@ class DBNBaseNode(object):
 
     def pformat_terminal(self, depth=0, indent=None):
         if indent is None:
-            indent = 0
-        return "%s(%s %s)\n" % (" "*depth*indent, self.type, self.value)
+            return "(%s %s)" % (self.type, self.value)
+        else:
+            return "%s(%s %s)" % (" "*depth*indent, self.type, self.value)
 
     def pformat(self, depth=0, indent=None):
         
         if indent is None:
-            return "(%s %s)" % (self.type, [c.pformat(depth, indent) for c in self.children])
+            return "(%s %s)" % (self.type, ' '.join([c.pformat(depth, indent) for c in self.children]))
         
         else:
             out = " " * indent * depth
@@ -48,6 +49,10 @@ class DBNBaseNode(object):
     
     def pprint(self, indent=2):
         print self.pformat(depth=0, indent=indent)
+
+    def __str__(self):
+        return self.pformat()
+
 
 AST_NODE_CLASSES = []
 def node(cls):

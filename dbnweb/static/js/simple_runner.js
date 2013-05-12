@@ -11,26 +11,16 @@ define(function (require, exports, module) {
 
   var $              = require('vendor/jquery')
     , DBNInterpreter = require('dbn.js/lib/interpreter')
+    , DBNCompiler    = require('dbn.js/lib/compiler')
     ;
 
-  var getBytecode = function () {
+  var compiler = new DBNCompiler({
+    endpoint: '/compile'
+  });
+
+  var getBytecode = function (cb) {
     var content = $('#script').val()
-      , lines   = content.split('\n')
-      ;
-
-    var bytecode = []
-      , i
-      ;
-
-    for (i = 0; i < lines.length; i++) {
-      var opAndArg = lines[i].split(' ');
-      bytecode.push({
-        op: opAndArg[0]
-      , arg: opAndArg[1] || null
-      });
-    }
-
-    return bytecode;
+    return compiler.compile(content, cb);
   }
 
   var setImage = function (interpreter) {
@@ -38,12 +28,15 @@ define(function (require, exports, module) {
   }
 
   var doDraw = function () {
-    var bytecode = getBytecode()
-      , interpreter = new DBNInterpreter(bytecode)
-      ;
-
-    interpreter.run();
-    setImage(interpreter);
+    getBytecode(function (err, bytecode) {
+      if (err) {
+        console.log('error!')
+      } else {
+        var interpreter = new DBNInterpreter(bytecode)
+        interpreter.run();
+        setImage(interpreter);
+      }
+    });
   }
 
   $('document').ready(function () {

@@ -24,9 +24,11 @@ class DBNToken:
     end_char_no = property(get_end_char_no)
 
     def __str__(self):
-        return "%d:%d> %s %s" % (
+        return "[%d:%d> %s %s]" % (
             self.line_no,
             self.char_no,
             self.type,
-            self.value,
+            repr(self.value),
         )
+
+    __repr__ = __str__
