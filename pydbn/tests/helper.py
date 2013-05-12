@@ -4,14 +4,23 @@ import sys
 import subprocess
 import StringIO
 
+
+def is_verbose():
+    return '-v' in sys.argv
+
 def run_all_in_dir(file):
     all_tests = unittest.TestLoader().discover(os.path.dirname(file), pattern='*.py')
-    r = unittest.TextTestRunner(verbosity=1).run(all_tests)
+
+    verbosity = 2 if is_verbose() else 1
+
+    r = unittest.TextTestRunner(verbosity=verbosity).run(all_tests)
 
     if r.failures or r.errors:
         sys.exit(1)
 
-def run_modules(modules, prefix=None, verbose=True):
+def run_modules(modules, prefix=None):
+    verbose = is_verbose()
+
     failed = False
     for mod in modules:
         if prefix:
