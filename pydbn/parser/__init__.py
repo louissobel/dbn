@@ -1,3 +1,3 @@
 from parser import *
-from tokenizer import DBNTokenizer
+from tokenizer import tokenize, DBNTokenizer
 from ast_visitor import DBNAstVisitor

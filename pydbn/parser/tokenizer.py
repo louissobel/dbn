@@ -2,6 +2,12 @@ import re
 
 from structures import DBNToken
 
+
+def tokenize(string, *args, **kwargs):
+    tokenizer = DBNTokenizer()
+    return tokenizer.tokenize(string, *args, **kwargs)
+
+
 class DBNTokenizer:
 
     def __init__(self, filter=True):

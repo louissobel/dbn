@@ -3,6 +3,11 @@ from parser.structures.ast_nodes import *
 from parser import DBNAstVisitor
 
 
+def compile(node, *args, **kwargs):
+    compiler = DBNCompiler()
+    return compiler.compile(node, *args, **kwargs)
+
+
 class DBNCompiler(DBNAstVisitor):
 
     def add(self, code, arg='_'):

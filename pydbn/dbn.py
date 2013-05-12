@@ -1,7 +1,7 @@
 import sys
 from optparse import OptionParser
 
-from parser import DBNParser, DBNTokenizer
+import parser
 from compiler import DBNCompiler, assemble
 from interpreter import DBNInterpreter, builtins
 
@@ -17,12 +17,11 @@ option_parser.add_option('-t', '--trace', action="store_true", dest="trace", hel
 
 def compile_dbn(filename):
     dbn_script = open(filename).read()
-    tokenizer = DBNTokenizer()
-    parser = DBNParser()
     compiler = DBNCompiler()
 
-    tokens = tokenizer.tokenize(dbn_script)
+    tokens = parser.tokenize(dbn_script)
     dbn_ast = parser.parse(tokens)
+
     compilation = compiler.compile(dbn_ast)
     assembly = assemble(compilation)
     return assembly

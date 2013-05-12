@@ -8,6 +8,12 @@ import operator
 from structures.ast_nodes import *
 from structures import DBNToken
 
+def parse(tokens):
+    """
+    destroyes tokens
+    """
+    return parse_program(tokens)
+
 def parse_program(tokens):
     """
     parses a DBN program
@@ -434,9 +440,3 @@ def parse_number(tokens):
         value=number_token.value,
         tokens=[number_token],
     )
-
-
-class DBNParser:
-    def parse(self, tokens):
-        tokens = tokens[:]
-        return parse_program(tokens)
