@@ -1,7 +1,7 @@
 define(function (require, exports, module) {
   "use strict";
 
-  var bmpLib   = require('dbn.js/lib/bmp_lib');
+  var bmpLib   = require("dbn.js/lib/bmp_lib");
 
   /**
    * DBNImage
@@ -19,16 +19,16 @@ define(function (require, exports, module) {
     this.repaper(color);
   };
   
-  (function() {
+  (function () {
 
     // define the palette Class Variable using self-invoking function
-    this._PALETTE = (function() {
+    this._PALETTE = (function () {
       var palette = [];
       // 101 shades of grey
       // with white first (0 is white)
       for (var l = 0; l < 101; l++) {
-        var hex = Math.floor(l/100.0 * 255)
-          
+        var hex = Math.floor(l / 100.0 * 255)
+
           // but we want 255 to be in the 0th slot
           , flippedHex = 255 - hex;
 
@@ -78,7 +78,7 @@ define(function (require, exports, module) {
       }
 
       return true;
-    }
+    };
 
     this.queryPixel = function (x, y) {
 
@@ -120,9 +120,9 @@ define(function (require, exports, module) {
     this.repaper = function (color) {
       this._initializeImageData(color);
       this.baseColor = color;
-    }
+    };
 
-    this.dataUri = function() {
+    this.dataUri = function () {
       // returns the DATAURI of this thing as a bitmap.
       // relying on bmpLib's internal cacheing for now
       return bmpLib.imageSource(bmpLib.scale(this._image, 3), this._PALETTE);

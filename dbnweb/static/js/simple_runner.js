@@ -1,47 +1,49 @@
+/*global requirejs, console */
+
 requirejs.config({
   shim: {
-    'vendor/jquery': {
-      exports: 'jQuery'
+    "vendor/jquery": {
+      exports: "jQuery"
     }
   }
 });
 
-define(function (require, exports, module) {
+define(function (require) {
   "use strict";
 
-  var $              = require('vendor/jquery')
-    , DBNInterpreter = require('dbn.js/lib/interpreter')
-    , DBNCompiler    = require('dbn.js/lib/compiler')
+  var $              = require("vendor/jquery")
+    , DBNInterpreter = require("dbn.js/lib/interpreter")
+    , DBNCompiler    = require("dbn.js/lib/compiler")
     ;
 
   var compiler = new DBNCompiler({
-    endpoint: '/compile'
+    endpoint: "/compile"
   });
 
   var getBytecode = function (cb) {
-    var content = $('#script').val()
+    var content = $("#script").val();
     return compiler.compile(content, cb);
-  }
+  };
 
   var setImage = function (interpreter) {
-    $('#lala').attr('src', interpreter.image.dataUri());
-  }
+    $("#lala").attr("src", interpreter.image.dataUri());
+  };
 
   var doDraw = function () {
     getBytecode(function (err, bytecode) {
       if (err) {
-        console.log('error!')
+        console.log("error!");
       } else {
-        var interpreter = new DBNInterpreter(bytecode)
+        var interpreter = new DBNInterpreter(bytecode);
         interpreter.run();
         setImage(interpreter);
       }
     });
-  }
+  };
 
-  $('document').ready(function () {
+  $("document").ready(function () {
     
-    $('#do_draw').click(doDraw);
+    $("#do_draw").click(doDraw);
     
   });
   

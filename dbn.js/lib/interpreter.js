@@ -1,8 +1,8 @@
 define(function (require, exports, module) {
   "use strict";
 
-  var DBNImage = require('dbn.js/lib/structures/image')
-    , DBNFrame = require('dbn.js/lib/structures/frame')
+  var DBNImage = require("dbn.js/lib/structures/image")
+    , DBNFrame = require("dbn.js/lib/structures/frame")
     ;
 
   var DEFAULT_INITIAL_PEN_COLOR = 100
@@ -19,6 +19,7 @@ define(function (require, exports, module) {
     this.image = new DBNImage({
       color: DEFAULT_INITIAL_PAPER_COLOR
     });
+    this.penColor = DEFAULT_INITIAL_PEN_COLOR;
 
     // Initialize base frame
     var baseFrame = new DBNFrame();
@@ -41,10 +42,10 @@ define(function (require, exports, module) {
         var bytecode = this.bytecode[this.pointer];
         this.step(bytecode.op, bytecode.arg);
       }
-    }
+    };
 
     this.step = function (op, arg) {
-      var opHandlerName = "_op_" + op
+      var opHandlerName = "_OP_" + op
         , opHandler = this[opHandlerName]
         ;
 
@@ -53,42 +54,43 @@ define(function (require, exports, module) {
       }
 
       opHandler.call(this, arg);
-    }
+    };
 
-    this._op_END = function (arg) {
+    /* opcode handlers */
+    this._OP_END = function () {
       this.terminated = true;
     };
 
-    this._op_SET_LINE_NO = function (arg) {
+    this._OP_SET_LINE_NO = function (arg) {
       var no = parseInt(arg, 10);
       this.lineNo = no;
       this.pointer++;
     };
 
-    this._op_STORE = function (arg) {
+    this._OP_STORE = function (arg) {
       var top = this.stack.pop();
       this.frame.bindVariable(arg, top);
       this.pointer++;
     };
 
-    this._op_LOAD = function (arg) {
+    this._OP_LOAD = function (arg) {
       var val = this.frame.lookupVariable(arg, DEFAULT_VARIABLE_VALUE);
       this.stack.push(val);
       this.pointer++;
     };
 
-    this._op_LOAD_INTEGER = function (arg) {
+    this._OP_LOAD_INTEGER = function (arg) {
       var val = parseInt(arg, 10);
       this.stack.push(val);
       this.pointer++;
     };
 
-    this._op_LOAD_STRING = function (arg) {
+    this._OP_LOAD_STRING = function (arg) {
       this.stack.push(arg);
       this.pointer++;
     };
 
-    this._op_SET_DOT = function (arg) {
+    this._OP_SET_DOT = function () {
       var x = this.stack.pop()
         , y = this.stack.pop()
         , val = this.stack.pop()
@@ -98,7 +100,7 @@ define(function (require, exports, module) {
       this.pointer++;
     };
 
-    this._op_GET_DOT = function (arg) {
+    this._OP_GET_DOT = function () {
       var x = this.stack.pop()
         , y = this.stack.pop()
         , val = this.image.queryPixel(x, y)
@@ -107,7 +109,7 @@ define(function (require, exports, module) {
       this.pointer++;
     };
 
-    this._op_BINARY_ADD = function (arg) {
+    this._OP_BINARY_ADD = function () {
       var top = this.stack.pop()
         , top1 = this.stack.pop()
         , val = top + top1
@@ -116,7 +118,7 @@ define(function (require, exports, module) {
       this.pointer++;
     };
 
-    this._op_BINARY_SUB = function (arg) {
+    this._OP_BINARY_SUB = function () {
       var top = this.stack.pop()
         , top1 = this.stack.pop()
         , val = top - top1
@@ -125,7 +127,7 @@ define(function (require, exports, module) {
       this.pointer++;
     };
 
-    this._op_BINARY_MUL = function (arg) {
+    this._OP_BINARY_MUL = function () {
       var top = this.stack.pop()
         , top1 = this.stack.pop()
         , val = top * top1
@@ -134,7 +136,7 @@ define(function (require, exports, module) {
       this.pointer++;
     };
 
-    this._op_BINARY_DIV = function (arg) {
+    this._OP_BINARY_DIV = function () {
       var top = this.stack.pop()
         , top1 = this.stack.pop()
         ;
@@ -146,16 +148,16 @@ define(function (require, exports, module) {
       this.pointer++;
     };
 
-    this._op_COMPARE_SAME = function (arg) {
+    this._OP_COMPARE_SAME = function () {
       var top = this.stack.pop()
         , top1 = this.stack.pop()
-        , val = +(top == top1)
+        , val = +(top === top1)
         ;
       this.stack.push(val);
       this.pointer++;
     };
 
-    this._op_COMPARE_SMALLER = function (arg) {
+    this._OP_COMPARE_SMALLER = function () {
       var top = this.stack.pop()
         , top1 = this.stack.pop()
         , val = +(top < top1)
@@ -164,7 +166,7 @@ define(function (require, exports, module) {
       this.pointer++;
     };
 
-    this._op_DUP_TOPX = function (arg) {
+    this._OP_DUP_TOPX = function (arg) {
       var x = parseInt(arg, 10)
         , dups = this.stack.slice(this.stack.length - x)
         , spliceArgs = [this.stack.length, x].concat(dups)
@@ -173,27 +175,27 @@ define(function (require, exports, module) {
       this.pointer++;
     };
 
-    this._op_POP_TOPX = function (arg) {
+    this._OP_POP_TOPX = function (arg) {
       var x = parseInt(arg, 10);
       this.stack.splice(this.stack.length - x);
       this.pointer++;
     };
 
-    this._op_ROT_TWO = function (arg) {
+    this._OP_ROT_TWO = function () {
       var top = this.stack.pop()
         , top1 = this.stack.pop()
         ;
       this.stack.push(top);
-      this.stack.push(top1)
+      this.stack.push(top1);
       this.pointer++;
     };
 
-    this._op_JUMP = function (arg) {
+    this._OP_JUMP = function (arg) {
       var target = parseInt(arg, 10);
       this.pointer = target;
     };
 
-    this._op_POP_JUMP_IF_FALSE = function (arg) {
+    this._OP_POP_JUMP_IF_FALSE = function (arg) {
       var target = parseInt(arg, 10)
         , val = this.stack.pop()
         ;
@@ -204,7 +206,7 @@ define(function (require, exports, module) {
       }
     };
 
-    this._op_POP_JUMP_IF_TRUE = function (arg) {
+    this._OP_POP_JUMP_IF_TRUE = function (arg) {
       var target = parseInt(arg, 10)
         , val = this.stack.pop()
         ;
@@ -215,7 +217,7 @@ define(function (require, exports, module) {
       }
     };
 
-    this._op_REPEAT_STEP = function (arg) {
+    this._OP_REPEAT_STEP = function () {
       var top = this.stack.pop()
         , top1 = this.stack[this.stack.length - 1]
         , val = top < top1 ? ++top : --top
