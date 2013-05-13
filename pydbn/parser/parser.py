@@ -87,8 +87,8 @@ def parse_define_procedure(tokens):
     return DBNProcedureDefinitionNode(
         children=children,
         tokens=node_tokens,
-        line_no=command_token.line_no,
-        value=procedure_def_token.value
+        line_no=procedure_def_token.line_no,
+        value=procedure_def_token.type
     )
 
 def parse_load(tokens):
