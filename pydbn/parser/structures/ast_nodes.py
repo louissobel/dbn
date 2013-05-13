@@ -166,11 +166,11 @@ class DBNCommandNode(DBNBaseNode):
 
 
 @node
-class DBNCommandDefinitionNode(DBNBaseNode):
+class DBNProcedureDefinitionNode(DBNBaseNode):
     """
     The definition of a command
     """
-    type = 'command_definition'
+    type = 'procedure_definition'
 
     @property
     def command_name(self):
