@@ -22,9 +22,9 @@ class DBNProcedure():
         return self.__str__()
 
 
-class DBNCommand(DBNProcedure):
+class DBNUserProcedure(DBNProcedure):
     """
-    A userspace command
+    A userspace procedure
     """
     def __init__(self, name, formal_args, body_pointer, line_no=-1):
         DBNProcedure.__init__(self, len(formal_args), line_no)
@@ -33,7 +33,15 @@ class DBNCommand(DBNProcedure):
         self.body_pointer = body_pointer
 
     def __str__(self):
-        return "[C%s:%s@%d]" % (self.name, ','.join(self.formal_args), self.body_pointer)
+        return "[%s%s:%s@%d]" % (self.proc_type, self.name, ','.join(self.formal_args), self.body_pointer)
+
+
+class DBNCommand(DBNUserProcedure):
+    proc_type = 'command'
+
+
+class DBNNumber(DBNUserProcedure):
+    proc_type = 'number'
 
 
 class DBNBuiltinCommand(DBNProcedure):
