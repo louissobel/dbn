@@ -120,7 +120,7 @@ Repeat {
         'WORD',
         'OPENANGLEBRACKET',
         'NEWLINE',
-        'PROCEDUREDEF',
+        'COMMAND',
         'WORD',
         'CLOSEANGLEBRACKET',
         'NEWLINE',
@@ -144,7 +144,7 @@ class Test6(TokenizerTestCase):
     For value stuff
     """
     input_string = """Value <> Command Number"""
-    expected=['VALUE', 'OPENANGLEBRACKET', 'CLOSEANGLEBRACKET', 'PROCEDUREDEF', 'PROCEDUREDEF', 'NEWLINE']
+    expected=['VALUE', 'OPENANGLEBRACKET', 'CLOSEANGLEBRACKET', 'COMMAND', 'NUMBER', 'NEWLINE']
     runTest = TokenizerTestCase.run_tokenizer_test
 
 
