@@ -86,12 +86,14 @@ REPEAT_STEP:
   push TOP1
   push new
 
-DEFINE_COMMAND (n):
+DEFINE_PROCEDURE (n):
   makes a command expecting n arguments
   pop
-  TOP is address of command body start
+  TOP is type of proc: 'COMMAND' or 'NUMBERDEF'
   pop
-  TOP1 is name of command
+  TOP1 is address of command body start
+  pop
+  TOP2 is name of command
   then n more POPs, because n more formal args are expected
 
 COMMAND (n):

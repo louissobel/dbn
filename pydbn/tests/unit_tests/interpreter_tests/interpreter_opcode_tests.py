@@ -358,28 +358,44 @@ class REPEAT_STEP_test(InterpreterOpCodeTest):
         self.assert_interpreter(stack=[50, 89])
 
 
-class DEFINE_COMMAND_test(InterpreterOpCodeTest):
+class DEFINE_PROCEDURE_test(InterpreterOpCodeTest):
 
-    OPCODE = 'DEFINE_COMMAND'
+    OPCODE = 'DEFINE_PROCEDURE'
 
-    def assert_command(self, name, pointer, args=None):
-        command = self.interpreter.commands.get(name)
-        self.assertIsNotNone(command)
-        self.assertEqual(command.name, name)
-        self.assertEqual(command.body_pointer, pointer)
+    def assert_procedure(self, type_, name, pointer, args=None):
+        if type_ == 'number':
+            proctable = self.interpreter.numbers
+        elif type_ == 'command':
+            proctable = self.interpreter.commands
+        proc = proctable.get(name)
+        self.assertIsNotNone(proc)
+        self.assertEqual(proc.name, name)
+        self.assertEqual(proc.body_pointer, pointer)
         if args:
-            self.assertEqual(tuple(command.formal_args), tuple(args))
+            self.assertEqual(tuple(proc.formal_args), tuple(args))
 
-    def test_no_args(self):
-        self.fabricate_interpreter(stack=['bloop', 87])
+    def test_no_args_command(self):
+        self.fabricate_interpreter(stack=['bloop', 87, 'COMMAND'])
         self.do_step('0', expected_pointer=INCREMENT)
-        self.assert_command('bloop', 87)
+        self.assert_procedure('command', 'bloop', 87)
         self.assert_interpreter(stack=[])
 
-    def test_with_args(self):
-        self.fabricate_interpreter(stack=['C', 'B', 'A', 'bloop', 900])
+    def test_no_args_number(self):
+        self.fabricate_interpreter(stack=['bloop', 87, 'NUMBERDEF'])
+        self.do_step('0', expected_pointer=INCREMENT)
+        self.assert_procedure('number', 'bloop', 87)
+        self.assert_interpreter(stack=[])
+
+    def test_with_args_command(self):
+        self.fabricate_interpreter(stack=['C', 'B', 'A', 'bloop', 900, 'COMMAND'])
         self.do_step('2', expected_pointer=INCREMENT)
-        self.assert_command('bloop', 900, ['A', 'B'])
+        self.assert_procedure('command', 'bloop', 900, ['A', 'B'])
+        self.assert_interpreter(stack=['C'])
+
+    def test_with_args_number(self):
+        self.fabricate_interpreter(stack=['C', 'B', 'A', 'bloop', 900, 'NUMBERDEF'])
+        self.do_step('2', expected_pointer=INCREMENT)
+        self.assert_procedure('number', 'bloop', 900, ['A', 'B'])
         self.assert_interpreter(stack=['C'])
 
 
