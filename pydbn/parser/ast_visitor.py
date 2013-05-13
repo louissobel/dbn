@@ -17,7 +17,7 @@ class DBNAstVisitor(object):
                 raise NotImplementedError(
                     "%s is not implemented in %s" % (
                         visit_method_name,
-                        self.__class__.name
+                        self.__class__.__name__
                     )
                 )
 
