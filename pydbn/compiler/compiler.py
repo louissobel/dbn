@@ -144,30 +144,31 @@ class DBNCompiler(DBNAstVisitor):
         # command return value always gets thrown away
         self.add('POP_TOPX', 1)
 
-    def visit_command_definition_node(self, node):
+    def visit_procedure_definition_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
 
-        command_start_label = self.generate_label('command_definition_%s' % node.command_name.value)
-        after_command_label = self.generate_label('after_command_definition')
+        procedure_start_label = self.generate_label('procedure_%s_definition_%s' % (node.value, node.procedure_name.value))
+        after_procedure_label = self.generate_label('after_procedure_definition')
 
         for arg in reversed(node.args):
             self.add('LOAD_STRING', arg.value)
-        self.add('LOAD_STRING', node.command_name.value)
+        self.add('LOAD_STRING', node.procedure_name.value)
 
-        self.add('LOAD_INTEGER', command_start_label)
-        self.add('DEFINE_COMMAND', len(node.args))
+        self.add('LOAD_INTEGER', procedure_start_label)
+        self.add('LOAD_STRING', procedure.value)
+        self.add('DEFINE_PROCEDURE', len(node.args))
 
-        # Move execution to after the command body
-        self.add('JUMP', after_command_label)
+        # Move execution to after the procedure body
+        self.add('JUMP', after_procedure_label)
 
-        self.add_label(command_start_label)
+        self.add_label(procedure_start_label))
         self.visit(node.body)
 
         # Implicitly add fallback return 0
         self.add('LOAD_INTEGER', 0)
         self.add('RETURN')
 
-        self.add_label(after_command_label)
+        self.add_label(after_procedure_label)
 
     def visit_load_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
