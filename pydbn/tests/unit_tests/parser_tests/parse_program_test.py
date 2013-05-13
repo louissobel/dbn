@@ -105,6 +105,14 @@ class ParseProgramTest(ParserTestCase):
              ('CLOSEBRACE', ''),
              ('NEWLINE', ''),
 
+             # number_definition
+             ('NUMBERDEF', ''),
+             ('WORD', 'Square'),
+             ('OPENBRACE', ''),
+             ('NEWLINE', ''),
+             ('CLOSEBRACE', ''),
+             ('NEWLINE', ''),
+
              # set
              ('SET', ''),
              ('WORD', 'A'),
@@ -135,9 +143,16 @@ class ParseProgramTest(ParserTestCase):
 
         )
         result, result_tokens = self.run_parse(parser.parse_program, tokens, expected=DBNProgramNode)
-        self.assert_block_node(result,
-            (DBNNoopNode, DBNCommandDefinitionNode, DBNSetNode, DBNNoopNode, DBNQuestionNode, DBNCommandNode, DBNLoadNode)
-        )
+        self.assert_block_node(result, (
+            DBNNoopNode,
+            DBNProcedureDefinitionNode,
+            DBNProcedureDefinitionNode,
+            DBNSetNode,
+            DBNNoopNode,
+            DBNQuestionNode,
+            DBNCommandNode,
+            DBNLoadNode
+        ))
     
 
 if __name__ == "__main__":

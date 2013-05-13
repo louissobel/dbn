@@ -23,9 +23,9 @@ def parse_program(tokens):
     while tokens:
         first_token = tokens[0]
 
-        if   first_token.type == 'COMMAND':
-            # then it is a command declaration
-            next_node = parse_define_command(tokens)
+        if   first_token.type in ('COMMAND', 'NUMBERDEF'):
+            # then it is a procedure definition
+            next_node = parse_define_procedure(tokens)
 
         elif first_token.type == 'LOAD':
             next_node = parse_load(tokens)

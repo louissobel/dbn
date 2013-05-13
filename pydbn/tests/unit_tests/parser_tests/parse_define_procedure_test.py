@@ -37,7 +37,7 @@ class ParseDefineProcedureTest(ParserTestCase):
         tests a noarg number define
         """
         tokens = self.make_tokens(
-            ('NUMBER', ''),
+            ('NUMBERDEF', ''),
             ('WORD', 'Square'),
             ('OPENBRACE', ''),
             ('NEWLINE', ''),
@@ -45,7 +45,7 @@ class ParseDefineProcedureTest(ParserTestCase):
             ('NEWLINE', ''),
         )
         result, result_tokens = self.run_parse(parser.parse_define_procedure, tokens, expected=DBNProcedureDefinitionNode)
-        self.assert_define_procedure(result, 'NUMBER', 'Square', 0)
+        self.assert_define_procedure(result, 'NUMBERDEF', 'Square', 0)
 
     def test_define_procedure_with_args_command(self):
         """
@@ -71,7 +71,7 @@ class ParseDefineProcedureTest(ParserTestCase):
         tests a number define with args
         """
         tokens = self.make_tokens(
-            ('NUMBER', ''),
+            ('NUMBERDEF', ''),
             ('WORD', 'Ploop'),
             ('WORD', 'X'),
             ('WORD', 'Y'),
@@ -83,7 +83,7 @@ class ParseDefineProcedureTest(ParserTestCase):
             ('NEWLINE', ''),
         )
         result, result_tokens = self.run_parse(parser.parse_define_procedure, tokens, expected=DBNProcedureDefinitionNode)
-        self.assert_define_procedure(result, 'NUMBER', 'Ploop', 4)
+        self.assert_define_procedure(result, 'NUMBERDEF', 'Ploop', 4)
         
     def test_define_procedure_no_newline(self):
         """
