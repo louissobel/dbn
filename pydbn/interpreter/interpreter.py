@@ -236,14 +236,25 @@ class DBNInterpreter:
         self.stack[-1] = top + direction
         self.pointer += 1
 
-    def _op_DEFINE_COMMAND(self, arg):
-        command_pointer = self.stack.pop()
-        command_name = self.stack.pop()
+    def _op_DEFINE_PROCEDURE(self, arg):
+        proc_type = self.stack.pop()
+        proc_pointer = self.stack.pop()
+        proc_name = self.stack.pop()
 
         argc = int(arg)
         formal_args = [self.stack.pop() for i in range(argc)]
-        command = structures.DBNCommand(command_name, formal_args, command_pointer)
-        self.commands[command_name] = command
+
+        if proc_type == 'command':
+            klass = structures.DBNCommand
+            proctable = self.commands
+        elif proc_type == 'number':
+            klass = structures.DBNNumber
+            proctable = self.numbers
+        else:
+            raise RuntimeError('Unknown proctype! %s' % proc_type)
+
+        procedure = klass(proc_name, formal_args, proc_pointer)
+        proctable[proc_name] = procedure
         self.pointer += 1
 
     def _op_COMMAND(self, arg):
