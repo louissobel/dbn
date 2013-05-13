@@ -42,7 +42,7 @@ class DBNTokenizer:
         self.register('CLOSEBRACKET',      r'(\])')
         self.register('CLOSEBRACE',        r'(})')
         self.register('OPENANGLEBRACKET',  r'(<)')
-        self.register('CLOSEANGLEBRACKET', r'(<)')
+        self.register('CLOSEANGLEBRACKET', r'(>)')
 
         # then keywords
         self.register('SET',               r'(Set)')
