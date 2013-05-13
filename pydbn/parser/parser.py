@@ -45,11 +45,11 @@ def parse_program(tokens):
         tokens=node_tokens,
     )
 
-def parse_define_command(tokens):
+def parse_define_procedure(tokens):
     """
-    parses a command definition!
+    parses a procedure definition
     """
-    command_token = tokens.pop(0)
+    procedure_def_token = tokens.pop(0)
 
     # Arg tokens MUST ALL BE WORDS. so we can bypass the normal parsing route.
     children = []
@@ -58,18 +58,18 @@ def parse_define_command(tokens):
         first_token = tokens[0]
 
         if first_token.type == 'OPENBRACE' or first_token.type == 'NEWLINE':
-            # marks the end of the formal args; parse_block will handle this tokens
+            # marks the end of the formal args; parse_block will handle this token
             parsing_args = False
         else:
             try:
                 children.append(parse_word(tokens))
             except ValueError:
                 # Then parse_word couldn't handle the stack
-                raise ValueError("Every argument to Command must be a word!")
+                raise ValueError("Every argument to %s must be a word!" % procedure_def_token.value)
 
     # we must have at least one!
     if not children:
-        raise ValueError("There must be at least one argument to Command! (the name of command)")
+        raise ValueError("There must be at least one argument to %s! (it's name)" % procedure_def_token.value)
 
     body = parse_block(tokens)
 
@@ -82,12 +82,13 @@ def parse_define_command(tokens):
         child_tokens.extend(child.tokens)
 
     # child_tokens included the tokens of the body
-    node_tokens = [command_token] + child_tokens + noop.tokens
+    node_tokens = [procedure_def_token] + child_tokens + noop.tokens
 
-    return DBNCommandDefinitionNode(
+    return DBNProcedureDefinitionNode(
         children=children,
         tokens=node_tokens,
         line_no=command_token.line_no,
+        value=procedure_def_token.value
     )
 
 def parse_load(tokens):
