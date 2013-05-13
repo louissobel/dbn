@@ -55,7 +55,7 @@ class Test3(TokenizerTestCase):
 Set Repeat 98
 house
 goose //foo
-Same?
+Same? Value
 *"""
     expected = [
         'NEWLINE',
@@ -68,6 +68,7 @@ Same?
         'WORD',
         'NEWLINE',
         'QUESTION',
+        'VALUE',
         'NEWLINE',
         'OPERATOR',
         'NEWLINE',
@@ -80,7 +81,8 @@ class Test4(TokenizerTestCase):
 Repeat {
     Line 0 0 (5 + 7 * [6 (G + 9)]) H //fancy thing
     Paper 6
-    Woof
+    Woof <
+    Command foob >
 }"""
     expected = [
         'SET',
@@ -116,6 +118,11 @@ Repeat {
         'NUMBER',
         'NEWLINE',
         'WORD',
+        'OPENANGLEBRACKET',
+        'NEWLINE',
+        'PROCEDUREDEF',
+        'WORD',
+        'CLOSEANGLEBRACKET',
         'NEWLINE',
         'CLOSEBRACE',
         'NEWLINE',
@@ -129,6 +136,15 @@ class Test5(TokenizerTestCase):
     """
     input_string = "Load /foo/ba_r.dbn"
     expected = ['LOAD', 'PATH', 'NEWLINE']
+    runTest = TokenizerTestCase.run_tokenizer_test
+
+
+class Test6(TokenizerTestCase):
+    """
+    For value stuff
+    """
+    input_string = """Value <> Command Number"""
+    expected=['VALUE', 'OPENANGLEBRACKET', 'CLOSEANGLEBRACKET', 'PROCEDUREDEF', 'PROCEDUREDEF', 'NEWLINE']
     runTest = TokenizerTestCase.run_tokenizer_test
 
 
