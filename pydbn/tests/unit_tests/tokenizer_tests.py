@@ -144,7 +144,7 @@ class Test6(TokenizerTestCase):
     For value stuff
     """
     input_string = """Value <> Command Number"""
-    expected=['VALUE', 'OPENANGLEBRACKET', 'CLOSEANGLEBRACKET', 'COMMAND', 'NUMBER', 'NEWLINE']
+    expected=['VALUE', 'OPENANGLEBRACKET', 'CLOSEANGLEBRACKET', 'COMMAND', 'NUMBERDEF', 'NEWLINE']
     runTest = TokenizerTestCase.run_tokenizer_test
 
 

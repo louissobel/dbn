@@ -49,7 +49,7 @@ class DBNTokenizer:
         self.register('REPEAT',            r'(Repeat)')
         self.register('QUESTION',          r'(Same|NotSame|Smaller|NotSmaller)\?'),
         self.register('COMMAND',           r'(Command)'),
-        self.register('NUMBER',            r'(Number)'),
+        self.register('NUMBERDEF',         r'(Number)'),
         self.register('LOAD',              r'(Load)'),
         self.register('VALUE',             r'(Value)'),
 
