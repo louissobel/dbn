@@ -155,13 +155,13 @@ class DBNCompiler(DBNAstVisitor):
         self.add('LOAD_STRING', node.procedure_name.value)
 
         self.add('LOAD_INTEGER', procedure_start_label)
-        self.add('LOAD_STRING', procedure.value)
+        self.add('LOAD_STRING', node.value)
         self.add('DEFINE_PROCEDURE', len(node.args))
 
         # Move execution to after the procedure body
         self.add('JUMP', after_procedure_label)
 
-        self.add_label(procedure_start_label))
+        self.add_label(procedure_start_label)
         self.visit(node.body)
 
         # Implicitly add fallback return 0

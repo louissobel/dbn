@@ -173,7 +173,7 @@ class DBNProcedureDefinitionNode(DBNBaseNode):
     type = 'procedure_definition'
 
     @property
-    def command_name(self):
+    def procedure_name(self):
         return self.children[0]
     
     @property
