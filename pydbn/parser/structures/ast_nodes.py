@@ -184,6 +184,15 @@ class DBNProcedureDefinitionNode(DBNBaseNode):
     def body(self):
         return self.children[-1]
 
+    @property
+    def procedure_type(self):
+        if self.value == 'COMMAND':
+            return 'command'
+        elif self.value == 'NUMBERDEF':
+            return 'number'
+        else:
+            raise ValueError('Unknown procedure definition node value: %s' % self.value)
+
 
 @node
 class DBNBracketNode(DBNBaseNode):
