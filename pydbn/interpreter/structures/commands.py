@@ -26,8 +26,9 @@ class DBNUserProcedure(DBNProcedure):
     """
     A userspace procedure
     """
-    def __init__(self, name, formal_args, body_pointer, line_no=-1):
+    def __init__(self, type_, name, formal_args, body_pointer, line_no=-1):
         DBNProcedure.__init__(self, len(formal_args), line_no)
+        self.type = type_
         self.name = name
         self.formal_args = formal_args
         self.body_pointer = body_pointer
@@ -36,15 +37,7 @@ class DBNUserProcedure(DBNProcedure):
         return "[%s%s:%s@%d]" % (self.proc_type, self.name, ','.join(self.formal_args), self.body_pointer)
 
 
-class DBNCommand(DBNUserProcedure):
-    proc_type = 'command'
-
-
-class DBNNumber(DBNUserProcedure):
-    proc_type = 'number'
-
-
-class DBNBuiltinCommand(DBNProcedure):
+class DBNBuiltinProcedure(DBNProcedure):
     """
     A builtin command (think Line, Paper, Pen)
     """

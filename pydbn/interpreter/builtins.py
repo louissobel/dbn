@@ -1,9 +1,9 @@
-from structures import DBNBuiltinCommand
+from structures import DBNBuiltinProcedure
 
-class LineCommand(DBNBuiltinCommand):
+class LineCommand(DBNBuiltinProcedure):
 
     def __init__(self):
-        DBNBuiltinCommand.__init__(self, 4)
+        DBNBuiltinProcedure.__init__(self, 4)
 
     def keyword(self):
         return 'Line'
@@ -53,10 +53,10 @@ class LineCommand(DBNBuiltinCommand):
                 error = error - deltax
         raise StopIteration
 
-class PaperCommand(DBNBuiltinCommand):
+class PaperCommand(DBNBuiltinProcedure):
 
     def __init__(self):
-        DBNBuiltinCommand.__init__(self, 1)
+        DBNBuiltinProcedure.__init__(self, 1)
 
     def keyword(self):
         return 'Paper'
@@ -64,10 +64,10 @@ class PaperCommand(DBNBuiltinCommand):
     def call(self, interpreter, color):
         interpreter.image.repaper(color)
 
-class PenCommand(DBNBuiltinCommand):
+class PenCommand(DBNBuiltinProcedure):
 
     def __init__(self):
-        DBNBuiltinCommand.__init__(self, 1)
+        DBNBuiltinProcedure.__init__(self, 1)
 
     def keyword(self):
         return 'Pen'

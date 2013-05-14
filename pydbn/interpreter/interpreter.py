@@ -59,6 +59,30 @@ class DBNInterpreter:
                 self.commands[command.keyword()] = command
 
     ####
+    # The procedure access methods
+    def _get_proc_table(self, proc_type):
+        if proc_type == 'number':
+            return self.numbers
+        elif proc_type == 'command':
+            return self.commands
+        else:
+            raise AttributeError('No proc table for proc_type %s' % proc_type)
+
+    def store_proc(self, proc_type, procedure):
+        try:
+            proc_table = self._get_proc_table(proc_type)
+        except AttributeError:
+            raise RuntimeError('Unknown proc_type %s!' % proc_type)
+        proc_table[procedure.name] = procedure
+
+    def load_proc(self, proc_type, proc_name):
+        try:
+            proc_table = self._get_proc_table(proc_type)
+        except AttributeError:
+            raise RuntimeError('Unknown proc_type %s!' % proc_type)
+        return proc_table.get(proc_name)
+
+    ####
     # The frame manaagement methods
 
     def set_frame(self, frame):
@@ -244,17 +268,8 @@ class DBNInterpreter:
         argc = int(arg)
         formal_args = [self.stack.pop() for i in range(argc)]
 
-        if proc_type == 'command':
-            klass = structures.DBNCommand
-            proctable = self.commands
-        elif proc_type == 'number':
-            klass = structures.DBNNumber
-            proctable = self.numbers
-        else:
-            raise RuntimeError('Unknown proctype! %s' % proc_type)
-
-        procedure = klass(proc_name, formal_args, proc_pointer)
-        proctable[proc_name] = procedure
+        procedure = structures.DBNUserProcedure(proc_type, proc_name, formal_args, proc_pointer)
+        self.store_proc(proc_type, procedure)
         self.pointer += 1
 
     def _op_COMMAND(self, arg):

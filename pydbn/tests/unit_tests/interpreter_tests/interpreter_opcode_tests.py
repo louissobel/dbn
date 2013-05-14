@@ -407,14 +407,14 @@ class COMMAND_test(InterpreterOpCodeTest):
         """
         builds a fake built in and user command
         """
-        user_command = commands.DBNCommand('test', ['A', 'B'], 80)
-        user_command_no_args = commands.DBNCommand('testnoargs', [], 876)
+        user_command = commands.DBNUserProcedure('command', 'test', ['A', 'B'], 80)
+        user_command_no_args = commands.DBNUserProcedure('command', 'testnoargs', [], 876)
 
         self.builtin_called = False
-        class TestBuiltinCommand(commands.DBNBuiltinCommand):
+        class TestBuiltinProcedure(commands.DBNBuiltinProcedure):
 
             def __init__(self):
-                commands.DBNBuiltinCommand.__init__(self, 0)
+                commands.DBNBuiltinProcedure.__init__(self, 0)
 
             def keyword(self):
                 return "test_builtin"
@@ -426,7 +426,7 @@ class COMMAND_test(InterpreterOpCodeTest):
         self.interpreter.commands['test'] = user_command
         self.interpreter.commands['test_no_args'] = user_command_no_args
 
-        tb = TestBuiltinCommand()
+        tb = TestBuiltinProcedure()
         self.interpreter.commands[tb.keyword()] = tb
 
     def test_command_call(self):
