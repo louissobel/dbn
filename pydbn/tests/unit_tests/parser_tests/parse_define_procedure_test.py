@@ -30,7 +30,7 @@ class ParseDefineProcedureTest(ParserTestCase):
             ('NEWLINE', ''),
         )
         result, result_tokens = self.run_parse(parser.parse_define_procedure, tokens, expected=DBNProcedureDefinitionNode)
-        self.assert_define_procedure(result, 'COMMAND', 'Square', 0)
+        self.assert_define_procedure(result, 'command', 'Square', 0)
 
     def test_define_procedure_number(self):
         """
@@ -45,7 +45,7 @@ class ParseDefineProcedureTest(ParserTestCase):
             ('NEWLINE', ''),
         )
         result, result_tokens = self.run_parse(parser.parse_define_procedure, tokens, expected=DBNProcedureDefinitionNode)
-        self.assert_define_procedure(result, 'NUMBERDEF', 'Square', 0)
+        self.assert_define_procedure(result, 'number', 'Square', 0)
 
     def test_define_procedure_with_args_command(self):
         """
@@ -64,7 +64,7 @@ class ParseDefineProcedureTest(ParserTestCase):
             ('NEWLINE', ''),
         )
         result, result_tokens = self.run_parse(parser.parse_define_procedure, tokens, expected=DBNProcedureDefinitionNode)
-        self.assert_define_procedure(result, 'COMMAND', 'Ploop', 4)
+        self.assert_define_procedure(result, 'command', 'Ploop', 4)
 
     def test_define_procedure_with_args_number(self):
         """
@@ -83,7 +83,7 @@ class ParseDefineProcedureTest(ParserTestCase):
             ('NEWLINE', ''),
         )
         result, result_tokens = self.run_parse(parser.parse_define_procedure, tokens, expected=DBNProcedureDefinitionNode)
-        self.assert_define_procedure(result, 'NUMBERDEF', 'Ploop', 4)
+        self.assert_define_procedure(result, 'number', 'Ploop', 4)
         
     def test_define_procedure_no_newline(self):
         """

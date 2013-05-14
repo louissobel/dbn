@@ -81,6 +81,8 @@ def parse_define_procedure(tokens):
     for child in children:
         child_tokens.extend(child.tokens)
 
+    proc_type = 'command' if procedure_def_token.type == 'COMMAND' else 'number'
+
     # child_tokens included the tokens of the body
     node_tokens = [procedure_def_token] + child_tokens + noop.tokens
 
@@ -88,7 +90,7 @@ def parse_define_procedure(tokens):
         children=children,
         tokens=node_tokens,
         line_no=procedure_def_token.line_no,
-        value=procedure_def_token.type
+        value=proc_type,
     )
 
 def parse_load(tokens):
@@ -176,7 +178,7 @@ def parse_block_statement(tokens):
 
     elif first_token.type == 'WORD':
         # then it is a command invocation
-        return parse_command(tokens)
+        return parse_command_call(tokens)
 
     elif first_token.type == 'NEWLINE':
         # then it is just an extra newline (noop)
@@ -251,12 +253,11 @@ def parse_question(tokens):
         line_no=question_token.line_no,
     )
 
-def parse_command(tokens):
+def parse_command_call(tokens):
     """
-    parses a command
+    parses a command call
     """
-    command_token = tokens.pop(0)
-    # assuming it is a WORD based on parse contract
+    command_name = parse_word(tokens)
 
     args = []
     parsing_args = True
@@ -272,18 +273,16 @@ def parse_command(tokens):
         else:
             args.append(parse_arg(tokens))
 
-    command_name = command_token.value
-
-    node_tokens = [command_token]
+    node_tokens = command_name.tokens[:]
     for arg in args:
         node_tokens.extend(arg.tokens)
     node_tokens += noop.tokens
 
-    return DBNCommandNode(
-        value=command_name,
-        children=args,
+    return DBNProcedureCallNode(
+        value='command',
+        children=[command_name] + args,
         tokens=node_tokens,
-        line_no=command_token.line_no
+        line_no=command_name.tokens[0].line_no
     )
 
 def parse_newline(tokens):

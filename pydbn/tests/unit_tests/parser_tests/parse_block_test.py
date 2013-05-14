@@ -157,7 +157,7 @@ class ParseBlockTest(ParserTestCase):
             ('CLOSEBRACE', ''),
         )
         result, result_tokens = self.run_parse(parser.parse_block, tokens, expected=DBNBlockNode)
-        self.assert_block_node(result, (DBNNoopNode, DBNSetNode, DBNNoopNode, DBNQuestionNode, DBNCommandNode))
+        self.assert_block_node(result, (DBNNoopNode, DBNSetNode, DBNNoopNode, DBNQuestionNode, DBNProcedureCallNode))
     # complicated statement
     
     

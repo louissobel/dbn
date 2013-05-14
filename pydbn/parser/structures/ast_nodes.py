@@ -154,15 +154,27 @@ class DBNQuestionNode(DBNBaseNode):
 
 
 @node
-class DBNCommandNode(DBNBaseNode):
+class DBNProcedureCallNode(DBNBaseNode):
     """
-    A command invocation
+    A procedure call
     """
-    type = 'command'
+    type = 'procedure_call'
+
+    @property
+    def procedure_name(self):
+        return self.children[0]
 
     @property
     def args(self):
-        return self.children
+        return self.children[1:]
+
+    @property
+    def procedure_type(self):
+        return self.value
+
+    @property
+    def argc(self):
+        return len(self.args)
 
 
 @node
@@ -186,12 +198,7 @@ class DBNProcedureDefinitionNode(DBNBaseNode):
 
     @property
     def procedure_type(self):
-        if self.value == 'COMMAND':
-            return 'command'
-        elif self.value == 'NUMBERDEF':
-            return 'number'
-        else:
-            raise ValueError('Unknown procedure definition node value: %s' % self.value)
+        return self.value
 
 
 @node

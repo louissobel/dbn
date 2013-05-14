@@ -61,7 +61,7 @@ class ParseBlockStatementTest(ParserTestCase):
             ('WORD', 'Floo'),
             ('NEWLINE', ''),
         )
-        result, result_tokens = self.run_parse(parser.parse_block_statement, tokens, expected=DBNCommandNode)
+        result, result_tokens = self.run_parse(parser.parse_block_statement, tokens, expected=DBNProcedureCallNode)
     
     def test_absorb_newline(self):
         """

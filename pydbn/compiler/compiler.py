@@ -128,21 +128,22 @@ class DBNCompiler(DBNAstVisitor):
         self.visit(node.body)
         self.add_label(after_body_label)
 
-    def visit_command_node(self, node):
+    def visit_procedure_call_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
 
         # get the children on the stack in reverse order
         for arg_node in reversed(node.args):
             self.visit(arg_node)
 
-        # load the name of the command
-        self.add('LOAD_STRING', node.value)
+        self.add('LOAD_STRING', node.procedure_name.value)
+        self.add('LOAD_STRING', node.procedure_type)
 
         # run the command!
-        self.add('COMMAND', len(node.args))
+        self.add('PROCEDURE_CALL', node.argc)
 
-        # command return value always gets thrown away
-        self.add('POP_TOPX', 1)
+        if node.procedure_type == 'command':
+            # command return value always gets thrown away
+            self.add('POP_TOPX', 1)
 
     def visit_procedure_definition_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)

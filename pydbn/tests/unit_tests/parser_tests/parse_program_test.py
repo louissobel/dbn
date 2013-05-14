@@ -52,7 +52,7 @@ class ParseProgramTest(ParserTestCase):
             ('NEWLINE', ''),
         )
         result, result_tokens = self.run_parse(parser.parse_program, tokens, expected=DBNProgramNode)
-        self.assert_block_node(result, (DBNCommandNode, DBNCommandNode))
+        self.assert_block_node(result, (DBNProcedureCallNode, DBNProcedureCallNode))
         
     def test_no_trailing_newline_program(self):
         """
@@ -150,7 +150,7 @@ class ParseProgramTest(ParserTestCase):
             DBNSetNode,
             DBNNoopNode,
             DBNQuestionNode,
-            DBNCommandNode,
+            DBNProcedureCallNode,
             DBNLoadNode
         ))
     
