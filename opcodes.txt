@@ -96,11 +96,14 @@ DEFINE_PROCEDURE (n):
   TOP2 is name of command
   then n more POPs, because n more formal args are expected
 
-COMMAND (n):
-  runs a command!
+PROCEDURE_CALL (n):
+  calls a procedure!
   pop
-  TOP is name of command
+  TOP is type of procedure
+  pop
+  TOP1 is name of command
   n is number of arguments, pops that many
+  pushes frame
 
 LOAD_CODE (path)
   compile and interpret the given file. defined commands and numbers
