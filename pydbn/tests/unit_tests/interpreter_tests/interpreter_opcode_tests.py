@@ -399,42 +399,58 @@ class DEFINE_PROCEDURE_test(InterpreterOpCodeTest):
         self.assert_interpreter(stack=['C'])
 
 
-class COMMAND_test(InterpreterOpCodeTest):
+class PROCEDURE_CALL_test(InterpreterOpCodeTest):
 
-    OPCODE = 'COMMAND'
+    OPCODE = 'PROCEDURE_CALL'
 
-    def create_commands(self):
+    def create_procedures(self):
         """
         builds a fake built in and user command
         """
         user_command = commands.DBNUserProcedure('command', 'test', ['A', 'B'], 80)
-        user_command_no_args = commands.DBNUserProcedure('command', 'testnoargs', [], 876)
+        user_command_no_args = commands.DBNUserProcedure('command', 'test_no_args', [], 876)
+        user_number = commands.DBNUserProcedure('number', 'test', ['A', 'B', 'C'], 8000)
+        user_number_no_args = commands.DBNUserProcedure('number', 'test_no_args', [], 43)
 
         self.builtin_called = False
-        class TestBuiltinProcedure(commands.DBNBuiltinProcedure):
+        class TestBuiltinProcedureReturnNone(commands.DBNBuiltinProcedure):
 
             def __init__(self):
                 commands.DBNBuiltinProcedure.__init__(self, 0)
 
-            def keyword(self):
-                return "test_builtin"
+            name = "test_builtin_no_retval"
 
             def call(command, interpreter):
                 # tell the test class
                 self.builtin_called = True
 
-        self.interpreter.commands['test'] = user_command
-        self.interpreter.commands['test_no_args'] = user_command_no_args
+        self.builtin_called = False
+        class TestBuiltinProcedureReturnValue(commands.DBNBuiltinProcedure):
 
-        tb = TestBuiltinProcedure()
-        self.interpreter.commands[tb.keyword()] = tb
+            def __init__(self):
+                commands.DBNBuiltinProcedure.__init__(self, 0)
+
+            name = "test_builtin_retval"
+
+            def call(command, interpreter):
+                # tell the test class
+                self.builtin_called = True
+                return 5
+
+        self.interpreter.store_proc('command', user_command)
+        self.interpreter.store_proc('command', user_command_no_args)
+        self.interpreter.store_proc('number', user_number)
+        self.interpreter.store_proc('number', user_number_no_args)
+
+        self.interpreter._load_commands([TestBuiltinProcedureReturnNone, TestBuiltinProcedureReturnValue])
+        self.interpreter._load_numbers([TestBuiltinProcedureReturnNone, TestBuiltinProcedureReturnValue])
 
     def test_command_call(self):
         """
         Full test of most normal use
         """
-        self.fabricate_interpreter(stack=[0, 9, 'test'], pointer=654)
-        self.create_commands()
+        self.fabricate_interpreter(stack=[0, 9, 'test', 'command'], pointer=654)
+        self.create_procedures()
 
         self.old_frame = self.interpreter.frame
         self.do_step('2', expected_pointer=80)
@@ -446,13 +462,32 @@ class COMMAND_test(InterpreterOpCodeTest):
         self.assertEqual(self.interpreter.frame.return_pointer, 655)
         self.assert_interpreter(stack=[])
         self.assertEqual(self.old_frame.stack, [])
+    
+    def test_number_call(self):
+        """
+        Full test of most normal use
+        """
+        self.fabricate_interpreter(stack=[43, 23, 0, 9, 'test', 'number'], pointer=654)
+        self.create_procedures()
+
+        self.old_frame = self.interpreter.frame
+        self.do_step('3', expected_pointer=8000)
+
+        # assert the frame
+        self.assertIs(self.old_frame, self.interpreter.frame.parent)
+        self.assertEqual(self.interpreter.frame.lookup_variable('A'), 9)
+        self.assertEqual(self.interpreter.frame.lookup_variable('B'), 0)
+        self.assertEqual(self.interpreter.frame.lookup_variable('C'), 23)
+        self.assertEqual(self.interpreter.frame.return_pointer, 655)
+        self.assert_interpreter(stack=[])
+        self.assertEqual(self.old_frame.stack, [43])
 
     def test_command_no_args(self):
         """
         ok
         """
-        self.fabricate_interpreter(stack=[0, 9, 'test_no_args'], pointer=6)
-        self.create_commands()
+        self.fabricate_interpreter(stack=[0, 9, 'test_no_args', 'command'], pointer=6)
+        self.create_procedures()
 
         self.old_frame = self.interpreter.frame
         self.do_step('0', expected_pointer=876)
@@ -463,33 +498,102 @@ class COMMAND_test(InterpreterOpCodeTest):
         self.assert_interpreter(stack=[])
         self.assertEqual(self.old_frame.stack, [0, 9])
 
-    def test_builtin_command(self):
+    def test_number_no_args(self):
         """
-        a builtin command should be called
+        ok
         """
-        self.fabricate_interpreter(stack=['test_builtin'])
-        self.create_commands()
+        self.fabricate_interpreter(stack=[0, 9, 'test_no_args', 'number'], pointer=60)
+        self.create_procedures()
+
+        self.old_frame = self.interpreter.frame
+        self.do_step('0', expected_pointer=43)
+
+        # assert the frame
+        self.assertIs(self.old_frame, self.interpreter.frame.parent)
+        self.assertEqual(self.interpreter.frame.return_pointer, 61)
+        self.assert_interpreter(stack=[])
+        self.assertEqual(self.old_frame.stack, [0, 9])
+
+    def test_builtin_command_no_retval(self):
+        """
+        a builtin number should be called - DEFAULT_VARIABLE_VALUE returned if no retval
+        """
+        self.fabricate_interpreter(stack=['test_builtin_no_retval', 'command'])
+        self.create_procedures()
 
         self.do_step('0', expected_pointer=INCREMENT)
         self.assertTrue(self.builtin_called)
-        self.assert_interpreter(stack=[0])
+        self.assert_interpreter(stack=[DEFAULT_VARIABLE_VALUE])
 
-    def test_not_defined(self):
+    def test_builtin_number_no_retval(self):
+        """
+        a builtin number should be called - DEFAULT_VARIABLE_VALUE returned if no retval
+        """
+        self.fabricate_interpreter(stack=['test_builtin_no_retval', 'number'])
+        self.create_procedures()
+
+        self.do_step('0', expected_pointer=INCREMENT)
+        self.assertTrue(self.builtin_called)
+        self.assert_interpreter(stack=[DEFAULT_VARIABLE_VALUE])
+
+    def test_builtin_command_retval(self):
+        """
+        a builtin command should be called - its retval pushed on
+        """
+        self.fabricate_interpreter(stack=['test_builtin_retval', 'command'])
+        self.create_procedures()
+
+        self.do_step('0', expected_pointer=INCREMENT)
+        self.assertTrue(self.builtin_called)
+        self.assert_interpreter(stack=[5])
+
+    def test_builtin_number_retval(self):
+        """
+        a builtin command should be called
+        """
+        self.fabricate_interpreter(stack=['test_builtin_retval', 'number'])
+        self.create_procedures()
+
+        self.do_step('0', expected_pointer=INCREMENT)
+        self.assertTrue(self.builtin_called)
+        self.assert_interpreter(stack=[5])
+
+    def test_command_not_defined(self):
         """
         runtime if command not defined
         """
-        self.fabricate_interpreter(stack=[0, 9, 'nope'])
-        self.create_commands()
+        self.fabricate_interpreter(stack=[0, 9, 'nope', 'command'])
+        self.create_procedures()
 
         with self.assertRaises(RuntimeError):
-            self.do_step('3')
+            self.do_step('2')
+
+    def test_number_not_defined(self):
+        """
+        runtime if number not defined
+        """
+        self.fabricate_interpreter(stack=[0, 9, 'nope', 'number'])
+        self.create_procedures()
+
+        with self.assertRaises(RuntimeError):
+            self.do_step('2')
 
     def test_command_bad_argc_user(self):
         """
         a user command called with bad argc should throw error
         """
-        self.fabricate_interpreter(stack=[0, 9, 'test'])
-        self.create_commands()
+        self.fabricate_interpreter(stack=[0, 9, 'test', 'command'])
+        self.create_procedures()
+
+        with self.assertRaises(RuntimeError):
+            self.do_step('8')
+
+    def test_number_bad_argc_user(self):
+        """
+        a user command called with bad argc should throw error
+        """
+        self.fabricate_interpreter(stack=[0, 9, 'test', 'number'])
+        self.create_procedures()
 
         with self.assertRaises(RuntimeError):
             self.do_step('8')
@@ -498,8 +602,18 @@ class COMMAND_test(InterpreterOpCodeTest):
         """
         a builtin command called with bad argc should throw error
         """
-        self.fabricate_interpreter(stack=['test_builtin'])
-        self.create_commands()
+        self.fabricate_interpreter(stack=['test_builtin_retval', 'command'])
+        self.create_procedures()
+
+        with self.assertRaises(RuntimeError):
+            self.do_step('8')
+
+    def test_number_bad_argc_builtin(self):
+        """
+        a builtin command called with bad argc should throw error
+        """
+        self.fabricate_interpreter(stack=['test_builtin_retval', 'number'])
+        self.create_procedures()
 
         with self.assertRaises(RuntimeError):
             self.do_step('8')

@@ -5,7 +5,8 @@ class LineCommand(DBNBuiltinProcedure):
     def __init__(self):
         DBNBuiltinProcedure.__init__(self, 4)
 
-    def keyword(self):
+    @property
+    def name(self):
         return 'Line'
 
     def call(self, interpreter, blX, blY, trX, trY):
@@ -58,7 +59,8 @@ class PaperCommand(DBNBuiltinProcedure):
     def __init__(self):
         DBNBuiltinProcedure.__init__(self, 1)
 
-    def keyword(self):
+    @property
+    def name(self):
         return 'Paper'
 
     def call(self, interpreter, color):
@@ -69,7 +71,8 @@ class PenCommand(DBNBuiltinProcedure):
     def __init__(self):
         DBNBuiltinProcedure.__init__(self, 1)
 
-    def keyword(self):
+    @property
+    def name(self):
         return 'Pen'
 
     def call(self, interpreter, color):

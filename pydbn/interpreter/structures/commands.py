@@ -44,8 +44,9 @@ class DBNBuiltinProcedure(DBNProcedure):
     def __init__(self, argc):
         DBNProcedure.__init__(self, argc)
         self.is_builtin = True
-    
-    def keyword(self):
+
+    @property
+    def name(self):
         raise NotImplementedError
     
     def call(self, interpreter, *args):

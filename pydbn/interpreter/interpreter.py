@@ -54,9 +54,24 @@ class DBNInterpreter:
         except AttributeError:
             pass
         else:
-            for command_klass in commands:
-                command = command_klass()
-                self.commands[command.keyword()] = command
+            self._load_commands(commands)
+
+        try:
+            numbers = module.NUMBERS
+        except AttributeError:
+            pass
+        else:
+            self._load_numbers(numbers)
+
+    def _load_commands(self, commands):
+        for command_klass in commands:
+            command = command_klass()
+            self.store_proc('command', command)
+
+    def _load_numbers(self, numbers):
+        for number_klass in numbers:
+            number = number_klass()
+            self.store_proc('number', number)
 
     ####
     # The procedure access methods
@@ -272,22 +287,24 @@ class DBNInterpreter:
         self.store_proc(proc_type, procedure)
         self.pointer += 1
 
-    def _op_COMMAND(self, arg):
-        command_name = self.stack.pop()
+    def _op_PROCEDURE_CALL(self, arg):
+        proc_type = self.stack.pop()
+        proc_name = self.stack.pop()
 
-        command = self.commands.get(command_name)
-        if command is None:
-            raise RuntimeError('No such command! %s' % command_name)
+        procedure = self.load_proc(proc_type, proc_name)
+        if procedure is None:
+            raise RuntimeError('No such %s! %s' % (proc_type, proc_name))
 
         argc = int(arg)
-        if not argc == command.argc:
+        if not argc == procedure.argc:
             raise RuntimeError('bad argc')
 
         evaled_args = [self.stack.pop() for i in range(argc)]
 
-        if command.is_builtin:
-            command.call(self, *evaled_args)
-            self.stack.append(0)
+        if procedure.is_builtin:
+            retval = procedure.call(self, *evaled_args)
+            retval = retval if retval is not None else DEFAULT_VARIABLE_VALUE
+            self.stack.append(retval)
             self.pointer += 1
 
         else:
@@ -295,10 +312,10 @@ class DBNInterpreter:
             self.push_frame()
 
             # bind the variables
-            self.frame.bind_variables(**dict(zip(command.formal_args, evaled_args)))
+            self.frame.bind_variables(**dict(zip(procedure.formal_args, evaled_args)))
 
             # jump!
-            self.pointer = command.body_pointer
+            self.pointer = procedure.body_pointer
 
     def _op_RETURN(self, arg):
         # return val is TOP
