@@ -462,7 +462,7 @@ class PROCEDURE_CALL_test(InterpreterOpCodeTest):
         self.assertEqual(self.interpreter.frame.return_pointer, 655)
         self.assert_interpreter(stack=[])
         self.assertEqual(self.old_frame.stack, [])
-    
+
     def test_number_call(self):
         """
         Full test of most normal use
