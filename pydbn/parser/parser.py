@@ -110,7 +110,6 @@ def parse_load(tokens):
         line_no=load_token.line_no,
     )
 
-
 def parse_block(tokens):
     block_nodes = []
 
@@ -180,10 +179,12 @@ def parse_block_statement(tokens):
         # then it is a command invocation
         return parse_command_call(tokens)
 
+    elif first_token.type == 'VALUE':
+        return parse_value(tokens)
+
     elif first_token.type == 'NEWLINE':
         # then it is just an extra newline (noop)
         return parse_newline(tokens)
-
 
     else:
         raise ValueError("I don't know how to parse %s as a statement!" % first_token.type)
@@ -283,6 +284,21 @@ def parse_command_call(tokens):
         children=[command_name] + args,
         tokens=node_tokens,
         line_no=command_name.tokens[0].line_no
+    )
+
+def parse_value(tokens):
+    """
+    parses a Value statement
+    """
+    value_token = tokens.pop(0)
+    arg = parse_arg(tokens)
+    noop = parse_newline(tokens)
+
+    node_tokens = [value_token] + arg.tokens + noop.tokens
+    return DBNValueNode(
+        children=[arg],
+        tokens = node_tokens,
+        line_no=value_token.line_no
     )
 
 def parse_newline(tokens):
