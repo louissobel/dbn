@@ -49,6 +49,17 @@ class ParseArgTest(ParserTestCase):
         )
         result, result_tokens = self.run_parse(parser.parse_arg, tokens, expected=DBNBracketNode)
 
+    def test_parse_number_call(self):
+        """
+        parse args should parse a number call
+        """
+        tokens = self.make_tokens(
+            ('OPENANGLEBRACKET', ''),
+            ('WORD', 'Line'),
+            ('CLOSEANGLEBRACKET', ''),
+        )
+        result, result_tokens = self.run_parse(parser.parse_arg, tokens, expected=DBNProcedureCallNode)
+
     def test_parse_error(self):
         """
         it should raise error if it is not one of the parseable tokens
