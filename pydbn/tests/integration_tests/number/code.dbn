@@ -1,0 +1,20 @@
+Number Abs A {
+  Smaller? A 0 {
+    Value (0 - A)
+  }
+  Value A
+}
+
+Number Double A {
+  Value (A * 2)
+}
+
+Paper 20
+
+Repeat A 0 100 {
+  Set B <Double <Abs (50 - A)>>
+  Pen B
+  Set S (B / 2)
+  Line A (50 - S) A (50 + S)
+}
+
