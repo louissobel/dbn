@@ -62,7 +62,18 @@ class ParseBlockStatementTest(ParserTestCase):
             ('NEWLINE', ''),
         )
         result, result_tokens = self.run_parse(parser.parse_block_statement, tokens, expected=DBNProcedureCallNode)
-    
+
+    def test_parse_value(self):
+        """
+        it should parse a value statement
+        """
+        tokens = self.make_tokens(
+            ('VALUE', ''),
+            ('NUMBER', '9'),
+            ('NEWLINE', ''),
+        )
+        result, result_tokens = self.run_parse(parser.parse_block_statement, tokens, expected=DBNValueNode)
+
     def test_absorb_newline(self):
         """
         it should handle a newline correctly
