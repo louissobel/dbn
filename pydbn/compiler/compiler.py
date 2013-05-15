@@ -129,7 +129,8 @@ class DBNCompiler(DBNAstVisitor):
         self.add_label(after_body_label)
 
     def visit_procedure_call_node(self, node):
-        self.add_set_line_no_unless_module(node.line_no)
+        if node.procedure_type == 'command':
+            self.add_set_line_no_unless_module(node.line_no)
 
         # get the children on the stack in reverse order
         for arg_node in reversed(node.args):
@@ -143,6 +144,7 @@ class DBNCompiler(DBNAstVisitor):
 
         if node.procedure_type == 'command':
             # command return value always gets thrown away
+            # number return value is used
             self.add('POP_TOPX', 1)
 
     def visit_procedure_definition_node(self, node):
