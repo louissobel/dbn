@@ -173,6 +173,11 @@ class DBNCompiler(DBNAstVisitor):
 
         self.add_label(after_procedure_label)
 
+    def visit_value_node(self, node):
+        self.add_set_line_no_unless_module(node.line_no)
+        self.visit(node.result)
+        self.add('RETURN')
+
     def visit_load_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
         self.add('LOAD_CODE', node.value)
