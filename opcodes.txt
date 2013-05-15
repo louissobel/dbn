@@ -105,6 +105,13 @@ PROCEDURE_CALL (n):
   n is number of arguments, pops that many
   pushes frame
 
+RETURN:
+  returns from a procedure
+  pop
+  TOP is retval
+  pops frame
+  push TOP old_frame
+
 LOAD_CODE (path)
   compile and interpret the given file. defined commands and numbers
   should be accessible from the calling file
