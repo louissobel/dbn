@@ -316,6 +316,9 @@ def parse_arg(tokens):
     elif first_token.type == 'OPENBRACKET':
         return parse_bracket(tokens)
 
+    elif first_token.type == 'OPENANGLEBRACKET':
+        return parse_number_call(tokens)
+
     else:
         raise ValueError("I don't know how to handle token type %s while parsing args!" % first_token.type)
 
@@ -414,6 +417,35 @@ def parse_bracket(tokens):
     node_tokens = [open_bracket_token] + first_arg.tokens + second_arg.tokens + [close_bracket_token]
     return DBNBracketNode(
         children=[first_arg, second_arg],
+        tokens=node_tokens,
+    )
+
+def parse_number_call(tokens):
+    """
+    < name ... >
+    """
+    open_angle_bracket_token = tokens.pop(0)
+    number_name = parse_word(tokens)
+
+    args = []
+    parsing_args = True
+    while parsing_args:
+        first_token = tokens[0]
+
+        if first_token.type == 'CLOSEANGLEBRACKET':
+            parsing_args = False
+            close_angle_bracket_token = tokens.pop(0)
+        else:
+            args.append(parse_arg(tokens))
+
+    node_tokens = [open_angle_bracket_token] + number_name.tokens
+    for arg in args:
+        node_tokens.extend(arg.tokens)
+    node_tokens += [close_angle_bracket_token]
+
+    return DBNProcedureCallNode(
+        value='number',
+        children=[number_name] + args,
         tokens=node_tokens,
     )
 
