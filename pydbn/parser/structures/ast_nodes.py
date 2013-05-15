@@ -202,6 +202,18 @@ class DBNProcedureDefinitionNode(DBNBaseNode):
 
 
 @node
+class DBNValueNode(DBNBaseNode):
+    """
+    a `Value` statement
+    """
+    type = 'value'
+
+    @property
+    def result(self):
+        return self.children[0]
+
+
+@node
 class DBNBracketNode(DBNBaseNode):
     """
     Represents a bracket notation pixel reference
