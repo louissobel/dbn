@@ -347,14 +347,22 @@ class REPEAT_STEP_test(InterpreterOpCodeTest):
 
     OPCODE = 'REPEAT_STEP'
 
+    def test_same(self):
+        """
+        it should pop pop and move on
+        """
+        self.fabricate_interpreter(stack=[50, 50], pointer=0)
+        self.do_step(100, expected_pointer=INCREMENT)
+        self.assert_interpreter(stack=[])
+
     def test_first_is_less(self):
-        self.fabricate_interpreter(stack=[90, 50])
-        self.do_step(expected_pointer=INCREMENT)
+        self.fabricate_interpreter(stack=[90, 50], pointer=0)
+        self.do_step(100, expected_pointer=100)
         self.assert_interpreter(stack=[90, 51])
 
     def test_first_is_more(self):
-        self.fabricate_interpreter(stack=[50, 90])
-        self.do_step(expected_pointer=INCREMENT)
+        self.fabricate_interpreter(stack=[50, 90], pointer=0)
+        self.do_step(100, expected_pointer=100)
         self.assert_interpreter(stack=[50, 89])
 
 
