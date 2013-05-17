@@ -271,9 +271,14 @@ class DBNInterpreter:
 
     def _op_REPEAT_STEP(self, arg):
         top1, top = self.stack[-2:]
-        direction = 1 if top < top1 else -1
-        self.stack[-1] = top + direction
-        self.pointer += 1
+        if top == top1:
+            # Then we are finished with the repeat
+            self.stack[-2:] = [] # pop em
+            self.pointer += 1 # and move on
+        else:
+            direction = 1 if top < top1 else -1
+            self.stack[-1] = top + direction
+            self.pointer = int(arg)
 
     def _op_DEFINE_PROCEDURE(self, arg):
         proc_type = self.stack.pop()
