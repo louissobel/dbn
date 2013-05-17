@@ -80,7 +80,6 @@ class DBNCompiler(DBNAstVisitor):
 
         # body entry - [end, current]
         body_entry_label = self.generate_label('repeat_body_entry')
-        repeat_end_label = self.generate_label('repeat_end')
 
         # mark current location
         self.add_label(body_entry_label)
@@ -91,21 +90,8 @@ class DBNCompiler(DBNAstVisitor):
 
         self.visit(node.body)
 
-        # Comparison
-        self.add('DUP_TOPX', 2)
-        self.add('COMPARE_SAME')
-        # now stack is [end, current, current==end]
-        # if current is the same as end, lets GTFO
-        self.add('POP_JUMP_IF_TRUE', repeat_end_label)
-
-        # if we are here, we need either to increment or decrement
-        # going to deletegate this to an opcode
-        self.add('REPEAT_STEP')
-        self.add('JUMP', body_entry_label)
-
-        # ok, now this stuff is cleanup - pop away
-        self.add_label(repeat_end_label)
-        self.add('POP_TOPX', 2)
+        # logic for repeat end is done inside interpreter
+        self.add('REPEAT_STEP', body_entry_label)
 
     def visit_question_node(self, node):
         self.add_set_line_no_unless_module(node.line_no)
