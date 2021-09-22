@@ -1,7 +1,7 @@
 """
 Will assembly a compilation
 """
-import structures
+from . import structures
 
 
 def assemble(compilation, offset=0):

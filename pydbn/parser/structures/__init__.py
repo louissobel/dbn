@@ -1,2 +1,2 @@
-import ast_nodes
-from token import DBNToken
+from . import ast_nodes
+from .token import DBNToken

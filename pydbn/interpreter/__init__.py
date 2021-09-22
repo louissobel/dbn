@@ -1,2 +1,2 @@
-import builtins
-from interpreter import DBNInterpreter
+from . import builtins
+from .interpreter import DBNInterpreter

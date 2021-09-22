@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     if options.compile:
         for i, b in enumerate(bytecode):
-            print i, b
+            print(i, b)
 
     else:
         interpreter = DBNInterpreter(bytecode)

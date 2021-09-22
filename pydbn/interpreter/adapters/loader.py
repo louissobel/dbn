@@ -8,7 +8,7 @@ import parser
 import compiler
 from compiler.structures import Bytecode
 
-import base_adapter
+from . import base_adapter
 
 PATH_ENV_VAR = 'DBN_LOAD_PATH'
 

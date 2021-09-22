@@ -1,7 +1,7 @@
 """
 Base class for AST visitors
 """
-import structures.ast_nodes
+from . import structures
 
 
 class DBNAstVisitor(object):

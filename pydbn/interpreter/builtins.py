@@ -1,4 +1,4 @@
-from structures import DBNBuiltinProcedure
+from .structures import DBNBuiltinProcedure
 
 class LineCommand(DBNBuiltinProcedure):
 
@@ -52,7 +52,7 @@ class LineCommand(DBNBuiltinProcedure):
             if error > 0:
                 y = y + ystep
                 error = error - deltax
-        raise StopIteration
+        return
 
 class PaperCommand(DBNBuiltinProcedure):
 

@@ -1,4 +1,4 @@
-import Tkinter
+import tkinter
 
 from parser import DBNTokenizer
 import parser
@@ -6,10 +6,10 @@ import dbn
 
 from PIL import Image, ImageTk
 
-class DBNImageCanvas(Tkinter.Canvas):
+class DBNImageCanvas(tkinter.Canvas):
     
     def __init__(self, root):
-        Tkinter.Canvas.__init__(self, root, width=302, height=302)
+        tkinter.Canvas.__init__(self, root, width=302, height=302)
         
         self.create_rectangle(49, 49, 252, 252)
 
@@ -37,10 +37,10 @@ class DBNImageCanvas(Tkinter.Canvas):
             self.itemconfigure(self.ghost_image, image=None)
             del self._ghost_image
         
-class DBNTextInput(Tkinter.Text):
+class DBNTextInput(tkinter.Text):
     
     def __init__(self, root, initial_script=''):
-        Tkinter.Text.__init__(self, root, height=30, width=80, borderwidth=0, selectborderwidth=0, highlightthickness=0)
+        tkinter.Text.__init__(self, root, height=30, width=80, borderwidth=0, selectborderwidth=0, highlightthickness=0)
         
         self.WIDTH=80
         
@@ -58,7 +58,7 @@ class DBNTextInput(Tkinter.Text):
 
     def insert_tab(self, event):
         # insert 4 spaces
-        self.insert(Tkinter.INSERT, " " * 4)
+        self.insert(tkinter.INSERT, " " * 4)
         return "break"
         
     def get_mouse_position(self):
@@ -68,7 +68,7 @@ class DBNTextInput(Tkinter.Text):
         return cx, cy
     
     def get_contents(self):
-        return self.get(1.0, Tkinter.END)
+        return self.get(1.0, tkinter.END)
     
     def get_line(self, tkinter_index):
         """
@@ -136,7 +136,7 @@ class DBNTextInput(Tkinter.Text):
         
         mark_name = "%d.prehighlight_end" % n
         self.mark_set(mark_name, line_end_index)
-        self.mark_gravity(mark_name, Tkinter.LEFT)
+        self.mark_gravity(mark_name, tkinter.LEFT)
         
         end_char = int(self.index(line_end_index).split('.')[1])
         leftover = self.WIDTH - end_char
@@ -156,20 +156,20 @@ class DBNTextInput(Tkinter.Text):
         self.highlighted_lines = []
 
 
-class DBNTimeline(Tkinter.Frame):
+class DBNTimeline(tkinter.Frame):
     
     def __init__(self, root, count):
-        Tkinter.Frame.__init__(self, root)
+        tkinter.Frame.__init__(self, root)
         
-        self.value = Tkinter.IntVar()
+        self.value = tkinter.IntVar()
         self.value.set(count) # initialized to the end
         
         self.scale_hover = False
         self.scale_pressed = False
-        self.active = Tkinter.BooleanVar()
+        self.active = tkinter.BooleanVar()
         
-        self.scale = Tkinter.Scale(self, 
-            orient=Tkinter.HORIZONTAL,
+        self.scale = tkinter.Scale(self, 
+            orient=tkinter.HORIZONTAL,
             length=200,
             showvalue=0,
             var=self.value,
@@ -178,7 +178,7 @@ class DBNTimeline(Tkinter.Frame):
         
         self.scale.grid(column=1, row=0, sticky='e')
 
-        self.label = Tkinter.Label(self, width=10)
+        self.label = tkinter.Label(self, width=10)
         self.set_label_inactive_text(count)
         
         self.label.grid(column=0, row=0, sticky='s')
@@ -223,14 +223,14 @@ class DBNTimeline(Tkinter.Frame):
         self.scale.focus_set()
 
 
-class ColorDisplayWidget(Tkinter.Canvas):
+class ColorDisplayWidget(tkinter.Canvas):
     
     def __init__(self, root, color=80, width=30, height=30):
-        Tkinter.Canvas.__init__(self, root, width=width, height=height)
+        tkinter.Canvas.__init__(self, root, width=width, height=height)
 
         self.create_rectangle(3, 3, width+2, height+2)
 
-        self.color = Tkinter.IntVar()
+        self.color = tkinter.IntVar()
         self.color.trace_variable('w', self.set_color_listener)
         self.color.set(color)
         
@@ -242,13 +242,13 @@ class ColorDisplayWidget(Tkinter.Canvas):
         self.config(bg=tkinter_color)
         
  
-class DBNPenState(Tkinter.Frame):
+class DBNPenState(tkinter.Frame):
     
     def __init__(self, root):
         #### the state frame
-        Tkinter.Frame.__init__(self, root)
-        self.label = Tkinter.Label(self, text="Pen: ")
-        self.value_label = Tkinter.Label(self, width=4, text="100")
+        tkinter.Frame.__init__(self, root)
+        self.label = tkinter.Label(self, text="Pen: ")
+        self.value_label = tkinter.Label(self, width=4, text="100")
         self.color_display = ColorDisplayWidget(self)
         
         self.default_background = self.label['background']
@@ -263,10 +263,10 @@ class DBNPenState(Tkinter.Frame):
         
     def highlight(self):
         self.label.config(bg="red")
-        print "g"
+        print("g")
     
     def clear_highlight(self):
-        print "goose"
+        print("goose")
         self.label.config(background=self.default_background)
 
 
@@ -287,12 +287,12 @@ class DBNInterface:
         self.image_canvas = DBNImageCanvas(self.master)        
         self.image_canvas.grid(row=0, column=0, rowspan=1, sticky='s')
         
-        self.textframe = Tkinter.Frame(self.master, bg="black", border=1)
+        self.textframe = tkinter.Frame(self.master, bg="black", border=1)
         self.text = DBNTextInput(self.textframe, initial_script=self.initial_script)
         self.text.pack()
         self.textframe.grid(row=0, column=1, padx=20, pady=20, rowspan=2)
         
-        self.draw_button = Tkinter.Button(self.master, text="draw", command=self.draw_text)
+        self.draw_button = tkinter.Button(self.master, text="draw", command=self.draw_text)
         self.draw_button.grid(row=2, column=1)
         
         self.timeline = DBNTimeline(self.master, len(self.state_wrapper))

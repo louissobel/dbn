@@ -1,6 +1,6 @@
 import re
 
-from structures import DBNToken
+from .structures import DBNToken
 
 
 def tokenize(string, *args, **kwargs):
@@ -152,7 +152,7 @@ class DBNTokenizer:
             '\n',
         )
 
-        raise StopIteration
+        return
 
     def tokenize(self, string):
         return list(self.tokenizeiter(string))

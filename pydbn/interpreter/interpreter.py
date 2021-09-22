@@ -1,7 +1,7 @@
 import sys
 
-import structures
-import adapters
+from . import structures
+from . import adapters
 
 DEFAULT_VARIABLE_VALUE = 0
 DEFAULT_INITIAL_PAPER_COLOR = 0
@@ -131,7 +131,7 @@ class DBNInterpreter:
             op, arg = code.op, code.arg
 
             if trace:
-                print self.pointer, '%s %s' % (op, arg)
+                print(self.pointer, '%s %s' % (op, arg))
 
             self.step(op, arg)
 
@@ -207,7 +207,7 @@ class DBNInterpreter:
         top = self.stack.pop()
         top1 = self.stack.pop()
         try:
-            self.stack.append(top / top1)
+            self.stack.append(int(top / top1))
         except ZeroDivisionError:
             raise RuntimeError("You can't divide by 0!")
         self.pointer += 1

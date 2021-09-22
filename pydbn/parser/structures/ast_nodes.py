@@ -48,7 +48,7 @@ class DBNBaseNode(object):
             return out
     
     def pprint(self, indent=2):
-        print self.pformat(depth=0, indent=indent)
+        print(self.pformat(depth=0, indent=indent))
 
     def __str__(self):
         return self.pformat()

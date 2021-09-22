@@ -5,8 +5,8 @@ simple parsing, because next node can be exactly determined by next token and cu
 """
 import operator
 
-from structures.ast_nodes import *
-from structures import DBNToken
+from .structures.ast_nodes import *
+from .structures import DBNToken
 
 def parse(tokens):
     """

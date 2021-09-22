@@ -5,27 +5,26 @@ import json
 import flask
 
 sys.path.insert(0, os.environ['DBNROOT'])
-import compiler
-import parser
+import pydbn
 
 app = flask.Flask(__name__)
 app.debug = True
 
-dbn_compiler = compiler.DBNCompiler()
+dbn_compiler = pydbn.compiler.DBNCompiler()
 
 @app.route('/compile', methods=('POST',))
 def index():
-    dbn_script = flask.request.stream.read()
-    print dbn_script
+    dbn_script = flask.request.stream.read().decode("utf-8")
+    print(dbn_script)
     try:
-        tokens = parser.tokenize(dbn_script)
-        print tokens
-        dbn_ast = parser.parse(tokens)
-        print dbn_ast
+        tokens = pydbn.parser.tokenize(dbn_script)
+        print(tokens)
+        dbn_ast = pydbn.parser.parse(tokens)
+        print(dbn_ast)
         compilation = dbn_compiler.compile(dbn_ast)
-        print compilation
-        bytecodes = compiler.assemble(compilation)
-        print bytecodes
+        print(compilation)
+        bytecodes = pydbn.compiler.assemble(compilation)
+        print(bytecodes)
         return json.dumps([{'op': c.op, 'arg': c.arg} for c in bytecodes])
     except Exception as e:
         return str(e)

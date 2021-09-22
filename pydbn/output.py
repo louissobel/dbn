@@ -1,6 +1,6 @@
 from PIL import Image, ImageTk
-import Tkinter
-import ttk
+import tkinter
+from tkinter import ttk
 
 
 import dbn
@@ -13,9 +13,9 @@ import time
 import dbngui
 
 def animate_state(state, direction):
-    master = Tkinter.Tk()
+    master = tkinter.Tk()
 
-    w = Tkinter.Canvas(master, width=302, height=302)
+    w = tkinter.Canvas(master, width=302, height=302)
     w.pack()
     
 
@@ -42,9 +42,9 @@ def animate_state(state, direction):
 
 def draw_window(interpreter):
     TIMEOUT = 10
-    master = Tkinter.Tk()
+    master = tkinter.Tk()
 
-    w = Tkinter.Canvas(master, width=302, height=302)
+    w = tkinter.Canvas(master, width=302, height=302)
     w.pack()
 
     w.create_rectangle(49, 49, 252, 252)
@@ -79,7 +79,7 @@ def print_line_numbers(state):
     last = -1
     while current is not None:
         if current.line_no != last:
-            print current.line_no
+            print(current.line_no)
             last = current.line_no
         current = current.next
 
@@ -106,7 +106,7 @@ def full_interface(states, dbn_script):
     state_wrapper = DBNStateWrapper(states[0])
     del states[0] # no more reference to state in the caller
     
-    master = Tkinter.Tk()
+    master = tkinter.Tk()
     
     interface = dbngui.DBNInterface(master, state_wrapper, initial_script=dbn_script)
     

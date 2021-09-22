@@ -1,4 +1,4 @@
-import structures
+from . import structures
 from parser.structures.ast_nodes import *
 from parser import DBNAstVisitor
 
