@@ -1,0 +1,277 @@
+; @debug [0xdd]
+
+; put data far enough out to give space to decode
+
+; Testing ABI
+; If calldata is non-empty first byte is function to test
+; Rest of data is dependent on that function
+ISZERO(CALLDATASIZE)
+JUMPI($main, $$)
+
+
+SHR(0xF8, CALLDATALOAD(0))
+
+EQ(0x64, DUP1)
+JUMPI($testBASE64ENCODE, $$)
+JUMP($unknownTEST)
+
+
+@testBASE64ENCODE:
+  POP() ; clear the test opcode
+  ; Pull in CALLDATA[1:]
+
+  SUB(CALLDATASIZE, 0x01)
+  DUP1
+  CALLDATACOPY(0x0100, 0x01, $$)
+
+  $postBASE64ENCODEcall
+  SWAP1
+  0x40
+  SWAP1
+  0x0100
+  JUMP($BASE64ENCODE)
+  @postBASE64ENCODEcall:
+
+  DUP1
+  MSTORE(0x20, $$)
+  MSTORE(0x00, 0x20)
+
+  ; string length on stack, get return length
+  0x5F ; two bytes prefix, one more for rounding, then -1
+  ADD($$, $$)
+
+  ; "divide" by 32, then multiply by 32
+  SHR(0x05, $$)
+  SHL(0x05, $$)
+  RETURN(0, $$)
+
+@main:
+  MSTORE(0x40, 0x4d41494e00000000000000000000000000000000000000000000000000000000)
+  MSTORE(0x20, 0x04)
+  MSTORE(0x00, 0x20)
+  RETURN(0, 0x60)
+
+
+@unknownTEST:
+  SHL(0x50, $$)
+  0x554e4b4e4f574e2054455354204f50434f44453a200000000000000000000000
+  OR($$, $$)
+  MSTORE(0x40, $$)
+  MSTORE(0x20, 0x16)
+  MSTORE(0x00, 0x20)
+  RETURN(0, 0x60)
+
+
+; def:base64encode
+; input [offset|length|dst|return
+; out [len
+@BASE64ENCODE:
+  ; set up initial stack...
+
+  ; make copy of original dest
+  DUP3
+  ; [dst|src|remaining
+  SWAP2
+  ; [remaining|src|dst
+  0x6768696a6b6c6d6e6f707172737475767778797a303132333435363738392b2f
+  ; [alpha2|remaining|src|dst
+  SWAP3
+  ; [dst|remaining|src|alpha2
+  0x4142434445464748494a4b4c4d4e4f505152535455565758595a616263646566
+  ; [alpha2|dst|remaining|src|alpha1
+  SWAP3
+  ; [src|dst|remaining|alpha1|alpha2
+
+  ; [src|dst|remaining|alpha1|alpha2|orig_dst
+
+  ; Zero guard
+  JUMPI($BASE64ENCODEchunkloopend, ISZERO(DUP3))
+
+  @BASE64ENCODEchunkloop:
+    ; load the chunk
+    MLOAD(DUP1)
+
+    ; if remaining is < 30...
+    LT(DUP5, 30)
+    JUMPI($BASE64ENCODEchunkloopendingcase, $$)
+
+    @BASE64ENCODEchunkloopfullchunk:
+      SHR(0x10, $$)
+      234 ; initial counter: 30 * 8 - 6
+      30  ; consuming 30 bytes
+      JUMP($BASE64ENCODEchunkloopdecrement)
+
+    @BASE64ENCODEchunkloopendingcase:
+      ; bring the remaining data over to the right
+      SUB(32, DUP4)
+      SHL(3, $$)
+      SHR($$, $$)
+
+      ; nudge to the left remaining not multiple of 3 bytes
+      ; 0 mod 3: nudge 0 bits
+      ; 1 mod 3: nudge 4 bits
+      ; 2 mod 3: nudge 2 bits
+      ; we take advantage that this is the same as
+      ; (v * 4) % 6
+      ; this is empirically true, though I don't remember the number theory proving it
+      MULMOD(4, DUP5, 6)
+
+      ; $1 is now nudge bits, do the nudge
+      SWAP1
+      DUP2
+      SHL($$, $$)
+      SWAP1
+
+      ; initial counter (remaining * 8 + nudge) - 6
+      SHL(3, DUP5)
+      ADD($$, $$)
+      6
+      SWAP1
+      SUB($$, $$)
+
+      DUP5
+
+    @BASE64ENCODEchunkloopdecrement:
+      ; [consumed|counter|chunk|src|dst|remaining|alpha1|alpha2|orig_dst
+      DUP1
+
+      ; Increment src
+      ADD(DUP5, $$)
+      SWAP4
+      POP()
+
+      ; Decrement remaining
+      DUP6
+      SUB($$, $$)
+      SWAP5
+      POP()
+
+      JUMP($BASE64ENCODEbyteloop)
+
+    @BASE64ENCODEbyteloopdecrement:
+      ; [counter|chunk|src|dst|remaining|alpha1|alpha2|orig_dst
+      6
+      SWAP1
+      SUB($$, $$)
+
+    @BASE64ENCODEbyteloop:
+      ; [counter|chunk|src|dst|remaining|alpha1|alpha2|orig_dst
+
+      ; shift 6-bit selector over by the counter # of bits,
+      ; grab those 6 bits from chunk, and shift them back over
+      SHL(DUP2, 0b111111)
+      AND(DUP3, $$)
+      SHR(DUP2, $$)
+
+      ; Pick the right alphabet...
+      LT(DUP2, 0x20)
+      JUMPI($BASE64ENCODEalphaselectorlow, $$)
+
+      @BASE64ENCODEalphaselectorhigh:
+        0x20
+        SWAP1
+        SUB($$, $$)
+        DUP8
+        JUMP($BASE64ENCODEpostalphaselector)
+      @BASE64ENCODEalphaselectorlow:
+        DUP7
+
+      @BASE64ENCODEpostalphaselector:
+      ; [$alpha|$alphaindex|counter|chunk|src|dst|remaining|alpha1|alpha2
+      SWAP1
+      BYTE($$, $$)
+
+      ; Store it at dst
+      DUP5 
+      MSTORE8($$, $$)
+
+      ; increment dst
+      ADD(1, DUP4)
+      SWAP4
+      POP()
+
+      ; if counter still greater than zero...
+      GT(DUP2, 0)
+      JUMPI($BASE64ENCODEbyteloopdecrement, $$)
+
+      ; end of byteloop
+      POP() ; the counter
+
+    ; clean up chunk and maybe loop
+    POP() ; the chunk
+
+    ; if remaining still greater than zero... 
+    GT(DUP4, 0)
+    JUMPI($BASE64ENCODEchunkloop, $$)
+
+  ; end of chunkloop, clean up and return
+  @BASE64ENCODEchunkloopend:
+  POP() ; src
+
+  ; Deal with '=' padding
+
+  ; Get length by dst - original dst
+  DUP1
+  DUP6
+  SWAP1
+  SUB($$, $$)
+  
+  ; Determine padding
+  ; We _could_ use the input length somehow, but we don't track it
+  ; L % 4 = 0 <-- no padding
+  ; L % 4 = 1 <-- impossible
+  ; L % 4 = 2 <-- ==
+  ; L % 4 = 3 <-- =
+    ; @debug [0xdd]
+    0x04
+    DUP2
+    MOD($$, $$)
+
+    JUMPI($BASE64ENCODEdoublepad, EQ(2, DUP1))
+    JUMPI($BASE64ENCODEsinglepad, EQ(3, DUP1))
+    JUMP($BASE64ENCODEnopad)
+    
+
+    ; [padmod|length|dst|_|_|_|origdst|ret
+    @BASE64ENCODEdoublepad:
+    0x3d
+    DUP4
+    MSTORE8($$, $$)
+    ADD(1, DUP3)
+    SWAP3
+    POP()
+
+    @BASE64ENCODEsinglepad:
+    0x3d
+    DUP4
+    MSTORE8($$, $$)
+    ADD(1, DUP3)
+
+    ; Recompute length
+    DUP8
+    SWAP1
+    SUB($$, $$)
+    SWAP2
+    POP()
+
+
+    @BASE64ENCODEnopad:
+    POP()
+
+  ; @debugppostpad [0xdd]
+  ; put the length in position
+  SWAP5
+
+  POP() ; orig_dst
+  POP() ; dst
+  POP() ; remaining
+  POP() ; alpha1
+  POP() ; alpha2
+
+  SWAP1
+  JUMP($$)
+
+
+
+; needs a stop to have trailing comments
+STOP
