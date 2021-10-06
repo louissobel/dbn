@@ -17,6 +17,10 @@ task("assemble-and-debug", "Assembles given file and evals with debugger attache
     "calldata",
     "Hexstring calldata",
   )
+  .addOptionalParam(
+    "outputFile",
+    "write bytes",
+  )
   .addFlag(
     "resultAsString",
     "Render the result as EVM ABI string",
@@ -52,10 +56,16 @@ task("assemble-and-debug", "Assembles given file and evals with debugger attache
     const raw = "0x" + result.returnValue.toString('hex')
     console.log("Raw Return: ", raw);
 
+    const coder = new ethers.utils.AbiCoder()
     if (params.resultAsString) {
-      const coder = new ethers.utils.AbiCoder()
       console.log("ABI String: ", coder.decode(["string"], raw))
     }
 
+    if (params.outputFile) {
+      fs.writeFileSync(
+        params.outputFile,
+        Buffer.from(coder.decode(["bytes"], raw)[0].slice(2), 'hex'),
+      )
+    }
 
   });

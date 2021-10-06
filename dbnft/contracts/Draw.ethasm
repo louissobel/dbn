@@ -11,9 +11,29 @@ JUMPI($main, $$)
 
 SHR(0xF8, CALLDATALOAD(0))
 
-EQ(0x64, DUP1)
-JUMPI($testBASE64ENCODE, $$)
+
+JUMPI($testBASE64ENCODE, EQ(0x64, DUP1))
+JUMPI($testInitializeBitmap, EQ(0xB1, DUP1))
 JUMP($unknownTEST)
+
+@testInitializeBitmap:
+  POP() ; clear the test opcode
+
+  $postTestInitializeBitmapCall
+  ; The next byte of call data is the side length
+  SHR(0xF8, CALLDATALOAD(1))
+  DUP1 ; dup for height
+  0x40
+  JUMP($initializeBitmap)
+
+  @postTestInitializeBitmapCall:
+
+  ; hardcode the assertion that pixelDataStart
+  ; is 0x40 + 54 + 4*101) = 0x020A
+  JUMPI($postTestCheckPixelDataStart, EQ(0x020A, $$))
+    REVERT(0, 0)
+  @postTestCheckPixelDataStart:
+  JUMP($testStringReturn)
 
 
 @testBASE64ENCODE:
@@ -24,19 +44,22 @@ JUMP($unknownTEST)
   DUP1
   CALLDATACOPY(0x0100, 0x01, $$)
 
-  $postBASE64ENCODEcall
+  $testStringReturn
   SWAP1
   0x40
   SWAP1
   0x0100
   JUMP($BASE64ENCODE)
-  @postBASE64ENCODEcall:
 
+
+@testStringReturn:
+  ; assumes return string at 0x40
+  ; string length on top of stack
+  ; sets up the ABI string return
   DUP1
   MSTORE(0x20, $$)
   MSTORE(0x00, 0x20)
 
-  ; string length on stack, get return length
   0x5F ; two bytes prefix, one more for rounding, then -1
   ADD($$, $$)
 
@@ -60,6 +83,139 @@ JUMP($unknownTEST)
   MSTORE(0x20, 0x16)
   MSTORE(0x00, 0x20)
   RETURN(0, 0x60)
+
+
+; def:    intializeBitmap
+; input:  [dst|width|height|return
+; output: [pixelDataStart|length
+; state:  <none>
+; notes:  does not initialize the pixel data itself; if this is called
+;         at the end of touched memory that's fine (all zeros)
+;         but otherwise could be problematic
+@initializeBitmap:
+  ; get image size
+  
+  ; get row width
+  ; row width dynamic, padded to 4byte multiple
+  ; ((width + 4 - 1) // 4) * 4
+  ADD(3, DUP2)
+  SHR(2, $$)
+  SHL(2, $$)
+
+  MUL(DUP4, $$)
+  ; $1 is pixel (byte, given 8-bit) count
+  ; 14 + 40 + 404(color table)
+  ; key number (pixel offset, etc)
+  ADD(458, $$)
+
+  ; $1 is filesize
+
+  ; Get first 30 bytes in place
+  ; template
+  ; (bitmap is little endian :...)
+  ; B M | len   |  res  |  off  |  siz  |  wid  |  hei  |pl |bpp|###
+  0x424d0000000000000000ca010000280000000000000000000000010008000000
+
+  ; 3 things to inject
+  ; length (at << 26 bytes)
+  ; width  (at << 10 bytes)
+  ; height (at << 6 bytes)
+  ; BUT; bitmap is little endian, so we:
+
+  ; Fix endianess for length
+  SHL(24, AND(0x000000FF, DUP2))
+  SHL(8, AND(0x0000FF00, DUP3))
+  SHR(8, AND(0x00FF0000, DUP4))
+  SHR(24, AND(0xFF000000, DUP5))
+  OR($$, $$)
+  OR($$, $$)
+  OR($$, $$)
+
+  ; and then push it over
+  SHL(208, $$)
+
+  ;  - assume height / width <= 255 :grimace:
+  ;  - push over by an extra 24 bits
+  SHL(104, DUP5)
+  SHL(72, DUP7)
+  OR($$, $$)
+  OR($$, $$)
+  OR($$, $$)
+
+  DUP3
+  MSTORE($$, $$)
+  ; increment dst
+  ADD(30, DUP2)
+  SWAP2
+  POP()
+
+  ; 24 more header bytes
+  ; again, remember we're little endian
+  ; | comp  | isize | xppm  | yppm  | colors|  impt 
+  0x000000000000000000000000000000006500000000000000
+  SHL(64, $$)
+  DUP3
+  MSTORE($$, $$)
+  ADD(24, DUP2)
+  SWAP2
+  POP()
+
+  ; Fill in the color table...
+  ; 101 entries
+  0    ; index
+  @initializeBitmapColorTableFill:
+    ; palette index is "DBN" color : [0, 100]
+    ; map that to [0, 255] via:
+    ; 255 - ((255 * c) / 100)
+    100
+    MUL(0xFF, DUP2)
+    DIV($$, $$)
+    SUB(255, $$)
+
+    ; $1 now has the byte, but we need to triple it (RGB_)
+    SHL(8, $$)
+    SHL(8, DUP1)
+    SHL(8, DUP1)
+    OR($$, $$)
+    OR($$, $$)
+
+    ; $1 is the four byte palette
+    SHL(224, $$)
+    SHL(2, DUP2)
+    DUP5
+    ADD($$, $$)
+    MSTORE($$, $$)
+
+    ; Increment index
+    ADD(1, $$)
+    GT(101, DUP1)
+    JUMPI($initializeBitmapColorTableFill, $$)
+    POP()
+
+  ; Increment dst after color table
+  ADD(404, DUP2)
+  SWAP2
+  POP()
+
+  ; Watch out!
+  ; We don't zero out the memory...
+
+  ; [len|pixelDataStart|height|width|ret
+  SWAP2
+
+  ; [height|pixelDataStart|len|width|ret
+  POP()
+  ; [pixelDataStart|len|width|ret
+  SWAP2
+  ; [width|len|pixelDataStart|ret
+  POP()
+  ; [len|pixelDataStart|ret
+  SWAP2
+
+
+  ; [ret|pixelDataStart|length
+  JUMP($$)
+
 
 
 ; def:base64encode
@@ -222,7 +378,6 @@ JUMP($unknownTEST)
   ; L % 4 = 1 <-- impossible
   ; L % 4 = 2 <-- ==
   ; L % 4 = 3 <-- =
-    ; @debug [0xdd]
     0x04
     DUP2
     MOD($$, $$)
@@ -258,7 +413,6 @@ JUMP($unknownTEST)
     @BASE64ENCODEnopad:
     POP()
 
-  ; @debugppostpad [0xdd]
   ; put the length in position
   SWAP5
 
@@ -273,5 +427,52 @@ JUMP($unknownTEST)
 
 
 
+
+
 ; needs a stop to have trailing comments
 STOP
+
+
+  ; write a line of color at each row
+  0 ; row
+  @testInitializeBitmapRowColorLoop:
+    ; ok, we need to write 101 bytes :)
+    0 ; col index
+    @testInitializeBitmapColColorLoop:
+      ; [colIndex|rowIndex|pixeldatastart
+
+      ; color
+      100
+      DUP2
+      DUP4
+      MUL($$, $$)
+      DIV($$, $$)
+
+      ; row * 104
+      MUL(104, DUP3)
+      ; plus col
+      DUP3
+      ADD($$, $$)
+
+      ; plus base
+      DUP5
+      ADD($$, $$)
+      MSTORE8($$, $$)
+
+      ; increment colindex, if it's < 101, JUMP
+      ADD(1, $$)
+      DUP1
+      101
+      SWAP1
+      LT($$, $$)
+      JUMPI($testInitializeBitmapColColorLoop, $$)
+      POP()
+
+    ; increment colindex, if it's < 101, JUMP
+    ADD(1, $$)
+    DUP1
+    101
+    SWAP1
+    LT($$, $$)
+    JUMPI($testInitializeBitmapRowColorLoop, $$)
+    POP()
