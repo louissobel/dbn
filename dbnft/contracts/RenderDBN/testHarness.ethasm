@@ -1,0 +1,75 @@
+; Testing ABI
+; If calldata is non-empty first byte is function to test
+; Rest of data is dependent on that function
+ISZERO(CALLDATASIZE)
+JUMPI($main, $$)
+
+SHR(0xF8, CALLDATALOAD(0))
+
+JUMPI($testBASE64ENCODE, EQ(0x64, DUP1))
+JUMPI($testInitializeBitmap, EQ(0xB1, DUP1))
+JUMP($unknownTEST)
+
+@testInitializeBitmap:
+  POP() ; clear the test opcode
+
+  $postTestInitializeBitmapCall
+  ; The next byte of call data is the side length
+  SHR(0xF8, CALLDATALOAD(1))
+  DUP1 ; dup for height
+  0x40
+  JUMP($initializeBitmap)
+
+  @postTestInitializeBitmapCall:
+
+  ; hardcode the assertion that pixelDataStart
+  ; is 0x40 + 54 + 4*101) = 0x020A
+  JUMPI($postTestCheckPixelDataStart, EQ(0x020A, $$))
+    REVERT(0, 0)
+  @postTestCheckPixelDataStart:
+  JUMP($testStringReturn)
+
+
+@testBASE64ENCODE:
+  POP() ; clear the test opcode
+  ; Pull in CALLDATA[1:]
+
+  SUB(CALLDATASIZE, 0x01)
+  DUP1
+  CALLDATACOPY(0x0100, 0x01, $$)
+
+  $testStringReturn
+  SWAP1
+  0x40
+  SWAP1
+  0x0100
+  JUMP($BASE64ENCODE)
+
+
+@testStringReturn:
+  ; assumes return string at 0x40
+  ; string length on top of stack
+  ; sets up the ABI string return
+  DUP1
+  MSTORE(0x20, $$)
+  MSTORE(0x00, 0x20)
+
+  0x5F ; two bytes prefix, one more for rounding, then -1
+  ADD($$, $$)
+
+  ; "divide" by 32, then multiply by 32
+  SHR(0x05, $$)
+  SHL(0x05, $$)
+  RETURN(0, $$)
+
+@main:
+  0xFF
+
+@unknownTEST:
+  SHL(0x50, $$)
+  0x554e4b4e4f574e2054455354204f50434f44453a200000000000000000000000
+  OR($$, $$)
+  MSTORE(0x40, $$)
+  MSTORE(0x20, 0x16)
+  MSTORE(0x00, 0x20)
+  RETURN(0, 0x60)

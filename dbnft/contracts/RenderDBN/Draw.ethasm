@@ -1,0 +1,63 @@
+; @debug [0xdd]
+
+; put data far enough out to give space to decode
+
+
+
+
+
+
+
+
+
+
+
+
+
+; needs a stop to have trailing comments
+STOP
+
+
+  ; write a line of color at each row
+  0 ; row
+  @testInitializeBitmapRowColorLoop:
+    ; ok, we need to write 101 bytes :)
+    0 ; col index
+    @testInitializeBitmapColColorLoop:
+      ; [colIndex|rowIndex|pixeldatastart
+
+      ; color
+      100
+      DUP2
+      DUP4
+      MUL($$, $$)
+      DIV($$, $$)
+
+      ; row * 104
+      MUL(104, DUP3)
+      ; plus col
+      DUP3
+      ADD($$, $$)
+
+      ; plus base
+      DUP5
+      ADD($$, $$)
+      MSTORE8($$, $$)
+
+      ; increment colindex, if it's < 101, JUMP
+      ADD(1, $$)
+      DUP1
+      101
+      SWAP1
+      LT($$, $$)
+      JUMPI($testInitializeBitmapColColorLoop, $$)
+      POP()
+
+    ; increment colindex, if it's < 101, JUMP
+    ADD(1, $$)
+    DUP1
+    101
+    SWAP1
+    LT($$, $$)
+    JUMPI($testInitializeBitmapRowColorLoop, $$)
+    POP()

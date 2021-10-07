@@ -13,7 +13,7 @@ describe("Draw#initializeBitmap", function () {
 
   cases.forEach(function([ input, output ]) {
     it(`Should correctly initializeBitmap with side ${input}`, async function () {
-      const contract = fs.readFileSync('artifacts/contracts/Draw.eth')
+      const contract = fs.readFileSync('artifacts/contracts/RenderDBNTestArtifact.eth')
       const vm = new VM()
 
       const runOpts = {

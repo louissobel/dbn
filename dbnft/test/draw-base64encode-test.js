@@ -35,7 +35,7 @@ describe("Draw#base64encode", function () {
 
   cases.forEach(function([ input, output ]) {
     it(`Should correctly base64encode ${input}`, async function () {
-      const contract = fs.readFileSync('artifacts/contracts/Draw.eth')
+      const contract = fs.readFileSync('artifacts/contracts/RenderDBNTestArtifact.eth')
       const vm = new VM()
 
       const runOpts = {
