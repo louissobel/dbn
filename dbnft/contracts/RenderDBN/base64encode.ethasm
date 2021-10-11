@@ -1,6 +1,7 @@
-; def:base64encode
-; input [offset|length|dst|return
-; out [len
+; def:    base64encode
+; input:  [offset|length|dst|return
+; output: [len
+; state:  <none>
 @BASE64ENCODE:
   ; set up initial stack...
 

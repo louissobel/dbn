@@ -2,12 +2,13 @@
 ; If calldata is non-empty first byte is function to test
 ; Rest of data is dependent on that function
 ISZERO(CALLDATASIZE)
-JUMPI($main, $$)
+JUMPI($noTestOpcode, $$)
 
 SHR(0xF8, CALLDATALOAD(0))
 
 JUMPI($testBASE64ENCODE, EQ(0x64, DUP1))
 JUMPI($testInitializeBitmap, EQ(0xB1, DUP1))
+JUMPI($testLineComand, EQ(0x1E, DUP1))
 JUMP($unknownTEST)
 
 @testInitializeBitmap:
@@ -30,6 +31,34 @@ JUMP($unknownTEST)
   JUMP($testStringReturn)
 
 
+@testLineComand:
+  POP() ; Clear the test opcode
+
+  ; x0, y0, x1, y1, pen, pixelDataOffset, ret
+
+  ; OK, let's create a bitmap first
+
+  $postTestLineCommandInitializeBitmap
+  101
+  101
+  0x40
+  JUMP($initializeBitmap)
+  @postTestLineCommandInitializeBitmap:
+
+  $postTestLineCommandCall
+  ; input is interpreted as signed 7 bit integer!
+  DUP2
+  SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(5))) ;pen
+  SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(4))) ;y1
+  SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(3))) ;x1
+  SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(2))) ;y0
+  SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(1))) ;x0
+  JUMP($lineCommand)
+  @postTestLineCommandCall:
+
+  POP()
+  JUMP($testStringReturn)
+
 @testBASE64ENCODE:
   POP() ; clear the test opcode
   ; Pull in CALLDATA[1:]
@@ -44,7 +73,6 @@ JUMP($unknownTEST)
   SWAP1
   0x0100
   JUMP($BASE64ENCODE)
-
 
 @testStringReturn:
   ; assumes return string at 0x40
@@ -62,8 +90,12 @@ JUMP($unknownTEST)
   SHL(0x05, $$)
   RETURN(0, $$)
 
-@main:
-  0xFF
+@noTestOpcode:
+  0x4e4f2043414c4c4441544120544f2054455354204841524e4553530000000000
+  MSTORE(0x40, $$)
+  MSTORE(0x20, 0x1B)
+  MSTORE(0x00, 0x20)
+  RETURN(0, 0x60)
 
 @unknownTEST:
   SHL(0x50, $$)

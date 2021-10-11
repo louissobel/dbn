@@ -54,7 +54,7 @@ task("assemble-and-debug", "Assembles given file and evals with debugger attache
 
     // Raw return value
     const raw = "0x" + result.returnValue.toString('hex')
-    console.log("Raw Return: ", raw);
+    // console.log("Raw Return: ", raw);
 
     const coder = new ethers.utils.AbiCoder()
     if (params.resultAsString) {

@@ -1,0 +1,250 @@
+; def:    lineCommand
+; input:  [x0|y0|x1|y1|pen|pixelDataOffset|ret
+; output: [|
+; state:  assumes there is a valid bitmap of dim 101x101 at pixelDataOffset
+; notes:  
+@lineCommand:
+  ; clip pen to [0, 100]
+    DUP5
+
+    0
+    DUP2
+    SGT($$, $$)
+    JUMPI($lineCommandPenGreaterThanZero, $$)
+      POP()
+      0
+
+    @lineCommandPenGreaterThanZero:
+
+    101
+    DUP2
+    SLT($$, $$)
+    JUMPI($lineCommandPenLessThan101, $$)
+      POP()
+      100
+
+    @lineCommandPenLessThan101:
+
+    ; put clipped pen in place
+    SWAP5
+    POP()
+
+  ; steep = abs(y1 - y0) > abs(x1 - x0)
+    ; abs(x1 - x0)
+      DUP1
+      DUP4
+      SUB($$, $$)
+      SAR(0xFF, DUP1)
+      DUP2
+      DUP2
+      ADD($$, $$)
+      XOR($$, $$)
+      SWAP1
+      POP()
+    ; abs(y1 - y0)
+      DUP3
+      DUP6
+      SUB($$, $$)
+      SAR(0xFF, DUP1)
+      DUP2
+      DUP2
+      ADD($$, $$)
+      XOR($$, $$)
+      SWAP1
+      POP()
+    GT($$, $$)
+
+  ; if steep:
+  JUMPI($lineCommandNoSteepSwap,   XOR(1, DUP1))
+    ; x0, y0 = y0, x0
+      DUP2
+      SWAP3
+      SWAP2
+      POP()
+
+    ; x1, y1 = y1, x1
+      DUP4
+      SWAP5
+      SWAP4
+      POP()
+
+  @lineCommandNoSteepSwap:
+  ; [steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+  ; if x0 > x1: (skip if x0 < x1)
+  DUP4
+  DUP3
+  SLT($$, $$)
+  JUMPI($lineCommandNoXSwap, $$)
+    ; x0, x1 = x1, x0
+      DUP2 
+      SWAP4
+      SWAP2
+      POP()
+    ; y0, y1 = y1, y0
+      DUP3
+      SWAP5
+      SWAP3
+      POP()
+
+  @lineCommandNoXSwap:
+  ; [steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+  ; if y0 < y1:
+  ;   ystep = 1
+  ; else:
+  ;   ystep = -1
+    DUP5
+    DUP4
+    SLT($$, $$)
+    DUP1
+    JUMPI($lineCommandYStepFound, $$)
+    NOT($$)
+
+  @lineCommandYStepFound:
+  ; [ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+  
+  ; deltax = x1 - x0
+    DUP3
+    DUP6
+    SUB($$, $$)
+  ; [deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+
+  ; deltay = abs(y1 - y0)
+    DUP5
+    DUP8
+    SUB($$, $$)
+    SAR(0xFF, DUP1)
+    DUP2
+    DUP2
+    ADD($$, $$)
+    XOR($$, $$)
+    SWAP1
+    POP()
+  ; [deltay|deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+  ; error = -deltax / 2
+    SAR(1, DUP2) ; divide by 2 first
+    ADD(1, NOT($$)) ; negative
+  ; [error|deltay|deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+  ; y = y0
+  ; for x in range(x0, x1 + 1):
+  ;     if steep:
+  ;         yield (y,x)
+  ;     else:
+  ;         yield (x,y)
+  ;   
+  ;     error = error + deltay
+  ;     if error > 0:
+  ;         y = y + ystep
+  ;         error = error - deltax
+  DUP7
+  DUP7
+
+  @lineCommandLoop:
+  ; [x|y|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+  ;;; skip the emit if (y < 0 or y > 100 or x < 0 or x > 100)
+  ;;;   --> we can actually simplify this to x > 100 | y > 100 if we used unsigned comparisons
+    100
+    DUP2
+    GT($$, $$)
+    100
+    DUP4
+    GT($$, $$)
+    JUMPI($lineCommandSkipEmit, OR($$, $$))
+
+  DUP2
+  DUP2
+  ; it's _actually_ [x, y at the head,
+  ; but steep means we skip the flip code, so flip here first
+  ; [yO|xO|x|y|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+  DUP9
+  JUMPI($lineCommandPostPotentialSteepOutputFlip, $$)
+  ; if we're "steep", we _skip_ this code, which is why
+  ; the initial yO / xO seem backwards...
+  SWAP1
+
+  @lineCommandPostPotentialSteepOutputFlip:
+  ; write actual data
+
+    MUL(104, $$)
+    ADD($$, $$)
+    DUP14
+    ADD($$, $$)
+    DUP13
+    SWAP1
+    MSTORE8($$, $$)
+
+  @lineCommandSkipEmit:
+
+
+  ; [x|y|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+  ;     error = error + deltay
+  ;     if error > 0: # skip block if !(error > 0)
+  ;         y = y + ystep
+  ;         error = error - deltax
+  DUP3
+  DUP5
+  ADD($$, $$)
+  0
+  DUP2
+  SGT($$, $$)
+  JUMPI($lineCommandPostErrorUpdate, XOR(1, $$))
+    ; [error'|x|y|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+    DUP3
+    DUP8
+    ADD($$, $$)
+    SWAP3
+    POP()
+
+    DUP6
+    SWAP1()
+    SUB($$, $$)
+
+  @lineCommandPostErrorUpdate:
+    ; error still top of stack, save it
+    SWAP3()
+    POP()
+
+
+  ; loop if x < (x1 + 1)
+  ADD(1, $$)
+  DUP1
+  ADD(1, DUP11)
+  SGT($$, $$)
+  JUMPI($lineCommandLoop, $$)
+
+
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  JUMP($$)
+
+
+  ;    y = y0
+  ;    for x in range(x0, x1 + 1):
+  ;        if steep:
+  ;            yield (y,x)
+  ;        else:
+  ;            yield (x,y)
+  ;
+  ;        error = error + deltay
+  ;        if error > 0:
+  ;            y = y + ystep
+  ;            error = error - deltax
+
+  STOP
