@@ -32,7 +32,7 @@ task("assemble-and-debug", "Assembles given file and evals with debugger attache
     const data = fs.readFileSync(file, 'utf-8');
     const parsed = asm.parse(data);
     const assembled = await asm.assemble(parsed, {});
-    console.log("Code Length: ", assembled.length - 2);
+    console.log("Code Length: ", (assembled.length - 2)/2);
     console.log("Code: ", assembled);
 
     const vm = new VM({

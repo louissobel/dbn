@@ -1,0 +1,65 @@
+; def:    setCommand
+; input:  [y|pixelDataOffset|x|color|return
+; output: [|
+; state:  assumes there is a valid bitmap of dim 101x101 at pixelDataOffset
+; notes:  
+@setCommand:
+  ; put a 100 on the stack for later
+  100  ; [100|y|pixelDataOffset|x|color
+
+  ; clip color to [0, 100]
+    DUP5 
+
+    ; [color|100|y|pixelDataOffset|x|color
+    0           ; [0|color|100|y|pixelDataOffset|x|color
+    DUP1        ; [0|0|color|100|y|pixelDataOffset|x|color
+    DUP3        ; [color|0|0|color|100|y|pixelDataOffset|x|color
+    SGT($$, $$) ; [color>0|0|color|100|y|pixelDataOffset|x|color
+    JUMPI($setCommandColorGreaterThanZero, $$)
+      ; otherwise, replace it with a zero
+      SWAP1
+    @setCommandColorGreaterThanZero:
+    POP()
+
+    ; [color|100|y|pixelDataOffset|x|color
+    DUP2        ; [100|color|100|y|pixelDataOffset|x|color
+    DUP1        ; [100|100|color|100|y|pixelDataOffset|x|color
+    DUP3        ; [color|100|100|color|100|y|pixelDataOffset|x|color
+    SLT($$, $$) ; [color<100|100|color|100|y|pixelDataOffset|x|color
+    JUMPI($setCommandColorLessThan100, $$)
+      ; otherwise, replace it with the 100
+      SWAP1
+    @setCommandColorLessThan100:
+    POP()
+
+    SWAP5
+    POP()
+
+  
+  ; abandon if x or y too big or too small
+  ; again taking advantage of unsigned comparison for negative
+  ; [100|y|pixelDataOffset|x|color
+
+  DUP1          ; [100|100|y|pixelDataOffset|x|color
+  DUP3          ; [y|100|100|y|pixelDataOffset|x|color
+  GT($$, $$)    ; [y>100|100|y|pixelDataOffset|x|color
+  SWAP1         ; [100|y>100|y|pixelDataOffset|x|color
+  DUP5          ; [x|100|y>100|y|pixelDataOffset|x|color
+  GT($$, $$)    ; [x>100|y>100|y|pixelDataOffset|x|color
+  OR($$, $$)    ; [x>100 or y>100|y|pixelDataOffset|x|color]
+  JUMPI($setCommandOutOfBounds, $$)
+  ; otherwise, draw!
+    ; [y|pixelDataOffset|x|color
+    MUL(104, $$)  ; [y*104|pixelDataOffset|x|color
+    ADD($$, $$)   ; [y*104+pixelDataOffset|x|color
+    ADD($$, $$)   ; [y*104+pixelDataOffset+x|color
+    MSTORE8($$, $$)
+    JUMP($$) ; return
+
+  @setCommandOutOfBounds:
+  ; [y|pixelDataOffset|x|color
+  POP()
+  POP()
+  POP()
+  POP()
+  JUMP($$)

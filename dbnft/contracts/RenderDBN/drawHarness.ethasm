@@ -1,0 +1,33 @@
+; Header / entry point for actually drawing
+
+; TODO: handle CALLDATA / value inbound...
+
+
+; Initialize the bitmap
+$postDrawHarnessInitializeBitmap
+101
+101
+0x40
+JUMP($initializeBitmap)
+@postDrawHarnessInitializeBitmap:
+
+; throw away the pixeldataoffset before diving in
+POP()
+
+JUMP($dbnDraw)
+@dbnDrawComplete:
+
+  ; return the string at 0x40
+  ; assumes string length on top of stack
+  ; sets up the ABI string return
+  DUP1
+  MSTORE(0x20, $$)
+  MSTORE(0x00, 0x20)
+
+  0x5F ; two bytes prefix, one more for rounding, then -1
+  ADD($$, $$)
+
+  ; "divide" by 32, then multiply by 32
+  SHR(0x05, $$)
+  SHL(0x05, $$)
+  RETURN(0, $$)

@@ -3,6 +3,7 @@ from optparse import OptionParser
 
 import parser
 from compiler import DBNCompiler, assemble
+from evm_compiler import DBNEVMCompiler
 from interpreter import DBNInterpreter, builtins
 
 import output
@@ -11,6 +12,8 @@ import threading
 option_parser = OptionParser()
 option_parser.add_option('-c', '--compile', action="store_true", dest="compile", help="compile code", default=False)
 option_parser.add_option('-n', '--numbers', action="store_true", dest="numbers", help="show opcode numbers", default=False)
+
+option_parser.add_option('-e', '--evm', action="store_true", dest="evm", help="compile to evm", default=False)
 
 option_parser.add_option('-f', '--file', action="store", dest="filename", help="file for output", default=None)
 option_parser.add_option('-t', '--trace', action="store_true", dest="trace", help="trace interpretation", default=False)
@@ -26,6 +29,16 @@ def compile_dbn(filename):
     assembly = assemble(compilation)
     return assembly
 
+def compile_dbn_evm(filename):
+    dbn_script = open(filename).read()
+    compiler = DBNEVMCompiler()
+
+    tokens = parser.tokenize(dbn_script)
+    dbn_ast = parser.parse(tokens)
+
+    return compiler.compile(dbn_ast)
+
+
 def run_dbn(bytecode):
     interpreter = DBNInterpreter(bytecode)
     interpreter.load(builtins)
@@ -36,22 +49,26 @@ if __name__ == "__main__":
     (options, args) = option_parser.parse_args()
 
     filename = args[0]
-    bytecode = compile_dbn(filename)
-
-    if options.compile:
-        for i, b in enumerate(bytecode):
-            print(i, b)
+    if options.evm:
+        print(compile_dbn_evm(filename))
 
     else:
-        interpreter = DBNInterpreter(bytecode)
-        interpreter.load(builtins)
+        bytecode = compile_dbn(filename)
 
-        if options.filename:
-            # save it
-            interpreter.run(trace=options.trace)
-            output.output_bmp(interpreter, options.filename)
+        if options.compile:
+            for i, b in enumerate(bytecode):
+                print(i, b)
 
         else:
-            threading.Thread(target = lambda: interpreter.run(trace=options.trace)).start()
-            output.draw_window(interpreter)
-        
+            interpreter = DBNInterpreter(bytecode)
+            interpreter.load(builtins)
+
+            if options.filename:
+                # save it
+                interpreter.run(trace=options.trace)
+                output.output_bmp(interpreter, options.filename)
+
+            else:
+                threading.Thread(target = lambda: interpreter.run(trace=options.trace)).start()
+                output.draw_window(interpreter)
+            

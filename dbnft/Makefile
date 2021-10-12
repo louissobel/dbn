@@ -1,4 +1,17 @@
 
+
+.PRECIOUS : artifacts/intermediate_ethasm/drawings/%.ethasm
+artifacts/intermediate_ethasm/drawings/%.ethasm : drawings/%.dbn $(wildcard ../pydbn/**/*)
+	python ../pydbn/dbn.py $< --evm > $@
+
+artifacts/drawings/%.ethasm : \
+	contracts/RenderDBN/drawHarness.ethasm \
+	artifacts/intermediate_ethasm/drawings/%.ethasm \
+	contracts/RenderDBN/initializeBitmap.ethasm \
+	contracts/RenderDBN/lineCommand.ethasm \
+	contracts/RenderDBN/setCommand.ethasm
+	cat $^ > $@
+
 artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm : \
 	contracts/RenderDBN/testHarness.ethasm \
 	contracts/RenderDBN/initializeBitmap.ethasm \
@@ -25,3 +38,4 @@ testLineCommand : artifacts/contracts/RenderDBNTestArtifact.eth
 
 .PHONY : test
 test : testbase64 testInitializeBitmap testLineCommand
+
