@@ -5,29 +5,12 @@
 ; notes:  
 @lineCommand:
   ; clip pen to [0, 100]
-    DUP5
-
-    0
-    DUP2
-    SGT($$, $$)
-    JUMPI($lineCommandPenGreaterThanZero, $$)
-      POP()
-      0
-
-    @lineCommandPenGreaterThanZero:
-
-    101
-    DUP2
-    SLT($$, $$)
-    JUMPI($lineCommandPenLessThan101, $$)
-      POP()
-      100
-
-    @lineCommandPenLessThan101:
-
-    ; put clipped pen in place
-    SWAP5
-    POP()
+  $postLineCommandClipColor
+  DUP6
+  JUMP($helperClipColor)
+  @postLineCommandClipColor:
+  SWAP5
+  POP()
 
   ; steep = abs(y1 - y0) > abs(x1 - x0)
     ; abs(x1 - x0)

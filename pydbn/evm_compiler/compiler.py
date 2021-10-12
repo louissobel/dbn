@@ -193,6 +193,8 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.handle_builtin_line(node)
         elif node.procedure_name.value == "Pen":
             self.handle_builtin_pen(node)
+        elif node.procedure_name.value == "Paper":
+            self.handle_builtin_paper(node)
         else:
             # TODO: clearly, handle other commands
             raise ValueError("can only handle Line / Pen right now")
@@ -223,6 +225,22 @@ class DBNEVMCompiler(DBNAstVisitor):
         # run the command!
         self.emit_jump('lineCommand')
         self.emit_label(label)
+
+    def handle_builtin_paper(self, node):
+        label = self.generate_label("postPaperCall")
+
+        self.emit_push_label(label)
+        self.emit_push(self.PIXEL_DATA_START)
+
+        if len(node.args) != 1:
+            raise self.invalid_argument_count("Paper", 1, len(node.args))
+
+        self.visit(node.args[0])
+
+        # run the command!
+        self.emit_jump('paperCommand')
+        self.emit_label(label)
+
 
     def invalid_argument_count(self, command_name, expected, got):
         return ValueError("%s expects %d arguments, got %d")

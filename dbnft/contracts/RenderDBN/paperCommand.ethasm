@@ -1,0 +1,43 @@
+; def:    paperCommand
+; input:  [color|pixelDataOffset|return
+; output: [|
+; state:  assumes there is a valid bitmap of dim 101x101 at pixelDataOffset
+; notes:  
+@paperCommand:
+  ; clip color to [0, 100]
+  $postPaperCommandClipColor
+  SWAP1
+  JUMP($helperClipColor)
+  @postPaperCommandClipColor:
+
+  ; [color|pixelDataOffset
+  0x0101010101010101010101010101010101010101010101010101010101010101
+  MUL($$, $$)
+
+  ; we need to write 101 * 104 = 10504 = 8 + 328*32 bytes
+  ; so first smash it into place
+  ; then set the cursor to 8 and tick up by 32
+  DUP1
+  DUP3
+  MSTORE($$, $$)
+
+  8
+  @paperCommandWriteLoop:
+    ; [dst|color|pixelDataOffset
+    DUP2            ; [color|dst|color|pixelDataOffset
+    DUP2            ; [dst|color|dst|color|pixelDataOffset
+    DUP5            ; [pixelDataOffset|dst|color|dst|color|pixelDataOffset
+    ADD($$, $$)     ; [pixelDataOffset+dst|color|dst|color|pixelDataOffset
+    MSTORE($$, $$)  ; [dst|color|pixelDataOffset
+    ADD(32, $$)     ; [dst+32|color|pixelDataOffset
+    10504           ; [10504|dst+32|color|pixelDataOffset
+    DUP2            ; [dst+32|10504|dst+32|color|pixelDataOffset
+    LT($$, $$)      ; [dst+32<10504|dst+32|color|pixelDataOffset
+    JUMPI($paperCommandWriteLoop, $$)
+
+  POP()
+  POP()
+  POP()
+  JUMP($$)
+
+  

@@ -8,7 +8,8 @@ SHR(0xF8, CALLDATALOAD(0))
 
 JUMPI($testBASE64ENCODE, EQ(0x64, DUP1))
 JUMPI($testInitializeBitmap, EQ(0xB1, DUP1))
-JUMPI($testLineComand, EQ(0x1E, DUP1))
+JUMPI($testLineCommand, EQ(0x1E, DUP1))
+JUMPI($testPaperCommand, EQ(0xAE, DUP1))
 JUMP($unknownTEST)
 
 @testInitializeBitmap:
@@ -31,7 +32,7 @@ JUMP($unknownTEST)
   JUMP($testStringReturn)
 
 
-@testLineComand:
+@testLineCommand:
   POP() ; Clear the test opcode
 
   ; x0, y0, x1, y1, pen, pixelDataOffset, ret
@@ -55,6 +56,30 @@ JUMP($unknownTEST)
   SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(1))) ;x0
   JUMP($lineCommand)
   @postTestLineCommandCall:
+
+  POP()
+  JUMP($testStringReturn)
+
+@testPaperCommand:
+  POP() ; Clear the test opcode
+
+  ; color, pixelDataOffset, ret
+
+  ; OK, let's create a bitmap first
+
+  $postTestPaperCommandInitializeBitmap
+  101
+  101
+  0x40
+  JUMP($initializeBitmap)
+  @postTestPaperCommandInitializeBitmap:
+
+  $postTestPaperCommandCall
+  ; input is interpreted as signed 7 bit integer!
+  DUP2
+  SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(1))) ;color
+  JUMP($paperCommand)
+  @postTestPaperCommandCall:
 
   POP()
   JUMP($testStringReturn)

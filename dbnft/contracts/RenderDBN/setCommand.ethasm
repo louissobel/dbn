@@ -5,41 +5,20 @@
 ; notes:  
 @setCommand:
   ; put a 100 on the stack for later
-  100  ; [100|y|pixelDataOffset|x|color
 
   ; clip color to [0, 100]
-    DUP5 
-
-    ; [color|100|y|pixelDataOffset|x|color
-    0           ; [0|color|100|y|pixelDataOffset|x|color
-    DUP1        ; [0|0|color|100|y|pixelDataOffset|x|color
-    DUP3        ; [color|0|0|color|100|y|pixelDataOffset|x|color
-    SGT($$, $$) ; [color>0|0|color|100|y|pixelDataOffset|x|color
-    JUMPI($setCommandColorGreaterThanZero, $$)
-      ; otherwise, replace it with a zero
-      SWAP1
-    @setCommandColorGreaterThanZero:
-    POP()
-
-    ; [color|100|y|pixelDataOffset|x|color
-    DUP2        ; [100|color|100|y|pixelDataOffset|x|color
-    DUP1        ; [100|100|color|100|y|pixelDataOffset|x|color
-    DUP3        ; [color|100|100|color|100|y|pixelDataOffset|x|color
-    SLT($$, $$) ; [color<100|100|color|100|y|pixelDataOffset|x|color
-    JUMPI($setCommandColorLessThan100, $$)
-      ; otherwise, replace it with the 100
-      SWAP1
-    @setCommandColorLessThan100:
-    POP()
-
-    SWAP5
-    POP()
+  $postSetCommandClipColor
+  DUP5
+  JUMP($helperClipColor)
+  @postSetCommandClipColor:
+  SWAP4
+  POP()
 
   
   ; abandon if x or y too big or too small
   ; again taking advantage of unsigned comparison for negative
-  ; [100|y|pixelDataOffset|x|color
-
+  ; [y|pixelDataOffset|x|color
+  100           ; [100|y|pixelDataOffset|x|color
   DUP1          ; [100|100|y|pixelDataOffset|x|color
   DUP3          ; [y|100|100|y|pixelDataOffset|x|color
   GT($$, $$)    ; [y>100|100|y|pixelDataOffset|x|color
