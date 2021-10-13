@@ -1,7 +1,10 @@
+import sys
+
 from . import structures
 from parser.structures.ast_nodes import *
 from parser import DBNAstVisitor
 
+from .symbol_collector import SymbolCollector
 
 def compile(node, *args, **kwargs):
     compiler = DBNEVMCompiler()
@@ -17,10 +20,24 @@ class DBNEVMCompiler(DBNAstVisitor):
     0x0040 : [bitmap starts...]
     .... (bitmap is 40 + 14 + 404 + 101*104 = 10962 long)
     0x2B20 : Pen
+    0x2B40 : Env Pointer
+    0x2B60 : Env start
     """
     BITMAP_BASE = 0x40
     PIXEL_DATA_START = BITMAP_BASE + 14 + 40 + 404
     PEN_ADDRESS = 0x2B20
+
+    ENV_POINTER_ADDRESS = 0x2B40
+    FIRST_ENV_ADDRESS = 0x2B60
+
+    """
+    Env layout:
+    0x00 : 256 bit bitmap of "variable present"
+    0x20 : parent env pointer
+    0x40 : beginning of env values
+    ...
+
+    """
 
 
     # other constants
@@ -36,13 +53,13 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.label_prefix_counts[prefix] = count + 1
         return label_name
 
-    def add_label(self, label):
-        """
-        does not generate a label
-        """
-        self.code.append(label)
-
     def compile(self, node, **kwargs):
+        variables = SymbolCollector().collect_symbols(node)
+        self.symbol_mapping = dict(
+            (s, i) for i, s in enumerate(variables)
+        )
+        print(self.symbol_mapping, file=sys.stderr)
+
         self.lines = []
         self.label_prefix_counts = {}
 
@@ -105,6 +122,12 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_raw("MSTORE(%d, %d)" % (self.PEN_ADDRESS, self.INITIAL_PEN_VALUE))
 
 
+        self.emit_comment("initialize base environment at %d" % self.FIRST_ENV_ADDRESS)
+        # save the first env address to the env pointer
+        self.emit_raw("MSTORE(%d, %d)" % (self.ENV_POINTER_ADDRESS, self.FIRST_ENV_ADDRESS))
+        # initialization is just setting the bitmap to 0xFF...FF
+        self.emit_raw("MSTORE(%d, NOT(0))" % self.FIRST_ENV_ADDRESS)
+
         # Emit some comments about the memory layout?
         self.visit_block_node(node)
 
@@ -138,7 +161,39 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.emit_label(label)
 
         elif isinstance(left, DBNWordNode):
-            self.add('STORE', left.value)
+            # Skip setting the bitmap for now...
+
+            # Get the value on the stack
+            self.visit(node.right)
+            self.handle_env_set(left.value)
+
+    def visit_word_node(self, node):
+        # TODO: handle climbing the env
+        # But for now... assume that it is always there
+        # address is *ENV_POINTER_ADDRESS + (2 + index)*32
+        self.handle_env_get_assuming_present(node.value)
+
+    def handle_env_set(self, symbol):
+        """
+        assumes value to set is top of stack
+        """
+        # address is *ENV_POINTER_ADDRESS + (2 + index)*32
+        self.emit_raw("MLOAD(%d)" % self.ENV_POINTER_ADDRESS)
+
+        # TODO: better error message for unexpected symbol
+        index = self.symbol_mapping[symbol]
+
+        # TODO: toggle the bitmap!
+
+        self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))
+        self.emit_raw("MSTORE($$, $$)")
+
+    def handle_env_get_assuming_present(self, symbol):
+        self.emit_raw("MLOAD(%d)" % self.ENV_POINTER_ADDRESS)
+        # TODO: better error message for unexpected symbol
+        index = self.symbol_mapping[symbol]
+        self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))
+        self.emit_raw("MLOAD($$)")
 
     def visit_repeat_node(self, node):
         self.emit_line_no(node.line_no)
@@ -146,20 +201,58 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.visit(node.end)
         self.visit(node.start)
 
-        # body entry - [end, current]
-        body_entry_label = self.generate_label('repeat_body_entry')
+        # [start|end
 
-        # mark current location
-        self.add_label(body_entry_label)
+        ## figure out the step
+        # assume it's 1
+        self.emit_push(1) # [1|start|end
+        # and if end > start, we're correct!
+        self.emit_opcode("DUP2") # [start|1|start|end
+        self.emit_opcode("DUP4") # [end|start|1|start|end
+        self.emit_opcode("SGT($$, $$)") # [end>start|1|start|end
 
-        # dup current for store
-        self.add('DUP_TOPX', 1)
-        self.add('STORE', node.var.value)
+        body_entry_label = self.generate_label("repeatBodyEntry")
 
+        self.emit_jumpi(body_entry_label)
+        # but if end <= start, flip it to -1
+        self.emit_raw("SUB(0, $$)")
+
+        ##### loop entry
+        # [step|value|end
+        self.emit_label(body_entry_label)
+
+        # set value in the environment
+        self.emit_raw("DUP2")
+        self.handle_env_set(node.var.value)
+
+        # and then the body itself!
         self.visit(node.body)
 
-        # logic for repeat end is done inside interpreter
-        self.add('REPEAT_STEP', body_entry_label)
+        # and now loop!
+        # stack will still be
+        # [step|value|end
+        # if value == end, exit
+        self.emit_raw("DUP2") # [value|step|value|end
+        self.emit_raw("DUP4") # [end|value|step|value|end
+        self.emit_raw("EQ($$, $$)") # [end=value|step|value|end
+
+        loop_end = self.generate_label("repeatDone")
+        self.emit_jumpi(loop_end)
+
+        # but otherwise, increment (or decrement) and loop!
+        # [step|value|end
+        self.emit_raw("DUP1") # [step|step|value|end
+        self.emit_raw("SWAP2") # [value|step|step|end
+        self.emit_raw("ADD($$, $$)") # [value+step|step|end
+        self.emit_raw("SWAP1") # [step|value+step|end
+        self.emit_jump(body_entry_label)
+
+
+        self.emit_label(loop_end)
+        # clean up stack
+        self.emit_raw("POP()")
+        self.emit_raw("POP()")
+        self.emit_raw("POP()")
 
     def visit_question_node(self, node):
         self.emit_line_no(node.line_no)
@@ -167,20 +260,30 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.visit(node.right)
         self.visit(node.left)
 
+        # map to comparison and "flip" if we flip the JUMPI input
         questions = {
-            'Same': ('COMPARE_SAME', 'POP_JUMP_IF_FALSE'),
-            'NotSame': ('COMPARE_SAME', 'POP_JUMP_IF_TRUE'),
-            'Smaller': ('COMPARE_SMALLER', 'POP_JUMP_IF_FALSE'),
-            'NotSmaller': ('COMPARE_SMALLER', 'POP_JUMP_IF_TRUE'),
+            # Same --> jump around if not same
+            'Same': ('EQ($$, $$)', True),
+
+            # NotSame --> jump around if same
+            'NotSame': ('EQ($$, $$)', False),
+
+            # Smaller --> jump around if not smaller
+            'Smaller': ('SLT($$, $$)', True),
+
+            # Smaller --> jump around if smaller
+            'NotSmaller': ('SLT($$, $$)', False),
         }
-        compare_op, jump_op = questions[node.value]
-        self.add(compare_op)
 
-        after_body_label = self.generate_label('question_after_body')
-        self.add(jump_op, after_body_label)
+        compare_op, should_flip = questions[node.value]
+        self.emit_raw(compare_op)
+        if should_flip:
+            self.emit_raw("XOR(1, $$)")
 
+        after_body_label = self.generate_label('questionAfterBody')
+        self.emit_jumpi(after_body_label)
         self.visit(node.body)
-        self.add_label(after_body_label)
+        self.emit_label(after_body_label)
 
     def visit_procedure_call_node(self, node):
         if node.procedure_type == 'command':
@@ -195,9 +298,14 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.handle_builtin_pen(node)
         elif node.procedure_name.value == "Paper":
             self.handle_builtin_paper(node)
+        elif node.procedure_name.value == "DEBUGGER":
+            label = self.generate_label("debug")
+
+            # TODO: add some kind of option to make this throw
+            self.emit_raw("@%s [0xdd]" % label)
         else:
             # TODO: clearly, handle other commands
-            raise ValueError("can only handle Line / Pen right now")
+            raise ValueError("can only handle Line / Pen / Paper right now")
 
     def handle_builtin_pen(self, node):
         if len(node.args) != 1:
@@ -240,7 +348,6 @@ class DBNEVMCompiler(DBNAstVisitor):
         # run the command!
         self.emit_jump('paperCommand')
         self.emit_label(label)
-
 
     def invalid_argument_count(self, command_name, expected, got):
         return ValueError("%s expects %d arguments, got %d")
@@ -291,18 +398,15 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.visit(node.left)
 
         ops = {
-            '+': 'BINARY_ADD',
-            '-': 'BINARY_SUB',
-            '/': 'BINARY_DIV',
-            '*': 'BINARY_MUL',
+            '+': 'ADD($$, $$)',
+            '-': 'SUB($$, $$)',
+            '/': 'SDIV($$, $$)', # TODO: what about zero?
+            '*': 'MUL($$, $$)',
         }
-        self.add(ops[node.value])
+        self.emit_raw(ops[node.value])
 
     def visit_number_node(self, node):
         self.emit_push(node.value)
-
-    def visit_word_node(self, node):
-        self.add('LOAD', node.value)
 
     def visit_noop_node(self, node):
         pass #NOOP
