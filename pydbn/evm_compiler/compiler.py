@@ -1,4 +1,6 @@
 import sys
+import contextlib
+
 
 from . import structures
 from parser.structures.ast_nodes import *
@@ -69,9 +71,24 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.lines = []
         self.label_prefix_counts = {}
 
+        # Initially, we _know_ all variables are present in the Env;
+        # if we are not in a command then they all default to present
+        self.symbols_known_to_be_in_env = symbol_collector.variables
+
         self.visit(node)
         return "\n".join(self.lines)
 
+    @contextlib.contextmanager
+    def new_set_of_symbols_known_to_be_in_env(self, new_set):
+        old_set = self.symbols_known_to_be_in_env
+        self.symbols_known_to_be_in_env = new_set
+        yield
+        self.symbols_known_to_be_in_env = old_set
+
+    @contextlib.contextmanager
+    def new_symbol_known_to_be_in_env(self, new_symbol):
+        with self.new_set_of_symbols_known_to_be_in_env({new_symbol} | self.symbols_known_to_be_in_env):
+            yield
 
     def emit_comment(self, comment):
         # TODO: escape the comment?
@@ -155,14 +172,15 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_comment("initialize pen to %d" % self.INITIAL_PEN_VALUE)
         self.emit_raw("MSTORE(%d, %d)" % (self.PEN_ADDRESS, self.INITIAL_PEN_VALUE))
 
-
         self.emit_comment("initialize base environment at %d" % self.FIRST_ENV_ADDRESS)
         # save the first env address to the env pointer
         self.emit_raw("MSTORE(%d, %d)" % (self.ENV_POINTER_ADDRESS, self.FIRST_ENV_ADDRESS))
         # initialization is just setting the bitmap to 0xFF...FF
         self.emit_raw("MSTORE(%d, NOT(0))" % self.FIRST_ENV_ADDRESS)
 
-        # Emit some comments about the memory layout?
+        # TODO: Emit some comments about the memory layout?
+
+
         self.visit_block_node(node)
 
         self.emit_newline()
@@ -172,8 +190,21 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_newline()
 
     def visit_block_node(self, node):
-        for sub_node in node.children:
-            self.visit(sub_node)
+        symbols_known_to_be_in_env_for_this_block = self.symbols_known_to_be_in_env.copy()
+        with self.new_set_of_symbols_known_to_be_in_env(symbols_known_to_be_in_env_for_this_block):
+            for sub_node in node.children:
+                self.visit(sub_node)
+
+                # If we set a variable in a block, for the remainder of the block
+                # we can later assume that that variable is present
+                # (and use optimized read path)
+                if self.is_variable_set(sub_node):
+                    symbol = sub_node.left.value
+                    print("setting %s in a block..." % symbol, file=sys.stderr)
+                    symbols_known_to_be_in_env_for_this_block.add(symbol)
+
+    def is_variable_set(self, node):
+        return isinstance(node, DBNSetNode) and isinstance(node.left, DBNWordNode)
 
     def visit_set_node(self, node):
         self.emit_line_no(node.line_no)
@@ -202,7 +233,13 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.handle_env_set(left.value)
 
     def visit_word_node(self, node):
-        self.handle_env_get(node.value)
+        symbol = node.value
+        if symbol in self.symbols_known_to_be_in_env:
+            self.handle_env_get_known_present(symbol)
+            print("Local get %s, known present: %s" % (symbol, self.symbols_known_to_be_in_env), file=sys.stderr)
+        else:
+            self.handle_env_get(symbol)
+            print("NON LOCAL get %s, known present: %s" % (symbol, self.symbols_known_to_be_in_env), file=sys.stderr)
 
     def handle_env_set(self, symbol):
         """
@@ -226,7 +263,11 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))
         self.emit_raw("MSTORE($$, $$)")
 
-    def handle_env_get_assuming_present(self, symbol):
+    def handle_env_get_known_present(self, symbol):
+        """
+        Optimization for formal args, repeat args, etc
+        where we don't need to check the bitmap / climb the env
+        """
         # TODO: better error message for unexpected symbol
         index = self.symbol_mapping[symbol]
 
@@ -282,7 +323,9 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.handle_env_set(node.var.value)
 
         # and then the body itself!
-        self.visit(node.body)
+        # while we visit it, we _know_ the var is set
+        with self.new_symbol_known_to_be_in_env(node.var.value):
+            self.visit(node.body)
 
         # and now loop!
         # stack will still be
@@ -503,8 +546,9 @@ class DBNEVMCompiler(DBNAstVisitor):
     def visit_procedure_definition_node(self, node):
         self.emit_line_no(node.line_no)
 
+        dfn = self.procedure_definitions_by_name[node.procedure_name.value]
         procedure_start_label = self.generate_label('userProcedureDefinition')
-        self.procedure_definitions_by_name[node.procedure_name.value].label = procedure_start_label
+        dfn.label = procedure_start_label
 
         after_procedure_label = self.generate_label('afterUserProcedureDefinition')
 
@@ -513,9 +557,10 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         self.emit_label(procedure_start_label)
 
-        # TODO: while we're visiting the body, we can
-        # _assume_ that the formal args are set, we should track that
-        self.visit(node.body)
+        # While we're visiting the body, we _know_
+        # that the formal args will always be set
+        with self.new_set_of_symbols_known_to_be_in_env(set(dfn.args)):
+            self.visit(node.body)
 
         # TODO: emit default return value if it is a Number?
         # self.add('LOAD_INTEGER', 0)
