@@ -5,6 +5,7 @@ from parser.structures.ast_nodes import *
 from parser import DBNAstVisitor
 
 from .symbol_collector import SymbolCollector
+from .opcodes import *
 
 def compile(node, *args, **kwargs):
     compiler = DBNEVMCompiler()
@@ -39,9 +40,9 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     """
 
-
     # other constants
     INITIAL_PEN_VALUE = 100
+    BUILTIN_COMMANDS = {'Line', 'Pen', 'Paper'}
 
 
     def generate_label(self, prefix):
@@ -54,17 +55,19 @@ class DBNEVMCompiler(DBNAstVisitor):
         return label_name
 
     def compile(self, node, **kwargs):
-        variables = SymbolCollector().collect_symbols(node)
+        symbol_collector = SymbolCollector().collect_symbols(node)
         self.symbol_mapping = dict(
-            (s, i) for i, s in enumerate(variables)
+            (s, i) for i, s in enumerate(symbol_collector.variables)
         )
         print(self.symbol_mapping, file=sys.stderr)
 
+        self.procedure_definitions_by_name = {
+            dfn.name : dfn for dfn in symbol_collector.procedure_definitions
+        }
+        print(self.procedure_definitions_by_name, file=sys.stderr)
+
         self.lines = []
         self.label_prefix_counts = {}
-
-        self.emit_comment("DBN drawing")
-        self.emit_newline()
 
         self.visit(node)
         return "\n".join(self.lines)
@@ -74,11 +77,17 @@ class DBNEVMCompiler(DBNAstVisitor):
         # TODO: escape the comment?
         self.lines.append("; %s" % comment)
 
+    def emit_debug(self):
+        label = self.generate_label("debug")
+
+        # TODO: add some kind of option to make this throw
+        self.emit_raw("@%s [0xdd]" % label)
+
     def emit_newline(self):
         self.lines.append("")
 
     def emit_opcode(self, opcode):
-        self.lines.append(opcode)
+        self.lines.append(opcode.ethasm_format())
         return self
 
     def emit_push(self, literal):
@@ -101,6 +110,29 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.lines.append("JUMPI($%s, $$)" % label)
         return self
 
+    def emit_bit_for_index(self, index):
+        """
+        gets 1 << index onto the stack
+        chooses between:
+         - index in [0, 7]:   PUSH1(1 << index) (2 bytes)
+         - index in [8, 15]:  PUSH2(1 << index) (3 bytes)
+         - index in [16, 23]: PUSH3(1 << index) (4 bytes)
+         - else:              SHL(index, 1):   (PUSH1(1), PUSH1(index), SHL) (5 bytes)
+        """
+        if index > 255:
+            raise ValueError("index mustn't be greater than 255!! too many variables?")
+
+        if index <= 23:
+            self.emit_push(1 << index)
+        else:
+            # TODO: need to make sure I cover this in a test, it means a lot of variables!
+            self.emit_raw("SHL(%d, 1)" % index)
+        return self
+
+    def emit_load_env_base(self):
+        self.emit_raw("MLOAD(%d)" % self.ENV_POINTER_ADDRESS)
+        return self
+
     def emit_line_no(self, line_no):
         # just comment for now
         # TODO: debug node where we spit this out for real?
@@ -116,6 +148,8 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     def visit_program_node(self, node):
         self.emit_comment(";;;;;;; DBN Drawing!")
+        self.emit_newline()
+
         self.emit_label('dbnDraw')
 
         self.emit_comment("initialize pen to %d" % self.INITIAL_PEN_VALUE)
@@ -168,32 +202,54 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.handle_env_set(left.value)
 
     def visit_word_node(self, node):
-        # TODO: handle climbing the env
-        # But for now... assume that it is always there
-        # address is *ENV_POINTER_ADDRESS + (2 + index)*32
-        self.handle_env_get_assuming_present(node.value)
+        self.handle_env_get(node.value)
 
     def handle_env_set(self, symbol):
         """
         assumes value to set is top of stack
         """
-        # address is *ENV_POINTER_ADDRESS + (2 + index)*32
-        self.emit_raw("MLOAD(%d)" % self.ENV_POINTER_ADDRESS)
 
         # TODO: better error message for unexpected symbol
         index = self.symbol_mapping[symbol]
 
-        # TODO: toggle the bitmap!
+        self.emit_load_env_base()  # [env_base|value
 
+        # toggle bitmap
+        self.emit_opcode(DUP1)          # [env_base|env_base
+        self.emit_opcode(MLOAD)         # [bitmap|env_base
+        self.emit_bit_for_index(index)  # [bit|bitmap|env_base
+        self.emit_opcode(OR)            # [new_bitmap|env_base
+        self.emit_opcode(DUP2)          # [env_base|new_bitmap|env_base
+        self.emit_opcode(MSTORE)        # [env_base
+
+        # address is env_base + (2 + index)*32
         self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))
         self.emit_raw("MSTORE($$, $$)")
 
     def handle_env_get_assuming_present(self, symbol):
-        self.emit_raw("MLOAD(%d)" % self.ENV_POINTER_ADDRESS)
         # TODO: better error message for unexpected symbol
         index = self.symbol_mapping[symbol]
+
+        self.emit_load_env_base()
         self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))
         self.emit_raw("MLOAD($$)")
+
+    def handle_env_get(self, symbol):
+        """
+        call helper function, which takes args
+        [env_base|bit|wordoffset
+        """
+        # TODO: better error message for unexpected symbol
+        index = self.symbol_mapping[symbol]
+        label = self.generate_label("afterEnvGetCall")
+
+        self.emit_push_label(label)       # return
+        self.emit_push((2 + index) * 32)  # wordoffset
+        self.emit_bit_for_index(index)    # bit
+        self.emit_load_env_base()         # env_base
+        self.emit_jump('envGet')
+        self.emit_label(label)
+
 
     def visit_repeat_node(self, node):
         self.emit_line_no(node.line_no)
@@ -207,9 +263,9 @@ class DBNEVMCompiler(DBNAstVisitor):
         # assume it's 1
         self.emit_push(1) # [1|start|end
         # and if end > start, we're correct!
-        self.emit_opcode("DUP2") # [start|1|start|end
-        self.emit_opcode("DUP4") # [end|start|1|start|end
-        self.emit_opcode("SGT($$, $$)") # [end>start|1|start|end
+        self.emit_opcode(DUP2) # [start|1|start|end
+        self.emit_opcode(DUP4) # [end|start|1|start|end
+        self.emit_opcode(SGT) # [end>start|1|start|end
 
         body_entry_label = self.generate_label("repeatBodyEntry")
 
@@ -222,7 +278,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_label(body_entry_label)
 
         # set value in the environment
-        self.emit_raw("DUP2")
+        self.emit_opcode(DUP2)
         self.handle_env_set(node.var.value)
 
         # and then the body itself!
@@ -232,27 +288,27 @@ class DBNEVMCompiler(DBNAstVisitor):
         # stack will still be
         # [step|value|end
         # if value == end, exit
-        self.emit_raw("DUP2") # [value|step|value|end
-        self.emit_raw("DUP4") # [end|value|step|value|end
-        self.emit_raw("EQ($$, $$)") # [end=value|step|value|end
+        self.emit_opcode(DUP2) # [value|step|value|end
+        self.emit_opcode(DUP4) # [end|value|step|value|end
+        self.emit_opcode(EQ) # [end=value|step|value|end
 
         loop_end = self.generate_label("repeatDone")
         self.emit_jumpi(loop_end)
 
         # but otherwise, increment (or decrement) and loop!
         # [step|value|end
-        self.emit_raw("DUP1") # [step|step|value|end
-        self.emit_raw("SWAP2") # [value|step|step|end
-        self.emit_raw("ADD($$, $$)") # [value+step|step|end
-        self.emit_raw("SWAP1") # [step|value+step|end
+        self.emit_opcode(DUP1) # [step|step|value|end
+        self.emit_opcode(SWAP2) # [value|step|step|end
+        self.emit_opcode(ADD) # [value+step|step|end
+        self.emit_opcode(SWAP1) # [step|value+step|end
         self.emit_jump(body_entry_label)
 
 
         self.emit_label(loop_end)
         # clean up stack
-        self.emit_raw("POP()")
-        self.emit_raw("POP()")
-        self.emit_raw("POP()")
+        self.emit_opcode(POP)
+        self.emit_opcode(POP)
+        self.emit_opcode(POP)
 
     def visit_question_node(self, node):
         self.emit_line_no(node.line_no)
@@ -263,20 +319,20 @@ class DBNEVMCompiler(DBNAstVisitor):
         # map to comparison and "flip" if we flip the JUMPI input
         questions = {
             # Same --> jump around if not same
-            'Same': ('EQ($$, $$)', True),
+            'Same': (EQ, True),
 
             # NotSame --> jump around if same
-            'NotSame': ('EQ($$, $$)', False),
+            'NotSame': (EQ, False),
 
             # Smaller --> jump around if not smaller
-            'Smaller': ('SLT($$, $$)', True),
+            'Smaller': (SLT, True),
 
             # Smaller --> jump around if smaller
-            'NotSmaller': ('SLT($$, $$)', False),
+            'NotSmaller': (SLT, False),
         }
 
         compare_op, should_flip = questions[node.value]
-        self.emit_raw(compare_op)
+        self.emit_opcode(compare_op)
         if should_flip:
             self.emit_raw("XOR(1, $$)")
 
@@ -292,20 +348,112 @@ class DBNEVMCompiler(DBNAstVisitor):
             # TODO: handle numbers
             raise ValueError("can only handle commands right now!")
 
-        if node.procedure_name.value == "Line":
+        procedure_name = node.procedure_name.value
+        if procedure_name == "Line":
             self.handle_builtin_line(node)
-        elif node.procedure_name.value == "Pen":
+        elif procedure_name == "Pen":
             self.handle_builtin_pen(node)
-        elif node.procedure_name.value == "Paper":
+        elif procedure_name == "Paper":
             self.handle_builtin_paper(node)
-        elif node.procedure_name.value == "DEBUGGER":
-            label = self.generate_label("debug")
-
-            # TODO: add some kind of option to make this throw
-            self.emit_raw("@%s [0xdd]" % label)
+        elif procedure_name == "DEBUGGER":
+            self.emit_debug()
         else:
-            # TODO: clearly, handle other commands
-            raise ValueError("can only handle Line / Pen / Paper right now")
+            """
+            Ok: calling discipline
+            Caller:
+             - pushes return address on the stack
+             - mints a fresh environment
+                - bitmap is zero
+                - parent is set
+             - copies in formal args
+            Callee:
+             - promises to jump back to return address!
+            Caller:
+             - pops away the environment
+
+            """
+            # TODO: better error messages!!
+            try:
+                dfn = self.procedure_definitions_by_name[procedure_name]
+            except KeyError:
+                raise ValueError("no definition for %s" % procedure_name)
+
+            if dfn.label is None:
+                raise ValueError("%s not yet defined" % procedure_name)
+
+            if len(node.args) != len(dfn.args):
+                # TODO: line numbers!
+                raise ValueError("%s expects %d args, got %d" % (
+                    procedure_name,
+                    len(dfn.args),
+                    len(node.args),
+                ))
+
+            post_call_label = self.generate_label('postUserProcedureCall')
+
+            # Return value
+            self.emit_push_label(post_call_label)
+
+            # Get args on stack (in reverse order)
+            for arg in reversed(node.args):
+                self.visit(arg)
+
+            # Ok, initialize new environment
+
+            # Load current ENV_BASE.
+            self.emit_load_env_base()                              # [old_env_base
+            self.emit_opcode(DUP1)                                 # [old_env_base|old_env_base 
+            next_env_increment = (2 + len(self.symbol_mapping)) * 32
+            self.emit_raw("ADD(%d, $$)" % next_env_increment)      # [new_env_base|old_env_base
+
+            # We need to
+            #  a) store old_env_base in new_env_base+32 (parent pointer)
+            #  b) save the new env base _back_ to the ENV_POINTER_ADDRESS
+            #  c) initialize new_env_base to the new bitmap
+            #  d) save the new variables in the env
+            self.emit_opcode(SWAP1)     # [old_env_base|new_env_base
+            self.emit_opcode(DUP2)      # [new_env_base|old_env_base|new_env_base
+            self.emit_raw("ADD(32, $$)")# [new_env_base+32|old_env_base|new_env_base
+            self.emit_opcode(MSTORE)    # [new_env_base
+
+            self.emit_opcode(DUP1)      # [new_env_base|new_env_base
+            self.emit_raw("MSTORE(%d, $$)" % self.ENV_POINTER_ADDRESS) # [new_env_base
+
+            # build the bitmap
+            if not dfn.args:
+                self.emit_push(0)           # [0|new_env_base
+            else:
+                for i, symbol in enumerate(dfn.args):
+                    index = self.symbol_mapping[symbol] # TODO: better error message?
+                    self.emit_bit_for_index(index)
+
+                    if i != 0:
+                        self.emit_opcode(OR)
+
+            self.emit_opcode(DUP2)     # [new_env_base|new_bitmap|new_env_base
+            self.emit_opcode(MSTORE)   # [new_env_base
+
+            # Store the arguments!
+            # Currently on the stack with the top being the first, etc
+            # We don't use the same code as "Set" handling because we
+            # already have the bitmap set and the env_base on the stack
+            for symbol in dfn.args:                                 # [new_env_base|arg*
+                index = self.symbol_mapping[symbol] # TODO: better error message?
+                self.emit_opcode(SWAP1)                             # [arg*|new_env_base
+                self.emit_opcode(DUP2)                              # [new_env_base|arg*|new_env_base
+                self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))   # [env_location|arg*|new_env_base
+                self.emit_raw("MSTORE($$, $$)")                     # [new_env_base|arg*
+            self.emit_opcode(POP)                                   # [
+
+            self.emit_jump(dfn.label)
+            self.emit_label(post_call_label)
+
+            # Post Call:
+            #  - reset current env to the parent env
+            self.emit_load_env_base()
+            self.emit_raw("ADD(32, $$)")
+            self.emit_opcode(MLOAD)
+            self.emit_raw("MSTORE(%d, $$)" % self.ENV_POINTER_ADDRESS)
 
     def handle_builtin_pen(self, node):
         if len(node.args) != 1:
@@ -355,28 +503,25 @@ class DBNEVMCompiler(DBNAstVisitor):
     def visit_procedure_definition_node(self, node):
         self.emit_line_no(node.line_no)
 
-        procedure_start_label = self.generate_label('procedure_%s_definition_%s' % (node.value, node.procedure_name.value))
-        after_procedure_label = self.generate_label('after_procedure_definition')
+        procedure_start_label = self.generate_label('userProcedureDefinition')
+        self.procedure_definitions_by_name[node.procedure_name.value].label = procedure_start_label
 
-        for arg in reversed(node.args):
-            self.add('LOAD_STRING', arg.value)
-        self.add('LOAD_STRING', node.procedure_name.value)
-
-        self.add('LOAD_INTEGER', procedure_start_label)
-        self.add('LOAD_STRING', node.procedure_type)
-        self.add('DEFINE_PROCEDURE', len(node.args))
+        after_procedure_label = self.generate_label('afterUserProcedureDefinition')
 
         # Move execution to after the procedure body
-        self.add('JUMP', after_procedure_label)
+        self.emit_jump(after_procedure_label)
 
-        self.add_label(procedure_start_label)
+        self.emit_label(procedure_start_label)
+
+        # TODO: while we're visiting the body, we can
+        # _assume_ that the formal args are set, we should track that
         self.visit(node.body)
 
-        # Implicitly add fallback return 0
-        self.add('LOAD_INTEGER', 0)
-        self.add('RETURN')
+        # TODO: emit default return value if it is a Number?
+        # self.add('LOAD_INTEGER', 0)
+        self.emit_raw('JUMP($$)')
 
-        self.add_label(after_procedure_label)
+        self.emit_label(after_procedure_label)
 
     def visit_value_node(self, node):
         self.emit_line_no(node.line_no)
@@ -398,12 +543,12 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.visit(node.left)
 
         ops = {
-            '+': 'ADD($$, $$)',
-            '-': 'SUB($$, $$)',
-            '/': 'SDIV($$, $$)', # TODO: what about zero?
-            '*': 'MUL($$, $$)',
+            '+': ADD,
+            '-': SUB,
+            '/': SDIV, # TODO: what about zero?
+            '*': MUL,
         }
-        self.emit_raw(ops[node.value])
+        self.emit_opcode(ops[node.value])
 
     def visit_number_node(self, node):
         self.emit_push(node.value)

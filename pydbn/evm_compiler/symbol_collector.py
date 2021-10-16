@@ -1,15 +1,17 @@
 from parser.structures.ast_nodes import *
 from parser import DBNAstVisitor
 
+from .structures import ProcedureDefinition
+
 class SymbolCollector(DBNAstVisitor):
 
     def collect_symbols(self, node):
-        # just collect variables for now, but
-        # we could also use this visitor to collect
-        # command calls, command definitions?
+        self.procedure_definitions = set()
         self.variables = set()
+        self.called_procedures = set()
+
         self.visit(node)
-        return self.variables
+        return self
 
     ####
     # Visitor methods
@@ -38,12 +40,22 @@ class SymbolCollector(DBNAstVisitor):
         self.visit(node.body)
 
     def visit_procedure_call_node(self, node):
+        self.called_procedures.add(node.procedure_name.value)
+
         for arg in node.args:
             self.visit(arg)
 
     def visit_procedure_definition_node(self, node):
+        formal_args = []
         for arg in node.args:
-            self.visit(arg)
+            formal_args.append(arg.value)
+            self.variables.add(arg.value)
+
+        self.procedure_definitions.add(ProcedureDefinition(
+            node.procedure_name.value,
+            formal_args,
+            node.procedure_type == 'number',
+        ))
 
         self.visit(node.body)
 

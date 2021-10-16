@@ -1,0 +1,29 @@
+; def:    envGet
+; input:  [env_base|bit|wordoffset|ret
+; output: [value
+; state:  <none>
+; notes:  climbs environment looking for the variable given by combination
+;         of "bit" and wordoffset, remembering the structure of an env:
+;         {bitmap|parent_env|vars...}
+;         Assumes that eventually, some base env will always have a result!
+@envGet:
+  ; load the bitmap
+  DUP1        ; [env_base|env_base|bit|wordoffset
+  MLOAD($$)   ; [bitmap|env_base|bit|wordoffset
+  DUP3        ; [bit|bitmap|env_base|bit|wordoffset
+  AND($$, $$) ; [found|env_base|bit|wordoffset
+  JUMPI($envGetFound, $$)
+  ; otherwise, loop
+  ; [env_base|bit|wordoffset
+  ADD(0x20, $$) ; [env_base+32|bit|wordoffset
+  MLOAD($$)     ; [parent_env_base|bit|wordoffset
+  JUMP($envGet)
+
+@envGetFound:
+  ; [env_base|bit|wordoffset|ret
+  SWAP1        ; [bit|env_base|wordoffset|ret
+  POP()        ; [env_base|wordoffset|ret
+  ADD($$, $$)  ; [value_addr|ret
+  MLOAD($$)    ; [value|ret
+  SWAP1        ; [ret|value
+  JUMP($$)

@@ -11,7 +11,8 @@ artifacts/drawings/%.ethasm : \
 	contracts/RenderDBN/lineCommand.ethasm \
 	contracts/RenderDBN/setCommand.ethasm \
 	contracts/RenderDBN/paperCommand.ethasm \
-	contracts/RenderDBN/clipColor.ethasm
+	contracts/RenderDBN/clipColor.ethasm \
+	contracts/RenderDBN/envGet.ethasm
 	cat $^ > $@
 
 artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm : \
