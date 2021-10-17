@@ -1,0 +1,31 @@
+Pen 100
+Line 0 50 100 50
+Line 50 0 50 100
+
+// Background
+Repeat X 0 49 {
+	Repeat Y 0 49 {
+		Set [X Y] ((4*(X + Y))/3)
+	}
+}
+
+// Mask
+Pen 100
+Repeat H 0 25 {
+	Line 20 (70+H) (30 + H/2) (70+H)
+}
+
+
+// Copy background where mask set
+Repeat Xp 0 49 {
+	Repeat Yp 0 49 {
+		Set M [Xp (Yp + 51)]
+		Set V [Xp Yp]
+		Same? M 100 {
+			Set [(Xp + 51) (Yp + 51)] V
+		}
+		NotSame? M 100 {
+			Set [(Xp + 51) Yp] V
+		}
+	}
+}

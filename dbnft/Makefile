@@ -1,9 +1,6 @@
 
 
-.PRECIOUS : artifacts/intermediate_ethasm/drawings/%.ethasm
-artifacts/intermediate_ethasm/drawings/%.ethasm : drawings/%.dbn $(wildcard ../pydbn/**/*)
-	python ../pydbn/dbn.py $< --evm > $@
-
+.PRECIOUS : artifacts/drawings/%.ethasm
 artifacts/drawings/%.ethasm : \
 	contracts/RenderDBN/drawHarness.ethasm \
 	artifacts/intermediate_ethasm/drawings/%.ethasm \
@@ -14,6 +11,9 @@ artifacts/drawings/%.ethasm : \
 	contracts/RenderDBN/clipColor.ethasm \
 	contracts/RenderDBN/envGet.ethasm
 	cat $^ > $@
+
+
+# Unit tests
 
 artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm : \
 	contracts/RenderDBN/testHarness.ethasm \
@@ -45,6 +45,31 @@ testLineCommand : artifacts/contracts/RenderDBNTestArtifact.eth
 testPaperCommand : artifacts/contracts/RenderDBNTestArtifact.eth
 	hh test ./test/draw-paperCommand-test.js
 
-.PHONY : test
-test : testbase64 testInitializeBitmap testLineCommand testPaperCommand
+.PHONY : unitTest
+unitTest : testbase64 testInitializeBitmap testLineCommand testPaperCommand
 
+# Drawing Tests
+test/drawings/%/actual.bmp: artifacts/drawings/test/%.ethasm
+	hh assemble-and-run --file $< --output-file $@
+
+artifacts/intermediate_ethasm/drawings/test/%.ethasm : test/drawings/%/input.dbn $(wildcard ../pydbn/**/*)
+	python ../pydbn/dbn.py $< --evm > $@
+
+TEST ?= *
+.PHONY : drawingTest
+drawingTest : $(foreach f, $(wildcard test/drawings/${TEST}), $f/actual.bmp)
+	./scripts/drawing-test.sh $^
+
+.PHONY : test
+test : drawingTest unitTest
+
+
+
+
+.PHONY : clean
+clean:
+	rm -f artifacts/intermediate_ethasm/*.ethasm
+	rm -f artifacts/intermediate_ethasm/drawings/*.ethasm
+
+	rm -f artifacts/drawings/*.ethasm
+	rm -f artifacts/drawings/test/*.ethasm

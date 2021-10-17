@@ -1,7 +1,7 @@
 require("@nomiclabs/hardhat-waffle");
 
 require("./tasks/assemble")
-require("./tasks/assemble-and-debug")
+require("./tasks/assemble-and-run")
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more

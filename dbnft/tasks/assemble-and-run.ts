@@ -8,7 +8,7 @@ import InteractiveDebugger from './interactive_debugger'
 
 import { task } from "hardhat/config";
 
-task("assemble-and-debug", "Assembles given file and evals with debugger attached")
+task("assemble-and-run", "Assembles given file and evals with debugger attached")
   .addParam(
     "file",
     "The file containing ethers.js ASM",
@@ -25,19 +25,27 @@ task("assemble-and-debug", "Assembles given file and evals with debugger attache
     "resultAsString",
     "Render the result as EVM ABI string",
   )
+  .addFlag(
+    "debug",
+    "enable the debugger",
+  )
   .setAction(async (params) => {
 
-    const { file } = params;
+    const { file, debug } = params;
 
     const data = fs.readFileSync(file, 'utf-8');
     const parsed = asm.parse(data);
     const assembled = await asm.assemble(parsed, {});
     console.log("Code Length: ", (assembled.length - 2)/2);
-    console.log("Code: ", assembled);
+    // console.log("Code: ", assembled);
 
-    const vm = new VM({
-      interpreterDebugger: new InteractiveDebugger(),
-    })
+    var vmOpts = {}
+    if (debug) {
+      vmOpts = {
+        interpreterDebugger: new InteractiveDebugger(),
+      }
+    }
+    const vm = new VM(vmOpts)
 
     const runOpts = {
       code: Buffer.from(assembled.slice(2), 'hex'),

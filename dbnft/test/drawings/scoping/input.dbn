@@ -1,0 +1,34 @@
+// Things I want to confirm:
+//  * Args get set / read
+//  * Dynamic scope lookup
+//  * Local var set / get
+//    (new and same name as enclosing)
+//  * Multiple stack frames
+//  * We pop frames
+//  * Recursion?
+
+
+Command MakeXCommand X0 Y0 Depth {
+  Pen (100 - Depth * 50)
+
+  Line X0 Y0 X1 Y1
+
+  Same? Depth 0 {
+    Set NewX0 (X0 / 2 + 25)
+    Set NewY0 (Y1 / 2 + 25)
+    Set X1 (X1 / 2 + 25)
+    Set Y1 (Y0 / 2 + 25)
+    MakeXCommand NewX0 NewY0 1
+  }
+}
+
+Paper 0
+Pen 100
+
+Set X1 100
+Set Y1 100
+
+
+MakeXCommand 0 0 0
+Pen 100
+Line 0 Y1 X1 Y1

@@ -1,0 +1,28 @@
+
+Command Square B L W Color {
+	Pen Color
+	Repeat X L (L+W-1) {
+		Line X B X (B+W-1)
+	}
+}
+
+Command Sierpinski B L W {
+	NotSmaller? W 3 {
+		Set nextW (W/3)
+
+		Square (B+nextW) (L+nextW) nextW Color
+
+		Sierpinski B L nextW
+		Sierpinski (B+nextW) L nextW
+		Sierpinski (B + 2*nextW) L nextW
+		Sierpinski (B + 2*nextW) (L+nextW) nextW
+		Sierpinski (B + 2*nextW) (L + 2*nextW) nextW
+		Sierpinski (B + nextW) (L + 2*nextW) nextW
+		Sierpinski B (L + 2*nextW) nextW
+		Sierpinski B (L+nextW) nextW
+	}
+}
+
+Paper 10
+Set Color 100
+Sierpinski 10 10 81

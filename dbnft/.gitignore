@@ -4,3 +4,8 @@ node_modules
 #Hardhat files
 cache
 artifacts
+
+
+test/drawings/*/actual.bmp
+test/drawings/*/diff.png
+scratch_drawings/

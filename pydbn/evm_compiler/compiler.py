@@ -46,6 +46,8 @@ class DBNEVMCompiler(DBNAstVisitor):
     INITIAL_PEN_VALUE = 100
     BUILTIN_COMMANDS = {'Line', 'Pen', 'Paper'}
 
+    def __init__(self, verbose=False):
+        self.verbose = verbose
 
     def generate_label(self, prefix):
         """
@@ -56,17 +58,21 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.label_prefix_counts[prefix] = count + 1
         return label_name
 
-    def compile(self, node, **kwargs):
+    def log(self, message):
+        if self.verbose:
+            print(message, file=sys.stderr)
+
+    def compile(self, node):
         symbol_collector = SymbolCollector().collect_symbols(node)
         self.symbol_mapping = dict(
             (s, i) for i, s in enumerate(symbol_collector.variables)
         )
-        print(self.symbol_mapping, file=sys.stderr)
+        self.log(self.symbol_mapping)
 
         self.procedure_definitions_by_name = {
             dfn.name : dfn for dfn in symbol_collector.procedure_definitions
         }
-        print(self.procedure_definitions_by_name, file=sys.stderr)
+        self.log(self.procedure_definitions_by_name)
 
         self.lines = []
         self.label_prefix_counts = {}
@@ -200,7 +206,7 @@ class DBNEVMCompiler(DBNAstVisitor):
                 # (and use optimized read path)
                 if self.is_variable_set(sub_node):
                     symbol = sub_node.left.value
-                    print("setting %s in a block..." % symbol, file=sys.stderr)
+                    self.log("setting %s in a block..." % symbol)
                     symbols_known_to_be_in_env_for_this_block.add(symbol)
 
     def is_variable_set(self, node):
@@ -236,10 +242,10 @@ class DBNEVMCompiler(DBNAstVisitor):
         symbol = node.value
         if symbol in self.symbols_known_to_be_in_env:
             self.handle_env_get_known_present(symbol)
-            print("Local get %s, known present: %s" % (symbol, self.symbols_known_to_be_in_env), file=sys.stderr)
+            self.log("Local get %s, known present: %s" % (symbol, self.symbols_known_to_be_in_env))
         else:
             self.handle_env_get(symbol)
-            print("NON LOCAL get %s, known present: %s" % (symbol, self.symbols_known_to_be_in_env), file=sys.stderr)
+            self.log("NON LOCAL get %s, known present: %s" % (symbol, self.symbols_known_to_be_in_env))
 
     def handle_env_set(self, symbol):
         """
@@ -578,10 +584,18 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.add('LOAD_CODE', node.value)
 
     def visit_bracket_node(self, node):
-        self.visit(node.right)
+        # get the stack to be
+        # [y|x
         self.visit(node.left)
-
-        self.add('GET_DOT')
+        self.visit(node.right)
+        # Y*104 + X is the byte
+        self.emit_raw("MUL(104, $$)")
+        self.emit_opcode(ADD)
+        self.emit_push(self.PIXEL_DATA_START)
+        self.emit_opcode(ADD)
+        self.emit_opcode(MLOAD)
+        # then move over all but the first byte
+        self.emit_raw("SHR(%d, $$)" % (8 * 31))
 
     def visit_binary_op_node(self, node):
         self.visit(node.right)

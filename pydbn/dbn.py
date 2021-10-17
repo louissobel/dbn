@@ -18,6 +18,8 @@ option_parser.add_option('-e', '--evm', action="store_true", dest="evm", help="c
 option_parser.add_option('-f', '--file', action="store", dest="filename", help="file for output", default=None)
 option_parser.add_option('-t', '--trace', action="store_true", dest="trace", help="trace interpretation", default=False)
 
+option_parser.add_option('-v', '--verbose', action="store_true", dest="verbose", help="lots of outpt to stderr", default=False)
+
 def compile_dbn(filename):
     dbn_script = open(filename).read()
     compiler = DBNCompiler()
@@ -29,9 +31,9 @@ def compile_dbn(filename):
     assembly = assemble(compilation)
     return assembly
 
-def compile_dbn_evm(filename):
+def compile_dbn_evm(filename, verbose=False):
     dbn_script = open(filename).read()
-    compiler = DBNEVMCompiler()
+    compiler = DBNEVMCompiler(verbose=verbose)
 
     tokens = parser.tokenize(dbn_script)
     dbn_ast = parser.parse(tokens)
@@ -50,7 +52,7 @@ if __name__ == "__main__":
 
     filename = args[0]
     if options.evm:
-        print(compile_dbn_evm(filename))
+        print(compile_dbn_evm(filename, verbose=options.verbose))
 
     else:
         bytecode = compile_dbn(filename)
