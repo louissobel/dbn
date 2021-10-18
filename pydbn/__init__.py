@@ -7,3 +7,4 @@ sys.path.insert(0, os.path.dirname(__file__))
 import parser
 import compiler
 import interpreter
+import evm_compiler

@@ -30,5 +30,19 @@ def index():
         return str(e)
 
 
+@app.route('/evm_compile', methods=('POST',))
+def evm_compile():
+    dbn_script = flask.request.stream.read().decode("utf-8")
+    print(dbn_script)
+    tokens = pydbn.parser.tokenize(dbn_script)
+    print(tokens)
+    dbn_ast = pydbn.parser.parse(tokens)
+    print(dbn_ast)
+    compiler = pydbn.evm_compiler.DBNEVMCompiler(verbose=True)
+    compilation = compiler.compile(dbn_ast)
+    return compilation
+
+
+
 if __name__ == "__main__":
     app.run('0.0.0.0', port=4000)

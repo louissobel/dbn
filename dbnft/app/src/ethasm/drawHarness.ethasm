@@ -1,0 +1,542 @@
+; Header / entry point for actually drawing
+
+; TODO: handle CALLDATA / value inbound...
+
+
+; Initialize the bitmap
+$postDrawHarnessInitializeBitmap
+101
+101
+0x40
+JUMP($initializeBitmap)
+@postDrawHarnessInitializeBitmap:
+
+; throw away the pixeldataoffset before diving in
+POP()
+
+JUMP($dbnDraw)
+@dbnDrawComplete:
+
+  ; return the string at 0x40
+  ; assumes string length on top of stack
+  ; sets up the ABI string return
+  DUP1
+  MSTORE(0x20, $$)
+  MSTORE(0x00, 0x20)
+
+  0x5F ; two bytes prefix, one more for rounding, then -1
+  ADD($$, $$)
+
+  ; "divide" by 32, then multiply by 32
+  SHR(0x05, $$)
+  SHL(0x05, $$)
+  RETURN(0, $$)
+
+
+; def:    intializeBitmap
+; input:  [dst|width|height|return
+; output: [pixelDataStart|length
+; state:  <none>
+; notes:  does not initialize the pixel data itself; if this is called
+;         at the end of touched memory that's fine (all zeros)
+;         but otherwise could be problematic
+@initializeBitmap:
+  ; get image size
+  
+  ; get row width
+  ; row width dynamic, padded to 4byte multiple
+  ; ((width + 4 - 1) // 4) * 4
+  ADD(3, DUP2)
+  SHR(2, $$)
+  SHL(2, $$)
+
+  MUL(DUP4, $$)
+  ; $1 is pixel (byte, given 8-bit) count
+  ; 14 + 40 + 404(color table)
+  ; key number (pixel offset, etc)
+  ADD(458, $$)
+
+  ; $1 is filesize
+
+  ; Get first 30 bytes in place
+  ; template
+  ; (bitmap is little endian :...)
+  ; B M | len   |  res  |  off  |  siz  |  wid  |  hei  |pl |bpp|###
+  0x424d0000000000000000ca010000280000000000000000000000010008000000
+
+  ; 3 things to inject
+  ; length (at << 26 bytes)
+  ; width  (at << 10 bytes)
+  ; height (at << 6 bytes)
+  ; BUT; bitmap is little endian, so we:
+
+  ; Fix endianess for length
+  SHL(24, AND(0x000000FF, DUP2))
+  SHL(8, AND(0x0000FF00, DUP3))
+  SHR(8, AND(0x00FF0000, DUP4))
+  SHR(24, AND(0xFF000000, DUP5))
+  OR($$, $$)
+  OR($$, $$)
+  OR($$, $$)
+
+  ; and then push it over
+  SHL(208, $$)
+
+  ;  - assume height / width <= 255 :grimace:
+  ;  - push over by an extra 24 bits
+  SHL(104, DUP5)
+  SHL(72, DUP7)
+  OR($$, $$)
+  OR($$, $$)
+  OR($$, $$)
+
+  DUP3
+  MSTORE($$, $$)
+  ; increment dst
+  ADD(30, DUP2)
+  SWAP2
+  POP()
+
+  ; 24 more header bytes
+  ; again, remember we're little endian
+  ; | comp  | isize | xppm  | yppm  | colors|  impt 
+  0x000000000000000000000000000000006500000000000000
+  SHL(64, $$)
+  DUP3
+  MSTORE($$, $$)
+  ADD(24, DUP2)
+  SWAP2
+  POP()
+
+  ; Fill in the color table...
+  ; 101 entries
+  0    ; index
+  @initializeBitmapColorTableFill:
+    ; palette index is "DBN" color : [0, 100]
+    ; map that to [0, 255] via:
+    ; 255 - ((255 * c) / 100)
+    100
+    MUL(0xFF, DUP2)
+    DIV($$, $$)
+    SUB(255, $$)
+
+    ; $1 now has the byte, but we need to triple it (RGB_)
+    SHL(8, $$)
+    SHL(8, DUP1)
+    SHL(8, DUP1)
+    OR($$, $$)
+    OR($$, $$)
+
+    ; $1 is the four byte palette
+    SHL(224, $$)
+    SHL(2, DUP2)
+    DUP5
+    ADD($$, $$)
+    MSTORE($$, $$)
+
+    ; Increment index
+    ADD(1, $$)
+    GT(101, DUP1)
+    JUMPI($initializeBitmapColorTableFill, $$)
+    POP()
+
+  ; Increment dst after color table
+  ADD(404, DUP2)
+  SWAP2
+  POP()
+
+  ; Watch out!
+  ; We don't zero out the memory...
+
+  ; [len|pixelDataStart|height|width|ret
+  SWAP2
+
+  ; [height|pixelDataStart|len|width|ret
+  POP()
+  ; [pixelDataStart|len|width|ret
+  SWAP2
+  ; [width|len|pixelDataStart|ret
+  POP()
+  ; [len|pixelDataStart|ret
+  SWAP2
+
+
+  ; [ret|pixelDataStart|length
+  JUMP($$); def:    lineCommand
+; input:  [x0|y0|x1|y1|pen|pixelDataOffset|ret
+; output: [|
+; state:  assumes there is a valid bitmap of dim 101x101 at pixelDataOffset
+; notes:  
+@lineCommand:
+  ; clip pen to [0, 100]
+  $postLineCommandClipColor
+  DUP6
+  JUMP($helperClipColor)
+  @postLineCommandClipColor:
+  SWAP5
+  POP()
+
+  ; steep = abs(y1 - y0) > abs(x1 - x0)
+    ; abs(x1 - x0)
+      DUP1
+      DUP4
+      SUB($$, $$)
+      SAR(0xFF, DUP1)
+      DUP2
+      DUP2
+      ADD($$, $$)
+      XOR($$, $$)
+      SWAP1
+      POP()
+    ; abs(y1 - y0)
+      DUP3
+      DUP6
+      SUB($$, $$)
+      SAR(0xFF, DUP1)
+      DUP2
+      DUP2
+      ADD($$, $$)
+      XOR($$, $$)
+      SWAP1
+      POP()
+    GT($$, $$)
+
+  ; if steep:
+  JUMPI($lineCommandNoSteepSwap,   XOR(1, DUP1))
+    ; x0, y0 = y0, x0
+      DUP2
+      SWAP3
+      SWAP2
+      POP()
+
+    ; x1, y1 = y1, x1
+      DUP4
+      SWAP5
+      SWAP4
+      POP()
+
+  @lineCommandNoSteepSwap:
+  ; [steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+  ; if x0 > x1: (skip if x0 < x1)
+  DUP4
+  DUP3
+  SLT($$, $$)
+  JUMPI($lineCommandNoXSwap, $$)
+    ; x0, x1 = x1, x0
+      DUP2 
+      SWAP4
+      SWAP2
+      POP()
+    ; y0, y1 = y1, y0
+      DUP3
+      SWAP5
+      SWAP3
+      POP()
+
+  @lineCommandNoXSwap:
+  ; [steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+  ; if y0 < y1:
+  ;   ystep = 1
+  ; else:
+  ;   ystep = -1
+    DUP5
+    DUP4
+    SLT($$, $$)
+    DUP1
+    JUMPI($lineCommandYStepFound, $$)
+    NOT($$)
+
+  @lineCommandYStepFound:
+  ; [ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+  
+  ; deltax = x1 - x0
+    DUP3
+    DUP6
+    SUB($$, $$)
+  ; [deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+
+  ; deltay = abs(y1 - y0)
+    DUP5
+    DUP8
+    SUB($$, $$)
+    SAR(0xFF, DUP1)
+    DUP2
+    DUP2
+    ADD($$, $$)
+    XOR($$, $$)
+    SWAP1
+    POP()
+  ; [deltay|deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+  ; error = -deltax / 2
+    SAR(1, DUP2) ; divide by 2 first
+    ADD(1, NOT($$)) ; negative
+  ; [error|deltay|deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+  ; y = y0
+  ; for x in range(x0, x1 + 1):
+  ;     if steep:
+  ;         yield (y,x)
+  ;     else:
+  ;         yield (x,y)
+  ;   
+  ;     error = error + deltay
+  ;     if error > 0:
+  ;         y = y + ystep
+  ;         error = error - deltax
+  DUP7
+  DUP7
+
+  @lineCommandLoop:
+  ; [x|y|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+  ;;; skip the emit if (y < 0 or y > 100 or x < 0 or x > 100)
+  ;;;   --> we can actually simplify this to x > 100 | y > 100 if we used unsigned comparisons
+    100
+    DUP2
+    GT($$, $$)
+    100
+    DUP4
+    GT($$, $$)
+    JUMPI($lineCommandSkipEmit, OR($$, $$))
+
+  DUP2
+  DUP2
+  ; it's _actually_ [x, y at the head,
+  ; but steep means we skip the flip code, so flip here first
+  ; [yO|xO|x|y|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+  DUP9
+  JUMPI($lineCommandPostPotentialSteepOutputFlip, $$)
+  ; if we're "steep", we _skip_ this code, which is why
+  ; the initial yO / xO seem backwards...
+  SWAP1
+
+  @lineCommandPostPotentialSteepOutputFlip:
+  ; write actual data
+
+    MUL(104, $$)
+    ADD($$, $$)
+    DUP14
+    ADD($$, $$)
+    DUP13
+    SWAP1
+    MSTORE8($$, $$)
+
+  @lineCommandSkipEmit:
+
+
+  ; [x|y|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+
+  ;     error = error + deltay
+  ;     if error > 0: # skip block if !(error > 0)
+  ;         y = y + ystep
+  ;         error = error - deltax
+  DUP3
+  DUP5
+  ADD($$, $$)
+  0
+  DUP2
+  SGT($$, $$)
+  JUMPI($lineCommandPostErrorUpdate, XOR(1, $$))
+    ; [error'|x|y|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|pen|pixelDataOffset|ret
+    DUP3
+    DUP8
+    ADD($$, $$)
+    SWAP3
+    POP()
+
+    DUP6
+    SWAP1()
+    SUB($$, $$)
+
+  @lineCommandPostErrorUpdate:
+    ; error still top of stack, save it
+    SWAP3()
+    POP()
+
+
+  ; loop if x < (x1 + 1)
+  ADD(1, $$)
+  DUP1
+  ADD(1, DUP11)
+  SGT($$, $$)
+  JUMPI($lineCommandLoop, $$)
+
+
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  JUMP($$)
+
+
+  ;    y = y0
+  ;    for x in range(x0, x1 + 1):
+  ;        if steep:
+  ;            yield (y,x)
+  ;        else:
+  ;            yield (x,y)
+  ;
+  ;        error = error + deltay
+  ;        if error > 0:
+  ;            y = y + ystep
+  ;            error = error - deltax
+
+  STOP
+  ; def:    setCommand
+; input:  [y|pixelDataOffset|x|color|return
+; output: [|
+; state:  assumes there is a valid bitmap of dim 101x101 at pixelDataOffset
+; notes:  
+@setCommand:
+  ; put a 100 on the stack for later
+
+  ; clip color to [0, 100]
+  $postSetCommandClipColor
+  DUP5
+  JUMP($helperClipColor)
+  @postSetCommandClipColor:
+  SWAP4
+  POP()
+
+  
+  ; abandon if x or y too big or too small
+  ; again taking advantage of unsigned comparison for negative
+  ; [y|pixelDataOffset|x|color
+  100           ; [100|y|pixelDataOffset|x|color
+  DUP1          ; [100|100|y|pixelDataOffset|x|color
+  DUP3          ; [y|100|100|y|pixelDataOffset|x|color
+  GT($$, $$)    ; [y>100|100|y|pixelDataOffset|x|color
+  SWAP1         ; [100|y>100|y|pixelDataOffset|x|color
+  DUP5          ; [x|100|y>100|y|pixelDataOffset|x|color
+  GT($$, $$)    ; [x>100|y>100|y|pixelDataOffset|x|color
+  OR($$, $$)    ; [x>100 or y>100|y|pixelDataOffset|x|color]
+  JUMPI($setCommandOutOfBounds, $$)
+  ; otherwise, draw!
+    ; [y|pixelDataOffset|x|color
+    MUL(104, $$)  ; [y*104|pixelDataOffset|x|color
+    ADD($$, $$)   ; [y*104+pixelDataOffset|x|color
+    ADD($$, $$)   ; [y*104+pixelDataOffset+x|color
+    MSTORE8($$, $$)
+    JUMP($$) ; return
+
+  @setCommandOutOfBounds:
+  ; [y|pixelDataOffset|x|color
+  POP()
+  POP()
+  POP()
+  POP()
+  JUMP($$)
+; def:    paperCommand
+; input:  [color|pixelDataOffset|return
+; output: [|
+; state:  assumes there is a valid bitmap of dim 101x101 at pixelDataOffset
+; notes:  
+@paperCommand:
+  ; clip color to [0, 100]
+  $postPaperCommandClipColor
+  SWAP1
+  JUMP($helperClipColor)
+  @postPaperCommandClipColor:
+
+  ; [color|pixelDataOffset
+  0x0101010101010101010101010101010101010101010101010101010101010101
+  MUL($$, $$)
+
+  ; we need to write 101 * 104 = 10504 = 8 + 328*32 bytes
+  ; so first smash it into place
+  ; then set the cursor to 8 and tick up by 32
+  DUP1
+  DUP3
+  MSTORE($$, $$)
+
+  8
+  @paperCommandWriteLoop:
+    ; [dst|color|pixelDataOffset
+    DUP2            ; [color|dst|color|pixelDataOffset
+    DUP2            ; [dst|color|dst|color|pixelDataOffset
+    DUP5            ; [pixelDataOffset|dst|color|dst|color|pixelDataOffset
+    ADD($$, $$)     ; [pixelDataOffset+dst|color|dst|color|pixelDataOffset
+    MSTORE($$, $$)  ; [dst|color|pixelDataOffset
+    ADD(32, $$)     ; [dst+32|color|pixelDataOffset
+    10504           ; [10504|dst+32|color|pixelDataOffset
+    DUP2            ; [dst+32|10504|dst+32|color|pixelDataOffset
+    LT($$, $$)      ; [dst+32<10504|dst+32|color|pixelDataOffset
+    JUMPI($paperCommandWriteLoop, $$)
+
+  POP()
+  POP()
+  POP()
+  JUMP($$)
+
+  ; def:    helperClipColor
+; input:  [color|return
+; output: [color|
+; notes:  clips the color to [0, 100]
+@helperClipColor:
+  ; [color
+  0           ; [0|color
+  DUP1        ; [0|0|color
+  DUP3        ; [color|0|0|color
+  SGT($$, $$) ; [color>0|0|color
+  JUMPI($helperClipColorGreaterThanZero, $$)
+    ; otherwise, replace it with a zero
+    SWAP1
+  @helperClipColorGreaterThanZero:
+  POP()
+
+  ; [color
+  100         ; [100|color
+  DUP1        ; [100|100|color
+  DUP3        ; [color|100|100|color
+  SLT($$, $$) ; [color<100|100|color
+  JUMPI($helperClipColorLessThan100, $$)
+    ; otherwise, replace it with the 100
+    SWAP1
+  @helperClipColorLessThan100:
+  POP()
+
+  SWAP1
+  JUMP($$)
+
+; def:    envGet
+; input:  [env_base|bit|wordoffset|ret
+; output: [value
+; state:  <none>
+; notes:  climbs environment looking for the variable given by combination
+;         of "bit" and wordoffset, remembering the structure of an env:
+;         {bitmap|parent_env|vars...}
+;         Assumes that eventually, some base env will always have a result!
+@envGet:
+  ; load the bitmap
+  DUP1        ; [env_base|env_base|bit|wordoffset
+  MLOAD($$)   ; [bitmap|env_base|bit|wordoffset
+  DUP3        ; [bit|bitmap|env_base|bit|wordoffset
+  AND($$, $$) ; [found|env_base|bit|wordoffset
+  JUMPI($envGetFound, $$)
+  ; otherwise, loop
+  ; [env_base|bit|wordoffset
+  ADD(0x20, $$) ; [env_base+32|bit|wordoffset
+  MLOAD($$)     ; [parent_env_base|bit|wordoffset
+  JUMP($envGet)
+
+@envGetFound:
+  ; [env_base|bit|wordoffset|ret
+  SWAP1        ; [bit|env_base|wordoffset|ret
+  POP()        ; [env_base|wordoffset|ret
+  ADD($$, $$)  ; [value_addr|ret
+  MLOAD($$)    ; [value|ret
+  SWAP1        ; [ret|value
+  JUMP($$)

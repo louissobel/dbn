@@ -547,7 +547,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_label(label)
 
     def invalid_argument_count(self, command_name, expected, got):
-        return ValueError("%s expects %d arguments, got %d")
+        return ValueError("%s expects %d arguments, got %d" % (command_name, expected, got))
 
     def visit_procedure_definition_node(self, node):
         self.emit_line_no(node.line_no)
