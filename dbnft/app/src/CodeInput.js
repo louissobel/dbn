@@ -1,56 +1,62 @@
-import React from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 
 import Navbar from 'react-bootstrap/Navbar';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Button from 'react-bootstrap/Button';
 
-class CodeInput extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      code: ""
-    };
+import {useHotkeys} from 'react-hotkeys-hook'
+
+export default function CodeInput(props) {
+
+  const [code, setCode] = useState("")
+  const textarea = useRef(null)
+
+  useHotkeys('command+enter', () => {
+    props.onRun(code)
+  }, {
+    enableOnTags: ['TEXTAREA']
+  });
+
+  useEffect(() => {
+    // TODO: always focus?
+    textarea.current.focus()
+  });
+
+  function onCodeChange(e) {
+    setCode(e.target.value)
   }
 
-  onCodeChange(e) {
-    this.setState({
-      code:  e.target.value,
-    })
+  function onRunPress() {
+    props.onRun(code)
   }
 
-  onRun(e) {
-    this.props.onRun(this.state.code)
-  }
-
-  render() {
-    return (
-      <div className="code-input-holder">
-        <Row>
-          <Col>
-            <textarea
-              className="code-input"
-              cols="50"
-              disabled={this.props.disabled}
-              value={this.state.code}
-              onChange={this.onCodeChange.bind(this)}
-            />
-          </Col>
-        </Row>
-        <Row>
-          <Col>
-            <Button 
-              variant="primary"
-              disabled={this.props.disabled}
-              onClick={this.onRun.bind(this)}
-            >
-              Run
-            </Button>
-          </Col>
-        </Row>
-      </div>
-    )
-  }
+  return (
+    <div className="code-input-holder">
+      <Row>
+        <Col>
+          <textarea
+            ref={textarea}
+            className="code-input"
+            cols="50"
+            rows="12"
+            disabled={props.disabled}
+            value={code}
+            onChange={onCodeChange}
+          />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          <Button 
+            variant="primary"
+            disabled={props.disabled}
+            onClick={onRunPress}
+          >
+            Run
+          </Button>
+        </Col>
+      </Row>
+    </div>
+  )
 }
-
-export default CodeInput;
