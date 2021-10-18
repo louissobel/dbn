@@ -1,9 +1,6 @@
 
-
-.PRECIOUS : artifacts/drawings/%.ethasm
-artifacts/drawings/%.ethasm : \
+artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm : \
 	contracts/RenderDBN/drawHarness.ethasm \
-	artifacts/intermediate_ethasm/drawings/%.ethasm \
 	contracts/RenderDBN/initializeBitmap.ethasm \
 	contracts/RenderDBN/lineCommand.ethasm \
 	contracts/RenderDBN/setCommand.ethasm \
@@ -11,6 +8,20 @@ artifacts/drawings/%.ethasm : \
 	contracts/RenderDBN/clipColor.ethasm \
 	contracts/RenderDBN/envGet.ethasm
 	cat $^ > $@
+
+.PRECIOUS : artifacts/drawings/%.ethasm
+artifacts/drawings/%.ethasm : \
+	artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm \
+	artifacts/intermediate_ethasm/drawings/%.ethasm
+	cat $^ > $@
+
+
+app/src/ethasm/drawHarness.ethasm : artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm
+	cp $^ $@
+
+
+.PHONY : frontend
+frontend: app/src/ethasm/drawHarness.ethasm
 
 
 # Unit tests
@@ -62,8 +73,6 @@ drawingTest : $(foreach f, $(wildcard test/drawings/${TEST}), $f/actual.bmp)
 
 .PHONY : test
 test : drawingTest unitTest
-
-
 
 
 .PHONY : clean

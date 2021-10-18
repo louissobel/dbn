@@ -1,10 +1,5 @@
 import React from 'react';
 
-import Navbar from 'react-bootstrap/Navbar';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
-import Button from 'react-bootstrap/Button';
-
 class ImageViewer extends React.Component {
   constructor(props) {
     super(props);
@@ -33,7 +28,7 @@ class ImageViewer extends React.Component {
     const url = URL.createObjectURL(this.props.imageData)
     img.onload = function() {
       context.drawImage(img, 0, 0, 303, 303)
-    }.bind(this)
+    }
     img.src = url;
   }
 
