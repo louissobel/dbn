@@ -73,4 +73,3 @@ if __name__ == "__main__":
             else:
                 threading.Thread(target = lambda: interpreter.run(trace=options.trace)).start()
                 output.draw_window(interpreter)
-            

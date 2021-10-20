@@ -2,12 +2,9 @@
 
 ; TODO: handle CALLDATA / value inbound...
 
-
-; Initialize the bitmap @ 0x40
+; Initialize the bitmap @ 0x80
 $postDrawHarnessInitializeBitmap
-101
-101
-0x40
+0x80
 JUMP($initializeBitmap)
 @postDrawHarnessInitializeBitmap:
 
@@ -15,82 +12,48 @@ JUMP($initializeBitmap)
 JUMP($dbnDraw)
 @dbnDrawComplete:
 
-  ; return the blob at 0x40
+  ; return the blob at 0x80
   ; assumes length is still on top of the stack...
-  RETURN(0x40, $$)
+  RETURN(0x80, $$)
+
+
+
 ; def:    intializeBitmap
-; input:  [dst|width|height|return
+; input:  [dst|return
 ; output: [length
 ; state:  <none>
-; notes:  does not initialize the pixel data itself; if this is called
+; notes:  assumes 101 square bitmap.
+;         does not initialize the pixel data itself; if this is called
 ;         at the end of touched memory that's fine (all zeros)
 ;         but otherwise could be problematic
 @initializeBitmap:
-  ; get image size
-
-  ; get row width
-  ; row width dynamic, padded to 4byte multiple
-  ; ((width + 4 - 1) // 4) * 4
-  ADD(3, DUP2)
-  SHR(2, $$)
-  SHL(2, $$)
-
-  MUL(DUP4, $$)
-  ; $1 is pixel (byte, given 8-bit) count
-  ; 14 + 40 + 404(color table)
-  ; key number (pixel offset, etc)
-  ADD(458, $$)
-
-  ; $1 is filesize
+  ; image size is:
+  ; header1 + header2 + palette + data
+  ; 14 + 40 + 404 + 104*101
+  ; 
 
   ; Get first 30 bytes in place
   ; template
   ; (bitmap is little endian :...)
   ; B M | len   |  res  |  off  |  siz  |  wid  |  hei  |pl |bpp|###
-  0x424d0000000000000000ca010000280000000000000000000000010008000000
+  0x424dd22a000000000000ca010000280000006500000065000000010008000000
 
-  ; 3 things to inject
-  ; length (at << 26 bytes)
-  ; width  (at << 10 bytes)
-  ; height (at << 6 bytes)
-  ; BUT; bitmap is little endian, so we:
-
-  ; Fix endianess for length
-  SHL(24, AND(0x000000FF, DUP2))
-  SHL(8, AND(0x0000FF00, DUP3))
-  SHR(8, AND(0x00FF0000, DUP4))
-  SHR(24, AND(0xFF000000, DUP5))
-  OR($$, $$)
-  OR($$, $$)
-  OR($$, $$)
-
-  ; and then push it over
-  SHL(208, $$)
-
-  ;  - assume height / width <= 255 :grimace:
-  ;  - push over by an extra 24 bits
-  SHL(104, DUP5)
-  SHL(72, DUP7)
-  OR($$, $$)
-  OR($$, $$)
-  OR($$, $$)
-
-  DUP3
+  DUP2
   MSTORE($$, $$)
   ; increment dst
-  ADD(30, DUP2)
-  SWAP2
+  ADD(30, DUP1)
+  SWAP1
   POP()
 
   ; 24 more header bytes
   ; again, remember we're little endian
   ; | comp  | isize | xppm  | yppm  | colors|  impt 
-  0x000000000000000000000000000000006500000000000000
+  0x000000000000000000000000000000006500000000000000  ; TODO: we can optimize how we inject the 65
   SHL(64, $$)
-  DUP3
+  DUP2
   MSTORE($$, $$)
-  ADD(24, DUP2)
-  SWAP2
+  ADD(24, DUP1)
+  SWAP1
   POP()
 
   ; Fill in the color table...
@@ -106,16 +69,12 @@ JUMP($dbnDraw)
     SUB(255, $$)
 
     ; $1 now has the byte, but we need to triple it (RGB_)
-    SHL(8, $$)
-    SHL(8, DUP1)
-    SHL(8, DUP1)
-    OR($$, $$)
-    OR($$, $$)
+    MUL(0x01010100, $$)
 
     ; $1 is the four byte palette
     SHL(224, $$)
     SHL(2, DUP2)
-    DUP5
+    DUP4
     ADD($$, $$)
     MSTORE($$, $$)
 
@@ -125,12 +84,9 @@ JUMP($dbnDraw)
     JUMPI($initializeBitmapColorTableFill, $$)
     POP()
 
-  ; [len|dst|height|width|ret
-  SWAP3  ; [width|dst|height|len|ret
-  POP()
-  POP()
-  POP()
-  SWAP1
+  POP()  ; remove dst
+  10962  ; [len|ret
+  SWAP1  ; [ret|len
   JUMP($$)
 ; def:    lineCommand
 ; input:  [x0|y0|x1|y1|pen|pixelDataOffset|ret
@@ -159,10 +115,8 @@ JUMP($dbnDraw)
   @lineCommandPostXAbsAndSign:
 
   ; [signX|dx|signY|abs(y1-y0)|x0|y0|x1|y1|pen|pixelDataOffset|ret
-
   SWAP3     ; [abs(y1-y0)|dx|signY|signX|x0|y0|x1|y1|pen|pixelDataOffset|ret
   SUB(0, $$); [dy|dx|signY|signX|x0|y0|x1|y1|pen|pixelDataOffset|ret
-
 
   ;   int err = dx+dy;
   DUP2        ; [dx|dy|dx|signY|signX|x0|y0|x1|y1|pen|pixelDataOffset|ret

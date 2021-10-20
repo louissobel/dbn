@@ -2,11 +2,8 @@
 
 ; TODO: handle CALLDATA / value inbound...
 
-
 ; Initialize the bitmap @ 0x80
 $postDrawHarnessInitializeBitmap
-101
-101
 0x80
 JUMP($initializeBitmap)
 @postDrawHarnessInitializeBitmap:

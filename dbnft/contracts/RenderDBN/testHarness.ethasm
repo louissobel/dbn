@@ -16,9 +16,6 @@ JUMP($unknownTEST)
   POP() ; clear the test opcode
 
   $postTestInitializeBitmapCall
-  ; The next byte of call data is the side length
-  SHR(0xF8, CALLDATALOAD(1))
-  DUP1 ; dup for height
   0x40
   JUMP($initializeBitmap)
 
@@ -34,8 +31,6 @@ JUMP($unknownTEST)
   ; OK, let's create a bitmap first
 
   $postTestLineCommandInitializeBitmap
-  101
-  101
   0x40
   JUMP($initializeBitmap)
   @postTestLineCommandInitializeBitmap:
@@ -65,8 +60,6 @@ JUMP($unknownTEST)
   ; OK, let's create a bitmap first
 
   $postTestPaperCommandInitializeBitmap
-  101
-  101
   0x40
   JUMP($initializeBitmap)
   @postTestPaperCommandInitializeBitmap:

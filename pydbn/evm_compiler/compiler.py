@@ -20,17 +20,17 @@ class DBNEVMCompiler(DBNAstVisitor):
     Memory layout (will need to change with base64, etc?)
     0x0000 : [] 
     0x0020 : []
-    0x0040 : [bitmap starts...]
+    0x0040 : Pen
+    0x0060 : Env pointer
+    0x0080 : [bitmap starts...]
     .... (bitmap is 40 + 14 + 404 + 101*104 = 10962 long)
-    0x2B20 : Pen
-    0x2B40 : Env Pointer
     0x2B60 : Env start
     """
-    BITMAP_BASE = 0x40
+    BITMAP_BASE = 0x80
     PIXEL_DATA_START = BITMAP_BASE + 14 + 40 + 404
-    PEN_ADDRESS = 0x2B20
+    PEN_ADDRESS = 0x40
 
-    ENV_POINTER_ADDRESS = 0x2B40
+    ENV_POINTER_ADDRESS = 0x60
     FIRST_ENV_ADDRESS = 0x2B60
 
     """
@@ -158,7 +158,7 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     def emit_line_no(self, line_no):
         # just comment for now
-        # TODO: debug node where we spit this out for real?
+        # TODO: debug mode where we spit this out for real?
         self.emit_newline()
         self.emit_comment("line number: %d" % line_no)
         return self

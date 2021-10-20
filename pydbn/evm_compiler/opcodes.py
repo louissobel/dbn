@@ -5,6 +5,8 @@ class Opcode(object):
         self.mnemonic = mnemonic
         self.params = params
 
+        self.args = None
+
     def ethasm_format(self):
         out = self.mnemonic
         if self.params is not None:
@@ -12,7 +14,6 @@ class Opcode(object):
             out += ', '.join(["$$"] * self.params)
             out += ")"
         return out
-
 
 STOP    = Opcode('STOP')
 ADD     = Opcode('ADD', 2)
