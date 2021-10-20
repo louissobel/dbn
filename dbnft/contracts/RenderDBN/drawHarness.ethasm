@@ -3,11 +3,11 @@
 ; TODO: handle CALLDATA / value inbound...
 
 
-; Initialize the bitmap @ 0x40
+; Initialize the bitmap @ 0x80
 $postDrawHarnessInitializeBitmap
 101
 101
-0x40
+0x80
 JUMP($initializeBitmap)
 @postDrawHarnessInitializeBitmap:
 
@@ -15,6 +15,9 @@ JUMP($initializeBitmap)
 JUMP($dbnDraw)
 @dbnDrawComplete:
 
-  ; return the blob at 0x40
+  ; return the blob at 0x80
   ; assumes length is still on top of the stack...
-  RETURN(0x40, $$)
+  RETURN(0x80, $$)
+
+
+

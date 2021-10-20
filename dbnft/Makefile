@@ -32,10 +32,14 @@ artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm : \
 	contracts/RenderDBN/testHarness.ethasm \
 	contracts/RenderDBN/initializeBitmap.ethasm \
 	contracts/RenderDBN/base64encode.ethasm \
+	contracts/RenderDBN/setCommand.ethasm \
 	contracts/RenderDBN/lineCommand.ethasm \
 	contracts/RenderDBN/paperCommand.ethasm \
 	contracts/RenderDBN/clipColor.ethasm
 	cat $^ > artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm
+
+artifacts/contracts/RenderDBNTestArtifact.eth : artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm
+	hh assemble --file $^ --output $@
 
 testHarness : artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm
 

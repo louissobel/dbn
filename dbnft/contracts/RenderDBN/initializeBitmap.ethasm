@@ -86,11 +86,7 @@
     SUB(255, $$)
 
     ; $1 now has the byte, but we need to triple it (RGB_)
-    SHL(8, $$)
-    SHL(8, DUP1)
-    SHL(8, DUP1)
-    OR($$, $$)
-    OR($$, $$)
+    MUL(0x01010100, $$)
 
     ; $1 is the four byte palette
     SHL(224, $$)

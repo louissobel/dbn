@@ -4,8 +4,6 @@
 ; state:  assumes there is a valid bitmap of dim 101x101 at pixelDataOffset
 ; notes:  
 @setCommand:
-  ; put a 100 on the stack for later
-
   ; clip color to [0, 100]
   $postSetCommandClipColor
   DUP5
