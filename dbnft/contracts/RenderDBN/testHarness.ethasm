@@ -24,13 +24,7 @@ JUMP($unknownTEST)
 
   @postTestInitializeBitmapCall:
 
-  ; hardcode the assertion that pixelDataStart
-  ; is 0x40 + 54 + 4*101) = 0x020A
-  JUMPI($postTestCheckPixelDataStart, EQ(0x020A, $$))
-    REVERT(0, 0)
-  @postTestCheckPixelDataStart:
   JUMP($testStringReturn)
-
 
 @testLineCommand:
   POP() ; Clear the test opcode
@@ -45,6 +39,9 @@ JUMP($unknownTEST)
   0x40
   JUMP($initializeBitmap)
   @postTestLineCommandInitializeBitmap:
+  ; hardcode pixeldataoffset
+  ;  0x40 + 14 + 40 + 404
+  0x020a
 
   $postTestLineCommandCall
   ; input is interpreted as signed 7 bit integer!
@@ -73,6 +70,9 @@ JUMP($unknownTEST)
   0x40
   JUMP($initializeBitmap)
   @postTestPaperCommandInitializeBitmap:
+  ; hardcode pixeldataoffset
+  ;  0x40 + 14 + 40 + 404
+  0x020a
 
   $postTestPaperCommandCall
   ; input is interpreted as signed 7 bit integer!

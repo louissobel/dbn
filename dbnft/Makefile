@@ -23,6 +23,8 @@ app/src/ethasm/drawHarness.ethasm : artifacts/intermediate_ethasm/singleContract
 .PHONY : frontend
 frontend: app/src/ethasm/drawHarness.ethasm
 
+artifacts/intermediate_ethasm/drawings/scratch_drawings/%.ethasm : scratch_drawings/%.dbn $(wildcard ../pydbn/**/*)
+	python ../pydbn/dbn.py $< --evm > $@
 
 # Unit tests
 
@@ -37,8 +39,8 @@ artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm : \
 
 testHarness : artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm
 
-artifacts/contracts/RenderDBNTestArtifact.eth : artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm
-	hh assemble --file artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm --output artifacts/contracts/RenderDBNTestArtifact.eth
+artifacts/contracts/drawings/%.eth : artifacts/drawings/%.ethasm
+	hh assemble --file $^ --output $@
 
 .PHONY : testbase64
 testbase64 : artifacts/contracts/RenderDBNTestArtifact.eth
@@ -78,7 +80,10 @@ test : drawingTest unitTest
 .PHONY : clean
 clean:
 	rm -f artifacts/intermediate_ethasm/*.ethasm
-	rm -f artifacts/intermediate_ethasm/drawings/*.ethasm
+	rm -f artifacts/intermediate_ethasm/drawings/test/*.ethasm
 
 	rm -f artifacts/drawings/*.ethasm
 	rm -f artifacts/drawings/test/*.ethasm
+
+
+.DELETE_ON_ERROR:

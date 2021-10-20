@@ -3,7 +3,7 @@
 ; TODO: handle CALLDATA / value inbound...
 
 
-; Initialize the bitmap
+; Initialize the bitmap @ 0x40
 $postDrawHarnessInitializeBitmap
 101
 101
@@ -11,38 +11,23 @@ $postDrawHarnessInitializeBitmap
 JUMP($initializeBitmap)
 @postDrawHarnessInitializeBitmap:
 
-; throw away the pixeldataoffset before diving in
-POP()
 
 JUMP($dbnDraw)
 @dbnDrawComplete:
 
-  ; return the string at 0x40
-  ; assumes string length on top of stack
-  ; sets up the ABI string return
-  DUP1
-  MSTORE(0x20, $$)
-  MSTORE(0x00, 0x20)
-
-  0x5F ; two bytes prefix, one more for rounding, then -1
-  ADD($$, $$)
-
-  ; "divide" by 32, then multiply by 32
-  SHR(0x05, $$)
-  SHL(0x05, $$)
-  RETURN(0, $$)
-
-
+  ; return the blob at 0x40
+  ; assumes length is still on top of the stack...
+  RETURN(0x40, $$)
 ; def:    intializeBitmap
 ; input:  [dst|width|height|return
-; output: [pixelDataStart|length
+; output: [length
 ; state:  <none>
 ; notes:  does not initialize the pixel data itself; if this is called
 ;         at the end of touched memory that's fine (all zeros)
 ;         but otherwise could be problematic
 @initializeBitmap:
   ; get image size
-  
+
   ; get row width
   ; row width dynamic, padded to 4byte multiple
   ; ((width + 4 - 1) // 4) * 4
@@ -140,29 +125,14 @@ JUMP($dbnDraw)
     JUMPI($initializeBitmapColorTableFill, $$)
     POP()
 
-  ; Increment dst after color table
-  ADD(404, DUP2)
-  SWAP2
+  ; [len|dst|height|width|ret
+  SWAP3  ; [width|dst|height|len|ret
   POP()
-
-  ; Watch out!
-  ; We don't zero out the memory...
-
-  ; [len|pixelDataStart|height|width|ret
-  SWAP2
-
-  ; [height|pixelDataStart|len|width|ret
   POP()
-  ; [pixelDataStart|len|width|ret
-  SWAP2
-  ; [width|len|pixelDataStart|ret
   POP()
-  ; [len|pixelDataStart|ret
-  SWAP2
-
-
-  ; [ret|pixelDataStart|length
-  JUMP($$); def:    lineCommand
+  SWAP1
+  JUMP($$)
+; def:    lineCommand
 ; input:  [x0|y0|x1|y1|pen|pixelDataOffset|ret
 ; output: [|
 ; state:  assumes there is a valid bitmap of dim 101x101 at pixelDataOffset
@@ -171,7 +141,7 @@ JUMP($dbnDraw)
   ; clip pen to [0, 100]
   $postLineCommandClipColor
   DUP6
-  JUMP($helperClipColor)
+  JUMP($clipColor)
   @postLineCommandClipColor:
   SWAP5
   POP()
@@ -406,7 +376,7 @@ JUMP($dbnDraw)
   ; clip color to [0, 100]
   $postSetCommandClipColor
   DUP5
-  JUMP($helperClipColor)
+  JUMP($clipColor)
   @postSetCommandClipColor:
   SWAP4
   POP()
@@ -448,7 +418,7 @@ JUMP($dbnDraw)
   ; clip color to [0, 100]
   $postPaperCommandClipColor
   SWAP1
-  JUMP($helperClipColor)
+  JUMP($clipColor)
   @postPaperCommandClipColor:
 
   ; [color|pixelDataOffset
@@ -481,20 +451,20 @@ JUMP($dbnDraw)
   POP()
   JUMP($$)
 
-  ; def:    helperClipColor
+  ; def:    clipColor
 ; input:  [color|return
 ; output: [color|
 ; notes:  clips the color to [0, 100]
-@helperClipColor:
+@clipColor:
   ; [color
   0           ; [0|color
   DUP1        ; [0|0|color
   DUP3        ; [color|0|0|color
   SGT($$, $$) ; [color>0|0|color
-  JUMPI($helperClipColorGreaterThanZero, $$)
+  JUMPI($clipColorGreaterThanZero, $$)
     ; otherwise, replace it with a zero
     SWAP1
-  @helperClipColorGreaterThanZero:
+  @clipColorGreaterThanZero:
   POP()
 
   ; [color
@@ -502,10 +472,10 @@ JUMP($dbnDraw)
   DUP1        ; [100|100|color
   DUP3        ; [color|100|100|color
   SLT($$, $$) ; [color<100|100|color
-  JUMPI($helperClipColorLessThan100, $$)
+  JUMPI($clipColorLessThan100, $$)
     ; otherwise, replace it with the 100
     SWAP1
-  @helperClipColorLessThan100:
+  @clipColorLessThan100:
   POP()
 
   SWAP1

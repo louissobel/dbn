@@ -7,7 +7,7 @@
   ; clip pen to [0, 100]
   $postLineCommandClipColor
   DUP6
-  JUMP($helperClipColor)
+  JUMP($clipColor)
   @postLineCommandClipColor:
   SWAP5
   POP()

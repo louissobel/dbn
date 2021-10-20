@@ -77,9 +77,7 @@ class DBNEditor extends React.Component {
       }
       this.finishLogLine("OK!")
       this.addLogLine(" → Gas Used: " + result.gasUsed.toString(10));
-
-      const bitmapData = result.returnValue.slice(64)
-      const bitmapBlob = new Blob([bitmapData], {type: 'image/bmp'})
+      const bitmapBlob = new Blob([result.returnValue], {type: 'image/bmp'})
 
       this.setState({
         imageData: bitmapBlob,

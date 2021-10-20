@@ -1,17 +1,17 @@
-; def:    helperClipColor
+; def:    clipColor
 ; input:  [color|return
 ; output: [color|
 ; notes:  clips the color to [0, 100]
-@helperClipColor:
+@clipColor:
   ; [color
   0           ; [0|color
   DUP1        ; [0|0|color
   DUP3        ; [color|0|0|color
   SGT($$, $$) ; [color>0|0|color
-  JUMPI($helperClipColorGreaterThanZero, $$)
+  JUMPI($clipColorGreaterThanZero, $$)
     ; otherwise, replace it with a zero
     SWAP1
-  @helperClipColorGreaterThanZero:
+  @clipColorGreaterThanZero:
   POP()
 
   ; [color
@@ -19,10 +19,10 @@
   DUP1        ; [100|100|color
   DUP3        ; [color|100|100|color
   SLT($$, $$) ; [color<100|100|color
-  JUMPI($helperClipColorLessThan100, $$)
+  JUMPI($clipColorLessThan100, $$)
     ; otherwise, replace it with the 100
     SWAP1
-  @helperClipColorLessThan100:
+  @clipColorLessThan100:
   POP()
 
   SWAP1

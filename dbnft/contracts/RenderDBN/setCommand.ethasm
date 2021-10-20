@@ -9,7 +9,7 @@
   ; clip color to [0, 100]
   $postSetCommandClipColor
   DUP5
-  JUMP($helperClipColor)
+  JUMP($clipColor)
   @postSetCommandClipColor:
   SWAP4
   POP()

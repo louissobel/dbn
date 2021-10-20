@@ -1,13 +1,13 @@
 ; def:    intializeBitmap
 ; input:  [dst|width|height|return
-; output: [pixelDataStart|length
+; output: [length
 ; state:  <none>
 ; notes:  does not initialize the pixel data itself; if this is called
 ;         at the end of touched memory that's fine (all zeros)
 ;         but otherwise could be problematic
 @initializeBitmap:
   ; get image size
-  
+
   ; get row width
   ; row width dynamic, padded to 4byte multiple
   ; ((width + 4 - 1) // 4) * 4
@@ -105,26 +105,10 @@
     JUMPI($initializeBitmapColorTableFill, $$)
     POP()
 
-  ; Increment dst after color table
-  ADD(404, DUP2)
-  SWAP2
+  ; [len|dst|height|width|ret
+  SWAP3  ; [width|dst|height|len|ret
   POP()
-
-  ; Watch out!
-  ; We don't zero out the memory...
-
-  ; [len|pixelDataStart|height|width|ret
-  SWAP2
-
-  ; [height|pixelDataStart|len|width|ret
   POP()
-  ; [pixelDataStart|len|width|ret
-  SWAP2
-  ; [width|len|pixelDataStart|ret
   POP()
-  ; [len|pixelDataStart|ret
-  SWAP2
-
-
-  ; [ret|pixelDataStart|length
+  SWAP1
   JUMP($$)

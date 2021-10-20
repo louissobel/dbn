@@ -39,6 +39,7 @@ task("assemble-and-run", "Assembles given file and evals with debugger attached"
     console.log("Code Length: ", (assembled.length - 2)/2);
     // console.log("Code: ", assembled);
 
+
     var vmOpts = {}
     if (debug) {
       vmOpts = {
@@ -72,7 +73,7 @@ task("assemble-and-run", "Assembles given file and evals with debugger attached"
     if (params.outputFile) {
       fs.writeFileSync(
         params.outputFile,
-        Buffer.from(coder.decode(["bytes"], raw)[0].slice(2), 'hex'),
+        Buffer.from(raw.slice(2), 'hex')
       )
     }
 

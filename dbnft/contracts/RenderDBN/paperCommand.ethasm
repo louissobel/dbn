@@ -7,7 +7,7 @@
   ; clip color to [0, 100]
   $postPaperCommandClipColor
   SWAP1
-  JUMP($helperClipColor)
+  JUMP($clipColor)
   @postPaperCommandClipColor:
 
   ; [color|pixelDataOffset
