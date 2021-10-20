@@ -18,13 +18,16 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
     await hre.run("compile");
 
     // Deploy the DBNCoordinator contract
+    // Deploy Base64?
     // Call DBNCoordinator "deploy" with passed drawing
     // Ask the coordinator to render that drawing for us
 
     const DBNCoordinator = await hre.ethers.getContractFactory("DBNCoordinator");
     const coordinator = await DBNCoordinator.deploy();
     await coordinator.deployed();
-    console.log("Coordinator deployed to:", coordinator.address);
+    const coordinatorDeployReceipt = await coordinator.deployTransaction.wait()
+
+    console.log("Coordinator deployed to: ", coordinator.address, `(Gas used: ${coordinatorDeployReceipt.gasUsed.toString()})`);
 
     const input = fs.readFileSync(file);
 
@@ -59,16 +62,29 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
     ])
     const deployTxn =  await coordinator.deploy(Buffer.concat([deployHeader, input]))
     const deployTxnReceipt = await deployTxn.wait()
+
+    const transferEvent = deployTxnReceipt.events.find((e: any) =>
+      e.event === 'Transfer'
+    )
+    console.log("NFT created with id: ", transferEvent.args.tokenId._hex, `(Gas used: ${deployTxnReceipt.gasUsed.toString()})`)
+
     const deployEvent = deployTxnReceipt.events.find((e: any) =>
       e.event === 'DrawingDeployed'
     )
-    console.log("Drawing Deployed to:", deployEvent.args.addr)
+    console.log("Drawing Deployed to: ", deployEvent.args.addr)
 
+    const tokenURI = await coordinator.tokenURI(transferEvent.args.tokenId)
+    const parsed = JSON.parse(tokenURI.split('data:application/json,')[1])
 
-    const renderResult = await coordinator.render(deployEvent.args.addr)
+    console.log("Got Token Metadata")
+    console.log(" -> Name: ", parsed.name)
+    console.log(" -> Description: ", parsed.description)
+    console.log(" -> External URL: ", parsed.external_url)
+    console.log(" -> Attributes: ", parsed.attributes)
 
-    console.log(`Render result ok, writing to ${output}`)
-    fs.writeFileSync(output, Buffer.from(renderResult.slice(2), 'hex'))
+    const imageData = Buffer.from(parsed.image.split('data:image/bmp;base64,')[1], 'base64')
+    console.log(` -> Writing image to ${output}`)
+    fs.writeFileSync(output, imageData)
   });
 
 
