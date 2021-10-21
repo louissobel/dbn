@@ -16,12 +16,21 @@ artifacts/drawings/%.ethasm : \
 	cat $^ > $@
 
 
-app/src/ethasm/drawHarness.ethasm : artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm
+app/src/contracts/drawHarness.ethasm : artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm
 	cp $^ $@
+
+app/src/contracts/DBNCoordinator.json : artifacts/contracts/DBNCoordinator.sol/DBNCoordinator.json
+	cp $^ $@
+
+artifacts/contracts/DBNCoordinator.sol/DBNCoordinator.json: FORCE
+	hh compile
+FORCE:
 
 
 .PHONY : frontend
-frontend: app/src/ethasm/drawHarness.ethasm
+frontend: \
+	app/src/contracts/drawHarness.ethasm \
+	app/src/contracts/DBNCoordinator.json
 
 artifacts/intermediate_ethasm/drawings/scratch_drawings/%.ethasm : scratch_drawings/%.dbn $(wildcard ../pydbn/**/*)
 	python ../pydbn/dbn.py $< --evm > $@
