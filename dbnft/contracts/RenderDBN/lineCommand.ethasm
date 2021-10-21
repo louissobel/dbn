@@ -4,6 +4,14 @@
 ; state:  assumes there is a valid bitmap of dim 101x101 at pixelDataOffset
 ; notes:  
 @lineCommand:
+  ; clip pen to [0, 100]
+  $postLineCommandClipColor
+  DUP6
+  JUMP($clipColor)
+  @postLineCommandClipColor:
+  SWAP5
+  POP()
+
 
   ; [x0|y0|x1|y1|pen|pixelDataOffset|ret
 
@@ -42,7 +50,7 @@
     DUP8                    ; [x0|pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|pixelDataOffset|ret
     DUP14                   ; [pixelDataOffset|x0|pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|pixelDataOffset|ret
     DUP11                   ; [y0|pixelDataOffset|x0|pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|pixelDataOffset|ret
-    JUMP($setCommand)       
+    JUMP($setCommandPenAlreadyClipped)       
     @lineCommandPostSetCall:
     ; [err|dy|dx|signY|signX|x0|y0|x1|y1|pen|pixelDataOffset|ret
   

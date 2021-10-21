@@ -4,12 +4,15 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Accordion from 'react-bootstrap/Accordion';
 import Button from 'react-bootstrap/Button';
+import ButtonGroup from 'react-bootstrap/ButtonGroup';
+import { Icon } from '@iconify/react';
 
 import {evmAssemble, evmInterpret} from './evm_tools'
 import CodeInput from './CodeInput'
 import ImageViewer from './ImageViewer'
 import DBNFTMinter from './DBNFTMinter'
 
+const MAX_MAGNIFICATION = 4
 
 class DBNEditor extends React.Component {
   constructor(props) {
@@ -18,7 +21,7 @@ class DBNEditor extends React.Component {
       rendering: false,
       logLines: [],
       imgURL : "",
-
+      imageMagnify: 2,
     };
 
   }
@@ -104,15 +107,68 @@ class DBNEditor extends React.Component {
     })
   }
 
+  canZoomIn() {
+    return this.state.imageMagnify < MAX_MAGNIFICATION;
+  }
+
+  canZoomOut() {
+    return this.state.imageMagnify > 1;
+  }
+
+  zoomUpdate(change) {
+    this.setState({
+      imageMagnify: this.state.imageMagnify + change,
+    });
+  }
+
+  onPixelHover(data) {
+    this.setState({
+      hoveringOverPixel: data,
+    })
+  }
+
   render() {
     return (
         <Row className="pt-5">
+          <div class="dbn-editor-control-bar">
+            <ButtonGroup  aria-label="Basic example">
+              <Button variant="light" disabled={!this.canZoomOut()} onClick={this.zoomUpdate.bind(this, -1)}>
+                <Icon icon="oi:zoom-out" inline={true} />
+              </Button>
+
+              <Button variant="light" disabled={!this.canZoomIn()} onClick={this.zoomUpdate.bind(this, +1)}>
+                <Icon icon="oi:zoom-in" inline={true}/>
+              </Button>
+
+              <Button variant="light" className="zoom-indicator" disabled={true}>
+                {this.state.imageMagnify + "x"}
+              </Button>
+            </ButtonGroup>
+
+            {/*{this.state.hoveringOverPixel &&*/}
+              <div className="d-inline-block mx-2">
+                <span class="badge rounded-pill bg-light text-dark ms-1">
+                  X: {this.state.hoveringOverPixel?.x}
+                </span>
+                <span class="badge rounded-pill bg-light text-dark ms-1">
+                  Y: {this.state.hoveringOverPixel?.y}
+                </span>
+                <span class="badge rounded-pill bg-light text-dark ms-1">
+                  Dot: {this.state.hoveringOverPixel?.color}
+                </span>
+              </div>
+            {/*}*/}
+          </div>
+
           <Col>
             <div class="dbn-image-result">
-              <ImageViewer
-                imageData={this.state.imageData}
-                magnify={3}
-              />
+              <div className="mx-auto dbn-image-viewer" style={{width: 101*MAX_MAGNIFICATION }}>
+                <ImageViewer
+                  imageData={this.state.imageData}
+                  magnify={this.state.imageMagnify}
+                  onPixelHover={this.onPixelHover.bind(this)}
+                />
+              </div>
 
               {/*
                 TODO: get a standard view of where we are in the render process

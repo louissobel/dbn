@@ -30,10 +30,24 @@
 
 .dbn-image-holder {
   background-color: white;
-  border-style:  solid;
-  border-width:  2px;
-  border-color: black;
-  box-sizing:  content-box;
+}
+
+.dbn-image-holder.crosshairs {
+  cursor: crosshair;
+}
+
+.dbn-editor-control-bar button {
+  font-size: 0.75rem;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.dbn-editor-control-bar {
+  margin-bottom: 10px;
+}
+
+.dbn-editor-control-bar .zoom-indicator {
+  font-weight: bold;
 }
 
 .code-input {
@@ -42,7 +56,8 @@
 }
 
 body {
-  background-color: #fbfaff !important;
+  /*background-color: #fbfaff !important;*/
+  background-color: #d6d2e7 !important;
 }
 
 .render-logs {
@@ -105,7 +120,7 @@ body {
 }
 
 .dbn-mint-modal .modal-content {
-  background-color: #fbfaff;
+  background-color: #d6d2e7;
 }
 
 .dbn-mint-modal-text {

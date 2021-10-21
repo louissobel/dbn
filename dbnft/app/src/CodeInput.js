@@ -17,11 +17,6 @@ export default function CodeInput(props) {
     enableOnTags: ['TEXTAREA']
   });
 
-  useEffect(() => {
-    // TODO: always focus?
-    textarea.current.focus()
-  });
-
   function onCodeChange(e) {
     setCode(e.target.value)
   }

@@ -5,9 +5,9 @@ describe("Base64", function () {
   var base4;
 
   before(async function() {
-    const Base64 = await ethers.getContractFactory("Base64");
-    base64 = await Base64.deploy();
-    await base64.deployed();
+    const TestHarness = await ethers.getContractFactory("LibraryTestHarness");
+    testHarness = await TestHarness.deploy();
+    await testHarness.deployed();
   })
 
   const cases = [
@@ -39,7 +39,7 @@ describe("Base64", function () {
 
   cases.forEach(([input, output]) => {
     it(`should encode ${input}`, async function () {
-      const result = await base64.encode(Buffer.from(input))
+      const result = await testHarness.base64encode(Buffer.from(input))
       expect(result.slice(2)).to.equal(Buffer.from(output).toString('hex'));
     });
   })

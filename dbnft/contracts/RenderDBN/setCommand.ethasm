@@ -12,6 +12,8 @@
   SWAP4
   POP()
 
+  ; Line can call directly into this
+@setCommandPenAlreadyClipped:
   
   ; abandon if x or y too big or too small
   ; again taking advantage of unsigned comparison for negative
