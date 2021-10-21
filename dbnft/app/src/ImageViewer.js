@@ -16,6 +16,10 @@ class ImageViewer extends React.Component {
     this.drawCanvas()
   }
 
+  side() {
+    return this.props.magnify * 101
+  }
+
   drawCanvas() {
     if (!this.props.imageData) {
       return
@@ -27,15 +31,15 @@ class ImageViewer extends React.Component {
     const img = new Image()
     const url = URL.createObjectURL(this.props.imageData)
     img.onload = function() {
-      context.drawImage(img, 0, 0, 303, 303)
-    }
+      context.drawImage(img, 0, 0, this.side(), this.side())
+    }.bind(this)
     img.src = url;
   }
 
   render() {
     return (
-      <div className="mx-auto output-holder" style={{width: "303px", height:"303px"}}>
-        <canvas ref={this.canvas} width="303" height="303"/>
+      <div className="mx-auto dbn-image-holder" style={{width: this.side()+"px", height: this.side()+"px"}}>
+        <canvas ref={this.canvas} width={this.side()} height={this.side()}/>
       </div>
     )
   }

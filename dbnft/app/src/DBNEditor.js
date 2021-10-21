@@ -2,10 +2,13 @@ import React from 'react';
 
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import Accordion from 'react-bootstrap/Accordion';
+import Button from 'react-bootstrap/Button';
 
 import {evmAssemble, evmInterpret} from './evm_tools'
 import CodeInput from './CodeInput'
 import ImageViewer from './ImageViewer'
+import DBNFTMinter from './DBNFTMinter'
 
 
 class DBNEditor extends React.Component {
@@ -40,7 +43,9 @@ class DBNEditor extends React.Component {
   dbnRender(code) {
     this.setState({
       rendering: true,
-      logLines: []
+      logLines: [],
+      bytecode: null,
+      imageData: null,
     }, () => {
       this.addLogLine("Compiling... ")
     })
@@ -64,6 +69,8 @@ class DBNEditor extends React.Component {
       return evmAssemble(data)
     })
     .then(bytecode => {
+      this.setState({bytecode: bytecode})
+
       this.finishLogLine("OK!")
       console.log(bytecode)
       this.addLogLine(" → Code Length: " + (bytecode.length - 2)/2);
@@ -101,10 +108,24 @@ class DBNEditor extends React.Component {
     return (
         <Row className="pt-5">
           <Col>
-            <ImageViewer
-              imageData={this.state.imageData}
-            />
+            <div class="dbn-image-result">
+              <ImageViewer
+                imageData={this.state.imageData}
+                magnify={3}
+              />
 
+              {/*
+                TODO: get a standard view of where we are in the render process
+                To avoid race conditions and such.....
+              */}
+              {this.state.bytecode && this.state.imageData &&
+                <DBNFTMinter
+                  bytecode={this.state.bytecode}
+                  imageData={this.state.imageData}
+                />
+              }
+
+            </div>
           </Col>
           <Col>
             <CodeInput

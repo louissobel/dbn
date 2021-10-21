@@ -28,16 +28,7 @@
   color: #61dafb;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.output-holder {
+.dbn-image-holder {
   background-color: white;
   border-style:  solid;
   border-width:  2px;
@@ -65,4 +56,65 @@ body {
 
 .render-logs p {
   margin: 0px;
+}
+
+.ethereum-connect-navbar {
+  background-color: #525252;
+  padding-left:  10px;
+  border-top-left-radius: 5px;
+  border-radius: 5px;
+  font-size: .75rem;
+}
+
+.ethereum-connect-navbar button {
+  font-size:  0.75rem;
+}
+
+.ethereum-connect-status {
+  display: inline-block;
+  height: 0.8rem;
+  width: 0.8rem;
+  border-radius: 0.4rem;
+  position: relative;
+  top: 0.2rem;
+  background-color: white;
+}
+
+.ethereum-connect-status.error {
+  background-color:  red;
+}
+
+.ethereum-connect-status.pending {
+  background-color:  yellow;
+}
+
+.ethereum-connect-status.ok {
+  background-color:  green;
+}
+
+.ethereum-connect-connect-message {
+  display: inline-block;
+  margin-right: 5px;
+  margin-left: 5px;
+  font-style: italic;
+}
+
+.dbn-image-mint-controls {
+  width: 303px;
+  margin-top: 20px;
+}
+
+.dbn-mint-modal .modal-content {
+  background-color: #fbfaff;
+}
+
+.dbn-mint-modal-text {
+  text-align:  center;
+  margin-top:  20px;
+  overflow:  scroll;
+}
+
+.dbn-mint-success-table {
+  text-align:  left;
+  font-size: 0.8rem;
 }
