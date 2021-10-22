@@ -26,6 +26,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.3.2",
     "ganache-cli": "^6.12.2",
+    "react-number-format": "^4.7.3",
     "tempfile": "^4.0.0"
   }
 }

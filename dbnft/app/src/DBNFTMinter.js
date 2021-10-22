@@ -124,14 +124,14 @@ function DBNFTMinter(props) {
 
   var mintButton;
   if (web3React.active) {
-    mintButton = (<Button variant="warning" onClick={handleModalShow}>Mint</Button>)
-  } else {
-    mintButton = (<Button variant="warning" disabled>Connect to Ethereum to Mint</Button>)
+    mintButton = (
+      <Button variant="warning" disabled={props.disabled} onClick={handleModalShow}>Mint</Button>
+    )
   }
 
   return (
-    <div className="mx-auto dbn-image-mint-controls">
-      <div className = "d-grid gap-2">
+    <>
+      <div className = "d-grid">
         {mintButton}
       </div>
 
@@ -178,7 +178,7 @@ function DBNFTMinter(props) {
           {renderFooterButtons()}
         </Modal.Footer>
       </Modal>
-    </div>
+    </>
   );
 }
 

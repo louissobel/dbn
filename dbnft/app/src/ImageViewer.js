@@ -30,13 +30,14 @@ class ImageViewer extends React.Component {
   }
 
   drawCanvas() {
+    const context = this.canvas.current.getContext('2d');
+
     if (!this.props.imageData) {
+      context.clearRect(0, 0, this.side(), this.side());
       return
     }
 
-    const context = this.canvas.current.getContext('2d');
     context.imageSmoothingEnabled = false;
-
     if (this._img) {
       context.drawImage(this._img, 0, 0, this.side(), this.side())
     } else {

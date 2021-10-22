@@ -22,7 +22,7 @@ function About() {
         setImageData(d.imageData)
       }
     })
-    .then(setImageData)
+    .then((r) => setImageData(r.imageData))
     .catch(error => console.error('', error))
   }, []);
   

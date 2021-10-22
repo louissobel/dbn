@@ -8,7 +8,7 @@ import {useHotkeys} from 'react-hotkeys-hook'
 
 export default function CodeInput(props) {
 
-  const [code, setCode] = useState("")
+  const [code, setCode] = useState("Line 0 0 100 100")
   const textarea = useRef(null)
 
   useHotkeys('command+enter', () => {

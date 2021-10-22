@@ -5,6 +5,8 @@ import { InjectedConnector } from '@web3-react/injected-connector'
 
 import Button from 'react-bootstrap/Button';
 
+import StatusDot from './StatusDot'
+
 // TODO: set the chain IDs?
 const connector = new InjectedConnector()
 
@@ -30,7 +32,7 @@ function EthereumConnect() {
   var inner;
   if (window.ethereum === undefined) {
     inner = (<>
-        <div className="ethereum-connect-status error" />
+        <StatusDot error />
         <div className = "ethereum-connect-connect-message">
           you need to install MetaMask to connect to Ethereum
         </div>
@@ -43,7 +45,7 @@ function EthereumConnect() {
   } else if (web3React.active) {
     inner = (
       <>
-        <div className="ethereum-connect-status ok" />
+        <StatusDot ok />
         <div className = "ethereum-connect-connect-message">
           connected to <span style={{fontFamily: "monospace"}}>{web3React.account}</span>
         </div>
@@ -56,7 +58,7 @@ function EthereumConnect() {
   } else {
     inner = (
       <>
-        <div className="ethereum-connect-status pending" />
+        <StatusDot pending />
         <div className="ethereum-connect-connect-message">
           no connected wallet
         </div>

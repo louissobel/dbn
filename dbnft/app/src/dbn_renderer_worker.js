@@ -1,7 +1,10 @@
 import './dbn_renderer_worker_etherjs_workaround'
 import {evmAssemble, evmInterpret} from './evm_tools'
+import { BN } from 'ethereumjs-util'
 
 const COMPILE_PATH = '/evm_compile';
+
+const GAS_LIMIT = new BN(0xffffffff)
 
 onmessage = ({ data }) => {
   try {
@@ -14,10 +17,10 @@ onmessage = ({ data }) => {
         }
       })
     })
-    .then((imageData) =>
+    .then((result) =>
       postMessage({
         message: 'result',
-        value: imageData,
+        value: result,
       })
     )
     .catch((error) =>
@@ -60,6 +63,7 @@ const makeStepListener = function(throttleInterval) {
           update: 'INTERPRET_PROGRESS',
           data: {
             imageData: wipImage,
+            gasUsed: (GAS_LIMIT - step.gasLeft).toString()
           }
         }
       })
@@ -87,13 +91,16 @@ const renderDBN = async function(code, onRenderStateChange) {
 
   onRenderStateChange('INTERPRET_START', {})
 
-  const result = await evmInterpret(bytecode, makeStepListener(100))
+  const result = await evmInterpret(bytecode, GAS_LIMIT, makeStepListener(100))
 
   if (result.exceptionError) {
     throw new Error(result.exceptionError.error)        
   }
   onRenderStateChange('INTERPRET_END', {})
 
-
-  return new Blob([result.returnValue], {type: 'image/bmp'})
+  console.log(result)
+  return {
+    imageData: new Blob([result.returnValue], {type: 'image/bmp'}),
+    gasUsed: result.gasUsed.toString(),
+  }
 }

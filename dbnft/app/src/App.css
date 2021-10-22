@@ -28,6 +28,11 @@
   color: #61dafb;
 }
 
+.dbn-image-result {
+  border-radius: 8px;
+  background-color: #ece9f5;
+}
+
 .dbn-image-holder {
   background-color: white;
 }
@@ -43,11 +48,36 @@
 }
 
 .dbn-editor-control-bar {
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  background-color: #aaa5c5;
+  padding: 6px;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+
 }
 
 .dbn-editor-control-bar .zoom-indicator {
   font-weight: bold;
+}
+
+.dbn-editor-control-bar-fixed-pill-content {
+  display: inline-block;
+}
+
+.dbn-image-render-status {
+  font-size:  0.8rem;
+  padding: 5px;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  white-space: nowrap;
+  margin-top: 20px;
+}
+.dbn-image-render-status-message {
+  font-weight: bold;
+}
+
+.dbn-image-render-status-stats {
+  font-style: italic;
 }
 
 .code-input {
@@ -98,25 +128,25 @@ body {
   font-size:  0.75rem;
 }
 
-.ethereum-connect-status {
+.dbnft-status-dot {
   display: inline-block;
   height: 0.8rem;
   width: 0.8rem;
   border-radius: 0.4rem;
   position: relative;
   top: 0.2rem;
-  background-color: white;
+  background-color: #c1bdbd;
 }
 
-.ethereum-connect-status.error {
+.dbnft-status-dot.error {
   background-color:  red;
 }
 
-.ethereum-connect-status.pending {
-  background-color:  yellow;
+.dbnft-status-dot.pending {
+  background-color:  #ffbc00;
 }
 
-.ethereum-connect-status.ok {
+.dbnft-status-dot.ok {
   background-color:  green;
 }
 
