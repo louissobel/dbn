@@ -12,8 +12,13 @@ var evmAssemble = async function(data) {
 	return await assemble(ast, {})
 }
 
-var evmInterpret = async function(bytecode) {
+var evmInterpret = async function(bytecode, onStep) {
 	const vm = new VM({})
+
+  if (onStep) {
+    vm.on('step', onStep)
+  }
+
 
 	const runOpts = {
       code: Buffer.from(bytecode.slice(2), 'hex'),

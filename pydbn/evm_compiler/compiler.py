@@ -18,8 +18,9 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     """
     Memory layout (will need to change with base64, etc?)
-    0x0000 : [] 
-    0x0020 : []
+    0x0000 : _
+    0x0020 : boolean byte indicating that the bitmap is fully initialized
+    0x0028 : []
     0x0040 : Pen
     0x0060 : Env pointer
     0x0080 : [bitmap starts...]

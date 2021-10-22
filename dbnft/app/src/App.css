@@ -60,6 +60,18 @@ body {
   background-color: #d6d2e7 !important;
 }
 
+.dbn-about-content {
+  background-color:  #ece9f5;
+}
+
+.dbn-about-sample-code {
+  font-size: .7rem;
+  background-color: white;
+  padding: 3px;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,.2);
+}
+
 .render-logs {
   background-color: #525252;
   color: white;
@@ -79,6 +91,7 @@ body {
   border-top-left-radius: 5px;
   border-radius: 5px;
   font-size: .75rem;
+  white-space: nowrap;
 }
 
 .ethereum-connect-navbar button {

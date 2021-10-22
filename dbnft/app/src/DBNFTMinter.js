@@ -149,7 +149,11 @@ function DBNFTMinter(props) {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <ImageViewer imageData={props.imageData} magnify={1} />
+          <ImageViewer
+            imageData={props.imageData}
+            magnify={1}
+            extraClass="mx-auto"
+          />
 
           <div class="dbn-mint-modal-text">
             {isMinting &&

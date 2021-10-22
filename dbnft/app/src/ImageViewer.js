@@ -1,6 +1,7 @@
 import React from 'react';
 
 import Button from 'react-bootstrap/Button';
+import Spinner from 'react-bootstrap/Spinner';
 
 class ImageViewer extends React.Component {
   constructor(props) {
@@ -49,6 +50,10 @@ class ImageViewer extends React.Component {
   }
 
   imageMouseOver(e) {
+    if (!this.props.onPixelHover) {
+      return
+    }
+
     const s = this.side();
     const offsetX = Math.min(s-1, Math.max(e.nativeEvent.offsetX, 0))
     const offsetY = Math.min(s-1, Math.max(e.nativeEvent.offsetY, 0))
@@ -59,13 +64,11 @@ class ImageViewer extends React.Component {
     // we know it's greyscale, so only the first one matters
     const color = data[0]
 
-    if (this.props.onPixelHover) {
-      this.props.onPixelHover({
-        x: Math.floor(offsetX / this.props.magnify),
-        y: Math.floor(((s - 1) - offsetY) / this.props.magnify),
-        color: this.pixelColorToDBN(color),
-      })
-    }
+    this.props.onPixelHover({
+      x: Math.floor(offsetX / this.props.magnify),
+      y: Math.floor(((s - 1) - offsetY) / this.props.magnify),
+      color: this.pixelColorToDBN(color),
+    })
   }
 
   imageMouseOut() {
@@ -78,7 +81,9 @@ class ImageViewer extends React.Component {
     return (
       <div
         className={
-          "mx-auto dbn-image-holder " + (this.props.onPixelHover ? " crosshairs " : "")
+          "dbn-image-holder "
+             + (this.props.onPixelHover ? " crosshairs " : "")
+             + (this.props.extraClass || "")
         }
         style={{width: this.side()+"px", height: this.side()+"px"}}
         onMouseMove={this.imageMouseOver.bind(this)}

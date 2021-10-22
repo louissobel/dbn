@@ -8,6 +8,9 @@ $postDrawHarnessInitializeBitmap
 JUMP($initializeBitmap)
 @postDrawHarnessInitializeBitmap:
 
+; In case anyone is looking at our memory, give indication
+; that the bitmap is now fully initialized
+MSTORE8(0x20, 1)
 
 JUMP($dbnDraw)
 @dbnDrawComplete:

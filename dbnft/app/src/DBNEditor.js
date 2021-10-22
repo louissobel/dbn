@@ -1,5 +1,6 @@
 import React from 'react';
 
+import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Accordion from 'react-bootstrap/Accordion';
@@ -8,6 +9,7 @@ import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import { Icon } from '@iconify/react';
 
 import {evmAssemble, evmInterpret} from './evm_tools'
+import renderDBN from './dbn_renderer'
 import CodeInput from './CodeInput'
 import ImageViewer from './ImageViewer'
 import DBNFTMinter from './DBNFTMinter'
@@ -40,6 +42,59 @@ class DBNEditor extends React.Component {
   addLogLine(message) {
     this.setState({
       logLines: this.state.logLines.concat([message])
+    })
+  }
+
+  dbnRender2(code) {
+    this.setState({
+      rendering: true,
+      logLines: [],
+      bytecode: null,
+      imageData: null,
+    })
+
+    renderDBN(code, (update, data) => {
+      switch(update) {
+        case 'COMPILE_START':
+          this.addLogLine("Compiling...")
+          break;
+        case 'COMPILE_END':
+          this.finishLogLine("OK!")
+          break;
+        case 'ASSEMBLE_START':
+          this.addLogLine("Assembling...")
+          break;
+        case 'ASSEMBLE_END':
+          this.finishLogLine("OK!")
+          this.setState({
+            bytecode: data.result,
+          })
+          break;
+        case 'INTERPRET_START':
+          this.addLogLine("Interpreting...")
+          break;
+        case 'INTERPRET_END':
+          this.finishLogLine("OK!")
+          break;
+        case 'INTERPRET_PROGRESS':
+          if (data.imageData) {
+            this.setState({
+              imageData: data.imageData,
+            })
+          }
+          break
+      }
+    })
+    .then((imageData) => {
+      this.setState({
+        imageData: imageData,
+        rendering: false,
+      })
+    })
+    .catch((error) => {
+      this.finishLogLine(error)
+      console.error('', error)
+      this.setState({rendering: false})
     })
   }
 
@@ -83,7 +138,7 @@ class DBNEditor extends React.Component {
     })
     .then(result => {
       if (result.exceptionError) {
-        throw new Error(result.exceptionError.error)        
+        throw new Error(result.exceptionError.error)  
       }
       this.finishLogLine("OK!")
       this.addLogLine(" → Gas Used: " + result.gasUsed.toString(10));
@@ -129,6 +184,7 @@ class DBNEditor extends React.Component {
 
   render() {
     return (
+      <Container>
         <Row className="pt-5">
           <div class="dbn-editor-control-bar">
             <ButtonGroup  aria-label="Basic example">
@@ -167,6 +223,7 @@ class DBNEditor extends React.Component {
                   imageData={this.state.imageData}
                   magnify={this.state.imageMagnify}
                   onPixelHover={this.onPixelHover.bind(this)}
+                  extraClass="mx-auto"
                 />
               </div>
 
@@ -186,7 +243,7 @@ class DBNEditor extends React.Component {
           <Col>
             <CodeInput
               disabled={this.state.rendering}
-              onRun={this.dbnRender.bind(this)}
+              onRun={this.dbnRender2.bind(this)}
             />
 
             {this.state.logLines.length > 0 &&
@@ -203,6 +260,7 @@ class DBNEditor extends React.Component {
 
           </Col>
         </Row>
+      </Container>
     )
   }
 }
