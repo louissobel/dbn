@@ -31,6 +31,12 @@
 .dbn-image-result {
   border-radius: 8px;
   background-color: #ece9f5;
+  transition: 200ms;
+}
+
+.dbn-image-result.darkmode {
+  background-color: #524283;
+  transition: 200ms;
 }
 
 .dbn-image-holder {
@@ -54,6 +60,12 @@
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
 
+  transition: 200ms;
+}
+
+.dbn-editor-control-bar.darkmode {
+  background-color: #150f38;
+  transition: 200ms;
 }
 
 .dbn-editor-control-bar .zoom-indicator {
@@ -71,7 +83,14 @@
   border-bottom-right-radius: 8px;
   white-space: nowrap;
   margin-top: 20px;
+  transition: 200ms;
 }
+.dbn-image-render-status.darkmode {
+  background-color: #050216!important;
+  color: white;
+  transition: 200ms;
+}
+
 .dbn-image-render-status-message {
   font-weight: bold;
 }

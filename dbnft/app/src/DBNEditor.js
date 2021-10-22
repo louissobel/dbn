@@ -30,6 +30,8 @@ class DBNEditor extends React.Component {
 
       bytecode: null,
       gasUsed: null,
+
+      darkmode: false,
     };
 
   }
@@ -110,12 +112,18 @@ class DBNEditor extends React.Component {
     })
   }
 
+  onToggleDarkmode() {
+    this.setState({
+      darkmode: !this.state.darkmode,
+    })
+  }
+
   render() {
     return (
       <Container>
         <Row className="pt-5">
           <Col>
-            <div class="dbn-image-result">
+            <div className={"dbn-image-result " + (this.state.darkmode ? "darkmode" : "")}>
               <DBNEditorControlBar
                 canZoomIn={this.canZoomIn()}
                 onZoomIn={this.zoomUpdate.bind(this, 1)}
@@ -126,6 +134,9 @@ class DBNEditor extends React.Component {
                 hoverX={this.state.hoveringOverPixel?.x}
                 hoverY={this.state.hoveringOverPixel?.y}
                 hoverColor={this.state.hoveringOverPixel?.color}
+
+                onToggleDarkmode={this.onToggleDarkmode.bind(this)}
+                darkmode={this.state.darkmode}
 
               />
 
@@ -153,6 +164,7 @@ class DBNEditor extends React.Component {
                 renderState={this.state.renderState}
                 codeSize={this.state.bytecode ? (this.state.bytecode.length - 2)/2 : null}
                 gasUsed={this.state.gasUsed}
+                darkmode={this.state.darkmode}
               />
 
             </div>

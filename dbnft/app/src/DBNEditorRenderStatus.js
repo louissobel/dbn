@@ -24,7 +24,7 @@ function BytecodeStats({codeSize}) {
   )
 }
 
-function DBNEditorRenderStatus({renderState, codeSize, gasUsed}) {
+function DBNEditorRenderStatus({renderState, codeSize, gasUsed, darkmode}) {
 
   var status;
   switch (renderState) {
@@ -88,7 +88,7 @@ function DBNEditorRenderStatus({renderState, codeSize, gasUsed}) {
   }
 
   return ( 
-    <div className="dbn-image-render-status bg-light">
+    <div className={"dbn-image-render-status bg-light "  + (darkmode ? "darkmode" : "")}>
       {status}
     </div>
   )

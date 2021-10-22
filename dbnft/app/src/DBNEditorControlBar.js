@@ -29,9 +29,20 @@ function DBNEditorControlBar({
     hoverX,
     hoverY,
     hoverColor,
+
+    onToggleDarkmode,
+    darkmode
   }) {
   return ( 
-    <div class="dbn-editor-control-bar">
+    <div className={"dbn-editor-control-bar " + (darkmode ? "darkmode" : "")}>
+      <Button className="me-2" variant="light" onClick={onToggleDarkmode}>
+        {darkmode ?
+          <Icon icon="oi:sun" inline={true} />
+          :
+          <Icon icon="oi:moon" inline={true} />
+        }
+      </Button>
+
       <ButtonGroup  aria-label="Basic example">
         <Button variant="light" disabled={!canZoomOut} onClick={onZoomOut}>
           <Icon icon="oi:zoom-out" inline={true} />
