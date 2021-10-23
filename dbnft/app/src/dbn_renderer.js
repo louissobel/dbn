@@ -9,7 +9,7 @@ const COMPILE_PATH = '/evm_compile';
 
 // String --> bitmapBlob (or error...)
 // Emits
-const renderDBN = async function(code, onRenderStateChange) {
+const renderDBN = async function(data, onRenderStateChange) {
   return new Promise((resolve, reject) => {
     const worker = new Worker();
     worker.onmessage = (m) => {
@@ -33,7 +33,7 @@ const renderDBN = async function(code, onRenderStateChange) {
       reject(e)
     }
 
-    worker.postMessage({code: code})    
+    worker.postMessage(data)    
   });
 }
 

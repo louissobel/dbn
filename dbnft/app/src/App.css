@@ -76,6 +76,13 @@
   display: inline-block;
 }
 
+.dbn-image-description {
+  text-align: center;
+}
+.dbn-image-description h5 {
+  margin-bottom: 0px;
+}
+
 .dbn-image-render-status {
   font-size:  0.8rem;
   padding: 5px;
@@ -183,6 +190,15 @@ body {
 
 .dbn-mint-modal .modal-content {
   background-color: #d6d2e7;
+}
+
+.dbn-mint-modal {
+  font-size: 0.9rem;
+}
+
+.dbn-mint-modal-description {
+  font-weight: bold;
+  text-align: center;
 }
 
 .dbn-mint-modal-text {

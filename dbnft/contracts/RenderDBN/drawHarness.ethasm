@@ -1,23 +1,46 @@
 ; Header / entry point for actually drawing
 
-; TODO: handle CALLDATA / value inbound...
-
-; Initialize the bitmap @ 0x80
-$postDrawHarnessInitializeBitmap
-0x80
-JUMP($initializeBitmap)
-@postDrawHarnessInitializeBitmap:
-
-; In case anyone is looking at our memory, give indication
-; that the bitmap is now fully initialized
-MSTORE8(0x20, 1)
-
-JUMP($dbnDraw)
-@dbnDrawComplete:
-
-  ; return the blob at 0x80
-  ; assumes length is still on top of the stack...
-  RETURN(0x80, $$)
+; Load our "owning contract id" from code to 0x0C
+; (that right-aligns it at the word 0x00)
+; if it's not present (length zero) this is noop
+CODECOPY(0x0C, $metadataOwningContract, #metadataOwningContract)
 
 
+; ABI:
+; - if calldata is empty, then we render
+; - otherwise, first byte of calldata determines operation
+; - TODO: we should also have a single payable (if value>0) check
+ISZERO(CALLDATASIZE)
+JUMPI($render, $$)
 
+SHR(0xF8, CALLDATALOAD(0))
+;; Jump table for non-render functions:
+;;  0xDE: get description data
+JUMPI($loadDescription, EQ(0xDE, DUP1))
+
+; revert!
+MSTORE8(0x00, 0x40) ; invalid opcode
+REVERT(0x00, 1)
+
+; load metadata returns
+@loadDescription:
+  CODECOPY(0x00, $metadataDescription, #metadataDescription)
+  RETURN(0x00, #metadataDescription)
+
+@render:
+  ; Initialize the bitmap @ 0x80
+  $postDrawHarnessInitializeBitmap
+  0x80
+  JUMP($initializeBitmap)
+  @postDrawHarnessInitializeBitmap:
+
+  ; In case anyone is looking at our memory, give indication
+  ; that the bitmap is now fully initialized
+  MSTORE8(0x20, 1)
+
+  JUMP($dbnDraw)
+  @dbnDrawComplete:
+
+    ; return the blob at 0x80
+    ; assumes length is still on top of the stack...
+    RETURN(0x80, $$)

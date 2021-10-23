@@ -3,7 +3,7 @@ from optparse import OptionParser
 
 import parser
 from compiler import DBNCompiler, assemble
-from evm_compiler import DBNEVMCompiler
+from evm_compiler import DBNEVMCompiler, Metadata
 from interpreter import DBNInterpreter, builtins
 
 import output
@@ -14,6 +14,8 @@ option_parser.add_option('-c', '--compile', action="store_true", dest="compile",
 option_parser.add_option('-n', '--numbers', action="store_true", dest="numbers", help="show opcode numbers", default=False)
 
 option_parser.add_option('-e', '--evm', action="store_true", dest="evm", help="compile to evm", default=False)
+option_parser.add_option('--evm-owning-contract', action="store", dest="evm_owning_contract", help="contract address to embed as owning contract", default=None)
+option_parser.add_option('--evm-description', action="store", dest="evm_description", help="description to embed in contract", default=None)
 
 option_parser.add_option('-f', '--file', action="store", dest="filename", help="file for output", default=None)
 option_parser.add_option('-t', '--trace', action="store_true", dest="trace", help="trace interpretation", default=False)
@@ -31,14 +33,14 @@ def compile_dbn(filename):
     assembly = assemble(compilation)
     return assembly
 
-def compile_dbn_evm(filename, verbose=False):
+def compile_dbn_evm(filename, metadata, verbose=False):
     dbn_script = open(filename).read()
     compiler = DBNEVMCompiler(verbose=verbose)
 
     tokens = parser.tokenize(dbn_script)
     dbn_ast = parser.parse(tokens)
 
-    return compiler.compile(dbn_ast)
+    return compiler.compile(dbn_ast, metadata)
 
 
 def run_dbn(bytecode):
@@ -52,7 +54,8 @@ if __name__ == "__main__":
 
     filename = args[0]
     if options.evm:
-        print(compile_dbn_evm(filename, verbose=options.verbose))
+        metadata = Metadata(options.evm_owning_contract, options.evm_description)
+        print(compile_dbn_evm(filename, metadata, verbose=options.verbose))
 
     else:
         bytecode = compile_dbn(filename)

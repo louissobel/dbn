@@ -12,8 +12,12 @@ var evmAssemble = async function(data) {
 	return await assemble(ast, {})
 }
 
-var evmInterpret = async function(bytecode, gasLimit, onStep) {
-	const vm = new VM({})
+var initializeVM = function() {
+  return 
+}
+
+var evmInterpret = async function(bytecode, opts, onStep) {
+  const vm = new VM({})
 
   if (onStep) {
     vm.on('step', onStep)
@@ -21,24 +25,26 @@ var evmInterpret = async function(bytecode, gasLimit, onStep) {
 
 
 	const runOpts = {
-      code: Buffer.from(bytecode.slice(2), 'hex'),
-      gasLimit: gasLimit,
-      // no call data right now
-      // data: "",
-    }
+    code: Buffer.from(bytecode.slice(2), 'hex'),
+    gasLimit: opts.gasLimit,
+    // no call data right now
+    data: opts.data,
+  }
 
-    // TODO: do something interesting with each VM step?
-    // vm.on('step', function(e) {
-    // 	debugger;
-    // })
-
+  try {
     return await vm.runCode(runOpts)
+  } finally {
+    if (onStep) {
+      vm.removeListener('step', onStep)
+    }
+  }
 }
 
 // takes and returns hex
 var prependDeployHeader = function(bytecode) {
   const inputLength = (bytecode.length - 2) / 2 // -2 takes off '0x'
 
+  // TODO: throw error if input length is bigger than 0xFFFF
   const deployHeader = Buffer.from([
     // push length
     0x61, ((inputLength & 0xFF00) >> 8), (inputLength & 0xFF),
@@ -68,6 +74,7 @@ var prependDeployHeader = function(bytecode) {
 }
 
 export {
+  initializeVM,
 	evmAssemble,
 	evmInterpret,
   prependDeployHeader

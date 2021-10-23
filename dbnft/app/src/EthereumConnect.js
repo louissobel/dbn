@@ -15,6 +15,7 @@ function ConnectorFunction(web3React) {
     try {
      await web3React.activate(connector)
     } catch (ex) {
+      // TODO: what about this error??
      console.log(ex)
     }
   }
@@ -22,8 +23,6 @@ function ConnectorFunction(web3React) {
 
 function EthereumConnect() {
   const web3React = useWeb3React()
-  console.log(web3React)
-
 
   async function disconnect() {
     await web3React.deactivate()

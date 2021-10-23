@@ -23,7 +23,7 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
     // Ask the coordinator to render that drawing for us
 
     const DBNCoordinator = await hre.ethers.getContractFactory("DBNCoordinator");
-    const coordinator = await DBNCoordinator.deploy();
+    const coordinator = await DBNCoordinator.deploy("http://localhost:3000/dbnft/");
     await coordinator.deployed();
     const coordinatorDeployReceipt = await coordinator.deployTransaction.wait()
 
@@ -31,14 +31,17 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
 
     const input = fs.readFileSync(file);
 
+    const codeToDeploy = Buffer.concat([
+      input,
+    ])
+
     // stick on the deploy header
     // (todo: clearly need something more robuse than hand-coding it...)
-    if (input.length > 0xffff) { throw new Error("hardcoding PUSH2, cannot handle this long code")}
-
+    if (codeToDeploy.length > 0xffff) { throw new Error("hardcoding PUSH2, cannot handle this long code")}
 
     const deployHeader = Buffer.from([
       // push length
-      0x61, ((input.length & 0xFF00) >> 8), (input.length & 0xFF),
+      0x61, ((codeToDeploy.length & 0xFF00) >> 8), (codeToDeploy.length & 0xFF),
 
       // dup length
       0x80,
@@ -60,7 +63,9 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
       // so we're good to return :)
       0xF3
     ])
-    const deployTxn =  await coordinator.deploy(Buffer.concat([deployHeader, input]))
+    const mintInput = Buffer.concat([deployHeader, codeToDeploy])
+
+    const deployTxn =  await coordinator.deploy(mintInput)
     const deployTxnReceipt = await deployTxn.wait()
 
     const transferEvent = deployTxnReceipt.events.find((e: any) =>
@@ -79,8 +84,8 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
     console.log("Got Token Metadata")
     console.log(" -> Name: ", parsed.name)
     console.log(" -> Description: ", parsed.description)
+    console.log(" -> Drawing address: ", parsed.drawing_address)
     console.log(" -> External URL: ", parsed.external_url)
-    console.log(" -> Attributes: ", parsed.attributes)
 
     const imageData = Buffer.from(parsed.image.split('data:image/bmp;base64,')[1], 'base64')
     console.log(` -> Writing image to ${output}`)

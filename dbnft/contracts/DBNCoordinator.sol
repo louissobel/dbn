@@ -3,14 +3,24 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./Base64.sol";
 
 contract DBNCoordinator is ERC721 {
+    using Counters for Counters.Counter;
+    using Strings for uint256;
 
-    event DrawingDeployed(address addr);
+    event DrawingDeployed(uint256 tokenId, address addr);
 
-    constructor() ERC721("DBN NFT", "DBNFT") {}
+    Counters.Counter private _tokenIds;
+    mapping (uint256 => address) private _drawingAddressForTokenId;
+    string private _baseExternalURI;
+
+    constructor(string memory baseExternalURI) ERC721("Design By Numbers NFT", "DBNFT") {
+        _baseExternalURI = baseExternalURI;
+    }
 
     function deploy(bytes memory bytecode) public returns (address) {
         address addr;
@@ -32,49 +42,81 @@ contract DBNCoordinator is ERC721 {
         */
         assert(addr != address(0));
 
+        uint256 tokenId = _tokenIds.current();
+        _tokenIds.increment();
+
+        _drawingAddressForTokenId[tokenId] = addr;
+
         // sender gets the token
-        _safeMint(msg.sender, uint256(uint160(addr)));
-        emit DrawingDeployed(addr);
+        _safeMint(msg.sender, tokenId);
+        emit DrawingDeployed(tokenId, addr);
         return addr;
     }
 
     function _render(address addr) internal view returns (bytes memory) {
         // TODO: use the openzeppelin wrapping helpers?
         (bool success, bytes memory result) = addr.staticcall("");
-
         require(success, "failure render call");
 
         return result;
     }
 
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        address addr = address(uint160(tokenId));
-        bytes memory bitmapData = _render(addr);
-
-        return _generateURI(bitmapData);
+    struct Metadata { 
+       string name;
+       string description;
+       string external_url;
+       string drawing_address;
     }
 
-    function _generateURI(bytes memory bitmapData) internal view returns (string memory) {
+    function _getMetadata(uint256 tokenId, address addr) internal view returns (Metadata memory) {
+        // get description (todo: should we wrap this in some openzeppelin helper?)
+        (bool success, bytes memory description) = addr.staticcall(hex"DE");
+        require(success, "DESCRIPTION_FAIL");
+
+        string memory tokenIdAsString = tokenId.toString();
+        return Metadata(
+            string(abi.encodePacked("DBNFT #", tokenIdAsString)),
+            string(description),
+            string(abi.encodePacked(_baseExternalURI, tokenIdAsString)),
+            uint256(uint160(addr)).toHexString()
+        );
+    }
+
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+        address addr = _drawingAddressForTokenId[tokenId];
+        require(addr != address(0), "UNKNOWN_ID");
+
+        bytes memory bitmapData = _render(addr);
+
+        Metadata memory metadata = _getMetadata(tokenId, addr);
+
+        return _generateURI(bitmapData, metadata);
+    }
+
+
+    function _generateURI(bytes memory bitmapData, Metadata memory metadata) internal view returns (string memory) {
+        // TODO... what about the encoding of this?
+        // do I need to base64? mark the charset?
         return string(abi.encodePacked(
             'data:application/json,'
             // name
-            '{"name":"'
-                "Eth",
+            '{"name":"',
+                metadata.name,
 
             // description
             '","description":"',
-                "DBNFT0",
+                metadata.description,
 
             // external_url
             '","external_url":"',
-                "https://dbnft.io/nft/0",
+                metadata.external_url,
 
-            // attributes
-            '","attributes":',
-                "[]",
+            // code address
+            '","drawing_address":"',
+                metadata.drawing_address,
 
             // image data :)
-            ',"image":"',
+            '","image":"',
                 "data:image/bmp;base64,",
                 string(Base64.encode(bitmapData)),
             '"}'

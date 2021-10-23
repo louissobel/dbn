@@ -17,7 +17,7 @@ function About() {
 }"
   
   useEffect(() => {
-    renderDBN(sampleCode, (e, d) => {
+    renderDBN({code: sampleCode}, (e, d) => {
       if (e === 'INTERPRET_PROGRESS') {
         setImageData(d.imageData)
       }

@@ -1,7 +1,6 @@
 import sys
 import contextlib
 
-
 from . import structures
 from parser.structures.ast_nodes import *
 from parser import DBNAstVisitor
@@ -17,10 +16,10 @@ def compile(node, *args, **kwargs):
 class DBNEVMCompiler(DBNAstVisitor):
 
     """
-    Memory layout (will need to change with base64, etc?)
-    0x0000 : _
+    Memory layout
+    0x0000 : right-aligned 20byte owning contract address
     0x0020 : boolean byte indicating that the bitmap is fully initialized
-    0x0028 : []
+    0x0021 : []
     0x0040 : Pen
     0x0060 : Env pointer
     0x0080 : [bitmap starts...]
@@ -63,7 +62,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         if self.verbose:
             print(message, file=sys.stderr)
 
-    def compile(self, node):
+    def compile(self, node, metadata=structures.EMPTY_METADATA):
         symbol_collector = SymbolCollector().collect_symbols(node)
         self.symbol_mapping = dict(
             (s, i) for i, s in enumerate(symbol_collector.variables)
@@ -83,6 +82,9 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.symbols_known_to_be_in_env = symbol_collector.variables
 
         self.visit(node)
+
+        # Special metadata functions
+        self.emit_metadata(metadata)
         return "\n".join(self.lines)
 
     @contextlib.contextmanager
@@ -167,6 +169,38 @@ class DBNEVMCompiler(DBNAstVisitor):
     def emit_raw(self, data):
         self.lines.append(data)
 
+
+    def emit_metadata(self, metadata):
+
+        # owningContract
+        if metadata.owning_contract:
+            self.validate_metadata_hex_string('owning_contract', metadata.owning_contract, expected_length=20)
+            # TODO: verify it's a 20 byte hex string?
+            self.emit_raw("@metadataOwningContract [%s]" % metadata.owning_contract)
+        else:
+            self.emit_raw("@metadataOwningContract []")
+
+        # description
+        if metadata.description:
+            self.validate_metadata_hex_string('description', metadata.description)
+            self.emit_raw("@metadataDescription [!%s]" % metadata.description)
+        else:
+            self.emit_raw("@metadataDescription []")
+
+    def validate_metadata_hex_string(self, name, s, expected_length=None):
+        if not s[0:2] == '0x':
+            raise ValueError('metadata %s (%s) is not hex string' % (name, s))
+
+        if len(s) == 2:
+            raise ValueError('metadata %s (%s) is empty hex string!' % (name, s))
+
+        if len(s) % 2 == 1:
+            raise ValueError('metadata %s (%s) is odd length!' % (name, s))
+
+        if expected_length:
+            if (len(s) - 2)/2 != expected_length:
+                raise ValueError('metadata %s (%s) is unexpected length! (wanted %d)' % (name, s, expected_length))
+
     ####
     # Visitor methods
 
@@ -194,6 +228,8 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_comment("return to caller control")
         self.emit_jump("dbnDrawComplete")
         self.emit_comment(";;;;;;; End DBN Drawing")
+        self.emit_newline()
+        self.emit_opcode(STOP)
         self.emit_newline()
 
     def visit_block_node(self, node):

@@ -6,6 +6,9 @@ import Accordion from 'react-bootstrap/Accordion';
 import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
+import Form from 'react-bootstrap/Form';
+import Col from 'react-bootstrap/Col';
+import Row from 'react-bootstrap/Row';
 import { Icon } from '@iconify/react';
 
 
@@ -19,9 +22,13 @@ function DBNFTMinter(props) {
 
   const [isMinting, setIsMinting] = useState(false)
   const [errorMessage, setErrorMessage] = useState(null)
+
   const [mintResult, setMintResult] = useState(null)
 
   const [showModal, setShowModal] = useState(false)
+
+  const [formName, setFormName] = useState("")
+  const [formDescription, setFormDescription] = useState("")
 
   async function doMint() {
     setIsMinting(true)
@@ -29,7 +36,7 @@ function DBNFTMinter(props) {
     const web3 = web3React.library;
     const dbnCoordinator = new web3.eth.Contract(
       DBNCoordinator.abi,
-      '0x4D3d514D70DBA42Ab66F9F9115D3d028E5306368'
+      process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS,
     )
 
     const deployBytecode = prependDeployHeader(props.bytecode)
@@ -68,30 +75,32 @@ function DBNFTMinter(props) {
     return (
       <div>
         <h5>NFT Minted!</h5>
+        {/* TODO: I probably should get this from tokenURI...*/}
 
         <table className="table dbn-mint-success-table">
           <tbody>
             <tr>
-              <th scope="row">Token ID</th>
+              <th scope="row">Name</th>
+              <td>DBNFT #{event.returnValues.tokenId}</td>
+            </tr>
+            <tr>
+              <th scope="row">Description</th>
+              <td>{props.description}</td>
+            </tr>
+            <tr>
+              <th scope="row">Drawing Address</th>
               <td>
+                {/* TODO... link out to "view on etherscan?"... */}
                 {event.returnValues.addr}
               </td>
             </tr>
             <tr>
-              <th scope="row">Serial #</th>
-              <td>....</td>
-            </tr>
-            <tr>
-              <th scope="row">Name</th>
-              <td>....</td>
-            </tr>
-            <tr>
-              <th scope="row">Description</th>
-              <td>....</td>
-            </tr>
-            <tr>
               <th scope="row">URL</th>
-              <td>....</td>
+              <td>
+                {/* TODO... make this a React link!! */}
+                {/* TODO... proper base URL... */}
+                http://dbnft.io/dbnnft/{event.returnValues.tokenId}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -154,6 +163,11 @@ function DBNFTMinter(props) {
             magnify={1}
             extraClass="mx-auto"
           />
+          {props.description &&
+            <div class="dbn-mint-modal-description">
+              {props.description}
+            </div>
+          }
 
           <div class="dbn-mint-modal-text">
             {isMinting &&

@@ -33,7 +33,10 @@ frontend: \
 	app/src/contracts/DBNCoordinator.json
 
 artifacts/intermediate_ethasm/drawings/scratch_drawings/%.ethasm : scratch_drawings/%.dbn $(wildcard ../pydbn/**/*)
-	python ../pydbn/dbn.py $< --evm > $@
+	python ../pydbn/dbn.py $< --evm \
+		--evm-owning-contract 0xAABBCCDDEEFFAABBCCDDEEFFAABBCCDDEEFF1234 \
+		--evm-description 0x736372617463685f64726177696e67 \
+		> $@
 
 # Unit tests
 

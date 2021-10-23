@@ -26,6 +26,10 @@ task("assemble-and-run", "Assembles given file and evals with debugger attached"
     "Render the result as EVM ABI string",
   )
   .addFlag(
+    "rawReturn",
+    "Print the raw return value",
+  )
+  .addFlag(
     "debug",
     "enable the debugger",
   )
@@ -48,15 +52,21 @@ task("assemble-and-run", "Assembles given file and evals with debugger attached"
     }
     const vm = new VM(vmOpts)
 
+    var codeBuffer = Buffer.from(assembled.slice(2), 'hex')
+
     const runOpts = {
-      code: Buffer.from(assembled.slice(2), 'hex'),
+      code: codeBuffer,
       gasLimit: new BN(0xffffffff),
       data: params.calldata ? Buffer.from(params.calldata.slice(2), 'hex') : undefined,
     }
     const result = await vm.runCode(runOpts)
 
     if (result.exceptionError) {
-      throw new Error("failure: " + result.exceptionError.error)
+      if (result.exceptionError.error === 'revert') {
+        console.log("!!!!!!!!!Revert!!!!!!!")
+      } else {
+        throw new Error("failure: " + result.exceptionError.error)
+      }
     }
 
     console.log("Gas Used :", result.gasUsed.toString(10))
@@ -68,7 +78,10 @@ task("assemble-and-run", "Assembles given file and evals with debugger attached"
     const coder = new ethers.utils.AbiCoder()
     if (params.resultAsString) {
       console.log("ABI String: ", coder.decode(["string"], raw))
+    } else if (params.rawReturn) {
+      console.log("Raw Return: ", raw)
     }
+
 
     if (params.outputFile) {
       fs.writeFileSync(

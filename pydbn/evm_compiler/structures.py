@@ -1,4 +1,4 @@
-
+from collections import namedtuple
 
 class ProcedureDefinition(object):
     def __init__(self, name, args, is_number):
@@ -14,3 +14,7 @@ class ProcedureDefinition(object):
             ', '.join(self.args),
             '[uncompiled]' if self.label is None else self.label,
         )
+
+
+Metadata = namedtuple('Metadata', ['owning_contract', 'description'])
+EMPTY_METADATA = Metadata(None, None)

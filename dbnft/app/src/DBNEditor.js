@@ -8,7 +8,6 @@ import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import { Icon } from '@iconify/react';
 
-import {evmAssemble, evmInterpret} from './evm_tools'
 import renderDBN from './dbn_renderer'
 import CodeInput from './CodeInput'
 import ImageViewer from './ImageViewer'
@@ -36,16 +35,37 @@ class DBNEditor extends React.Component {
 
   }
 
+  maybeExtractDescription(code) {
+    const firstLine = code.split("\n", 1)[0]
+    const descriptionExtract = /^\/\/[Dd]escription: (.+)/
+    const match = firstLine.match(descriptionExtract)
+    if (match) {
+      return match[1]
+    } else {
+      return null
+    }
+  }
+
   dbnRender(code) {
     this.setState({
       renderState: 'RENDERING',
       bytecode: null,
+      description: null,
       imageData: null,
       gasUsed: null,
     })
 
-    renderDBN(code, (update, data) => {
-      console.log(update)
+    const renderOpts = {
+      code: code,
+      owningContract: process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS,
+    }
+    const description = this.maybeExtractDescription(code)
+    if (description) {
+      renderOpts.description = description
+      this.setState({description: description})
+    }
+
+    renderDBN(renderOpts, (update, data) => {
       switch(update) {
         case 'COMPILE_START':
           break;
@@ -73,7 +93,7 @@ class DBNEditor extends React.Component {
       }
     })
     .then((result) => {
-      console.log("result")
+      console.log(result)
       this.setState({
         imageData: result.imageData,
         renderState: 'DONE',
@@ -151,11 +171,17 @@ class DBNEditor extends React.Component {
                 />
               </div>
 
+              {this.state.description &&
+                <div className="dbn-image-description mt-1">
+                  <h5>{this.state.description}</h5>
+                </div>
+              }
 
               <div className="mx-auto dbn-image-mint-controls">
                 <DBNFTMinter
                   disabled={this.state.renderState !== 'DONE'}
                   bytecode={this.state.bytecode}
+                  description={this.state.description}
                   imageData={this.state.imageData}
                 />
               </div>

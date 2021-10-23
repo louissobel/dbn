@@ -1,5 +1,5 @@
 import './dbn_renderer_worker_etherjs_workaround'
-import {evmAssemble, evmInterpret} from './evm_tools'
+import {evmAssemble, evmInterpret, initializeVM} from './evm_tools'
 import { BN } from 'ethereumjs-util'
 
 const COMPILE_PATH = '/evm_compile';
@@ -8,7 +8,7 @@ const GAS_LIMIT = new BN(0xffffffff)
 
 onmessage = ({ data }) => {
   try {
-    renderDBN(data.code, (s, d) => {
+    renderDBN(data, (s, d) => {
       postMessage({
         message: 'update',
         value: {
@@ -71,36 +71,78 @@ const makeStepListener = function(throttleInterval) {
   }
 }
 
-const renderDBN = async function(code, onRenderStateChange) {
+const renderDBN = async function(data, onRenderStateChange) {
   onRenderStateChange('COMPILE_START', {})
+
+  const metadata = {};
+  if (data.owningContract) {
+    metadata['owning_contract'] = data.owningContract
+  }
+  if (data.description) {
+    metadata['description'] = "0x" + Buffer.from(data.description, 'utf-8').toString('hex')
+  }
+
 
   const response = await fetch(COMPILE_PATH, {
     method: 'POST',
-    body: code
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      code: data.code,
+      metadata: metadata,
+    }),
   })
   if (!response.ok) {
     throw new Error('Unexpected result: ' + response.status);
   }
-  const data = await response.text()
-  onRenderStateChange('COMPILE_END', {result: data})
+  const assemblyCode = await response.text()
+  console.log(assemblyCode)
+  onRenderStateChange('COMPILE_END', {result: assemblyCode})
 
 
   onRenderStateChange('ASSEMBLE_START', {})
-  const bytecode = await evmAssemble(data)
+  const bytecode = await evmAssemble(assemblyCode)
+  console.log(bytecode)
   onRenderStateChange('ASSEMBLE_END', {result: bytecode})
 
   onRenderStateChange('INTERPRET_START', {})
 
-  const result = await evmInterpret(bytecode, GAS_LIMIT, makeStepListener(100))
+  const result = await evmInterpret(
+    bytecode,
+    {gasLimit: GAS_LIMIT},
+    makeStepListener(100),
+  )
 
   if (result.exceptionError) {
-    throw new Error(result.exceptionError.error)        
+    throw new Error(result.exceptionError.error)
   }
   onRenderStateChange('INTERPRET_END', {})
 
-  console.log(result)
+  var renderedDescription;
+  if (data.description) {
+    // then pull it back out of the bytecode :)
+
+    onRenderStateChange('GET_DESCRIPTION_START', {})
+    const descriptionResult = await evmInterpret(
+      bytecode,
+      {gasLimit: GAS_LIMIT, data: Buffer.from([0xDE])},
+    )
+    onRenderStateChange('GET_DESCRIPTION_END', {})
+
+    if (descriptionResult.exceptionError) {
+      throw new Error(descriptionResult.exceptionError.error)
+    }
+
+    renderedDescription = Buffer.from(descriptionResult.returnValue).toString('utf-8')
+    if (renderedDescription !== data.description) {
+      throw new Error("description did not roundtrip!")
+    }
+  }
+
   return {
     imageData: new Blob([result.returnValue], {type: 'image/bmp'}),
     gasUsed: result.gasUsed.toString(),
+    renderedDescription: renderedDescription,
   }
 }
