@@ -10,12 +10,14 @@ import Form from 'react-bootstrap/Form';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 import { Icon } from '@iconify/react';
+import { Link } from "react-router-dom";
 
 
 import {ConnectorFunction} from './EthereumConnect'
 import ImageViewer from './ImageViewer'
 import DBNCoordinator from './contracts/DBNCoordinator'
 import {prependDeployHeader} from './evm_tools'
+import TokenMetadataTable from './TokenMetadataTable'
 
 function DBNFTMinter(props) {
   const web3React = useWeb3React()
@@ -71,40 +73,19 @@ function DBNFTMinter(props) {
 
   function renderMintResult() {
     const event = mintResult.events.DrawingDeployed;
+    console.log(event, mintResult)
 
     return (
       <div>
         <h5>NFT Minted!</h5>
         {/* TODO: I probably should get this from tokenURI...*/}
 
-        <table className="table dbn-mint-success-table">
-          <tbody>
-            <tr>
-              <th scope="row">Name</th>
-              <td>DBNFT #{event.returnValues.tokenId}</td>
-            </tr>
-            <tr>
-              <th scope="row">Description</th>
-              <td>{props.description}</td>
-            </tr>
-            <tr>
-              <th scope="row">Drawing Address</th>
-              <td>
-                {/* TODO... link out to "view on etherscan?"... */}
-                {event.returnValues.addr}
-              </td>
-            </tr>
-            <tr>
-              <th scope="row">URL</th>
-              <td>
-                {/* TODO... make this a React link!! */}
-                {/* TODO... proper base URL... */}
-                http://dbnft.io/dbnnft/{event.returnValues.tokenId}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
+        <TokenMetadataTable
+          tokenId={event.returnValues.tokenId}
+          description={props.description}
+          address={event.returnValues.addr}
+          externalURL={event.returnValues.externalURL}
+        />
       </div>
     )
   }

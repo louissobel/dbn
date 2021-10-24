@@ -10,7 +10,7 @@ function FixedPill({label, value, maxWidth}) {
     <span class="badge rounded-pill bg-light text-dark ms-1">
       {label + ":"}
       <span
-        className="dbn-editor-control-bar-fixed-pill-content"
+        className="dbn-image-control-bar-fixed-pill-content"
         style={{width: maxWidth + "ch"}}
       >
         {value}
@@ -19,7 +19,7 @@ function FixedPill({label, value, maxWidth}) {
   )
 }
 
-function DBNEditorControlBar({
+function DBNImageControlBar({
     canZoomIn,
     canZoomOut,
     onZoomIn,
@@ -34,7 +34,7 @@ function DBNEditorControlBar({
     darkmode
   }) {
   return ( 
-    <div className={"dbn-editor-control-bar " + (darkmode ? "darkmode" : "")}>
+    <div className={"dbn-image-control-bar " + (darkmode ? "darkmode" : "")}>
       <Button className="me-2" variant="light" onClick={onToggleDarkmode}>
         {darkmode ?
           <Icon icon="oi:sun" inline={true} />
@@ -67,4 +67,4 @@ function DBNEditorControlBar({
 }
 
 
-export default DBNEditorControlBar
+export default DBNImageControlBar

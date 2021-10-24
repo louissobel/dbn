@@ -1,6 +1,7 @@
 import React from 'react';
 
 import NumberFormat from 'react-number-format';
+import classNames from 'classnames';
 
 import StatusDot from './StatusDot'
 
@@ -24,7 +25,7 @@ function BytecodeStats({codeSize}) {
   )
 }
 
-function DBNEditorRenderStatus({renderState, codeSize, gasUsed, darkmode}) {
+function DBNResultRenderStatus({renderState, codeSize, gasUsed, darkmode}) {
 
   var status;
   switch (renderState) {
@@ -88,11 +89,11 @@ function DBNEditorRenderStatus({renderState, codeSize, gasUsed, darkmode}) {
   }
 
   return ( 
-    <div className={"dbn-image-render-status bg-light "  + (darkmode ? "darkmode" : "")}>
+    <div className={classNames("dbn-image-render-status", "bg-light", {'darkmode': darkmode})}>
       {status}
     </div>
   )
 }
 
 
-export default DBNEditorRenderStatus
+export default DBNResultRenderStatus

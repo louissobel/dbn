@@ -12,7 +12,7 @@ contract DBNCoordinator is ERC721 {
     using Counters for Counters.Counter;
     using Strings for uint256;
 
-    event DrawingDeployed(uint256 tokenId, address addr);
+    event DrawingDeployed(uint256 tokenId, address addr, string externalURL);
 
     Counters.Counter private _tokenIds;
     mapping (uint256 => address) private _drawingAddressForTokenId;
@@ -49,7 +49,8 @@ contract DBNCoordinator is ERC721 {
 
         // sender gets the token
         _safeMint(msg.sender, tokenId);
-        emit DrawingDeployed(tokenId, addr);
+
+        emit DrawingDeployed(tokenId, addr, _externalURL(tokenId));
         return addr;
     }
 
@@ -68,6 +69,10 @@ contract DBNCoordinator is ERC721 {
        string drawing_address;
     }
 
+    function _externalURL(uint256 tokenId) internal view returns (string memory) {
+        return string(abi.encodePacked(_baseExternalURI, tokenId.toString()));
+    }
+
     function _getMetadata(uint256 tokenId, address addr) internal view returns (Metadata memory) {
         // get description (todo: should we wrap this in some openzeppelin helper?)
         (bool success, bytes memory description) = addr.staticcall(hex"DE");
@@ -77,28 +82,41 @@ contract DBNCoordinator is ERC721 {
         return Metadata(
             string(abi.encodePacked("DBNFT #", tokenIdAsString)),
             string(description),
-            string(abi.encodePacked(_baseExternalURI, tokenIdAsString)),
+            _externalURL(tokenId),
             uint256(uint160(addr)).toHexString()
         );
     }
 
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+    function _addressForToken(uint256 tokenId) internal view returns (address) {
         address addr = _drawingAddressForTokenId[tokenId];
         require(addr != address(0), "UNKNOWN_ID");
 
+        return addr;
+    }
+
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+        address addr = _addressForToken(tokenId);
         bytes memory bitmapData = _render(addr);
 
         Metadata memory metadata = _getMetadata(tokenId, addr);
-
         return _generateURI(bitmapData, metadata);
     }
 
+    function tokenMetadata(uint256 tokenId) public view returns (string memory) {
+        address addr = _addressForToken(tokenId);
+        Metadata memory metadata = _getMetadata(tokenId, addr);
+        return _generateMetadataJSON(metadata);
+    }
 
-    function _generateURI(bytes memory bitmapData, Metadata memory metadata) internal view returns (string memory) {
+    function tokenCode(uint256 tokenId) public view returns (bytes memory) {
+        address addr = _addressForToken(tokenId);
+        return addr.code;
+    }
+
+    function _metadataJSONFragmentWithoutImage(Metadata memory metadata) internal pure returns (string memory) {
         // TODO... what about the encoding of this?
         // do I need to base64? mark the charset?
         return string(abi.encodePacked(
-            'data:application/json,'
             // name
             '{"name":"',
                 metadata.name,
@@ -113,14 +131,29 @@ contract DBNCoordinator is ERC721 {
 
             // code address
             '","drawing_address":"',
-                metadata.drawing_address,
+                metadata.drawing_address
+        ));
+    }
 
+
+    function _generateURI(bytes memory bitmapData, Metadata memory metadata) internal pure returns (string memory) {
+        string memory fragment = _metadataJSONFragmentWithoutImage(metadata);
+        return string(abi.encodePacked(
+            'data:application/json,',
+            fragment,
             // image data :)
             '","image":"',
                 "data:image/bmp;base64,",
                 string(Base64.encode(bitmapData)),
             '"}'
         ));
+    }
 
+    function _generateMetadataJSON(Metadata memory metadata) internal pure returns (string memory) {
+        string memory fragment = _metadataJSONFragmentWithoutImage(metadata);
+        return string(abi.encodePacked(
+            fragment,
+            '"}'
+        ));
     }
 }

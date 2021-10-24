@@ -11,9 +11,11 @@ import { Icon } from '@iconify/react';
 import renderDBN from './dbn_renderer'
 import CodeInput from './CodeInput'
 import ImageViewer from './ImageViewer'
-import DBNEditorControlBar from './DBNEditorControlBar'
+import DBNImageControlBar from './DBNImageControlBar'
 import DBNFTMinter from './DBNFTMinter'
-import DBNEditorRenderStatus from './DBNEditorRenderStatus'
+import DBNResultRenderStatus from './DBNResultRenderStatus'
+import DBNImageResult from './DBNImageResult'
+
 
 const MAX_MAGNIFICATION = 4
 
@@ -142,60 +144,22 @@ class DBNEditor extends React.Component {
     return (
       <Container>
         <Row className="pt-5">
-          <Col>
-            <div className={"dbn-image-result " + (this.state.darkmode ? "darkmode" : "")}>
-              <DBNEditorControlBar
-                canZoomIn={this.canZoomIn()}
-                onZoomIn={this.zoomUpdate.bind(this, 1)}
-                canZoomOut={this.canZoomOut()}
-                onZoomOut={this.zoomUpdate.bind(this, -1)}
-                magnfication={this.state.imageMagnify}
+          <Col sm={12} md={9} lg={6}>
+            <DBNImageResult
+              description="hello"
 
-                hoverX={this.state.hoveringOverPixel?.x}
-                hoverY={this.state.hoveringOverPixel?.y}
-                hoverColor={this.state.hoveringOverPixel?.color}
+              renderState={this.state.renderState}
+              imageData={this.state.imageData}
+              description={this.state.description}
 
-                onToggleDarkmode={this.onToggleDarkmode.bind(this)}
-                darkmode={this.state.darkmode}
+              showMinter={true}
+              minterEnabled={this.state.renderState === 'DONE'}
 
-              />
-
-              <div className="mx-auto dbn-image-viewer" style={{width: 101*MAX_MAGNIFICATION }}>
-                <ImageViewer
-                  imageData={this.state.imageData}
-                  magnify={this.state.imageMagnify}
-                  onPixelHover={this.state.renderState !== 'INITIAL' &&
-                    this.onPixelHover.bind(this)
-                  }
-                  extraClass="mx-auto"
-                />
-              </div>
-
-              {this.state.description &&
-                <div className="dbn-image-description mt-1">
-                  <h5>{this.state.description}</h5>
-                </div>
-              }
-
-              <div className="mx-auto dbn-image-mint-controls">
-                <DBNFTMinter
-                  disabled={this.state.renderState !== 'DONE'}
-                  bytecode={this.state.bytecode}
-                  description={this.state.description}
-                  imageData={this.state.imageData}
-                />
-              </div>
-
-              <DBNEditorRenderStatus
-                renderState={this.state.renderState}
-                codeSize={this.state.bytecode ? (this.state.bytecode.length - 2)/2 : null}
-                gasUsed={this.state.gasUsed}
-                darkmode={this.state.darkmode}
-              />
-
-            </div>
+              bytecode={this.state.bytecode}
+              gasUsed={this.state.gasUsed}
+            />
           </Col>
-          <Col>
+          <Col sm={12} md={9} lg={6}>
             <CodeInput
               disabled={this.state.renderState === 'RENDERING'}
               onRun={this.dbnRender.bind(this)}

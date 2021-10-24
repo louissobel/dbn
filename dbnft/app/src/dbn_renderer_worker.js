@@ -7,8 +7,17 @@ const COMPILE_PATH = '/evm_compile';
 const GAS_LIMIT = new BN(0xffffffff)
 
 onmessage = ({ data }) => {
+  var renderFn;
+  if (data.code) {
+    renderFn = renderDBN;
+  } else if (data.bytecode) {
+    renderFn = renderDBNFromBytecode
+  } else {
+    throw new Error("unhandled request: " + data)
+  }
+
   try {
-    renderDBN(data, (s, d) => {
+    renderFn(data, (s, d) => {
       postMessage({
         message: 'update',
         value: {
@@ -106,18 +115,7 @@ const renderDBN = async function(data, onRenderStateChange) {
   console.log(bytecode)
   onRenderStateChange('ASSEMBLE_END', {result: bytecode})
 
-  onRenderStateChange('INTERPRET_START', {})
-
-  const result = await evmInterpret(
-    bytecode,
-    {gasLimit: GAS_LIMIT},
-    makeStepListener(100),
-  )
-
-  if (result.exceptionError) {
-    throw new Error(result.exceptionError.error)
-  }
-  onRenderStateChange('INTERPRET_END', {})
+  const interpretResult = await renderDBNFromBytecode({bytecode: bytecode}, onRenderStateChange)
 
   var renderedDescription;
   if (data.description) {
@@ -141,8 +139,29 @@ const renderDBN = async function(data, onRenderStateChange) {
   }
 
   return {
-    imageData: new Blob([result.returnValue], {type: 'image/bmp'}),
-    gasUsed: result.gasUsed.toString(),
+    imageData: interpretResult.imageData,
+    gasUsed: interpretResult.gasUsed,
     renderedDescription: renderedDescription,
   }
 }
+
+const renderDBNFromBytecode = async function(data, onRenderStateChange) {
+  onRenderStateChange('INTERPRET_START', {})
+
+  const result = await evmInterpret(
+    data.bytecode,
+    {gasLimit: GAS_LIMIT},
+    makeStepListener(100),
+  )
+
+  if (result.exceptionError) {
+    throw new Error(result.exceptionError.error)
+  }
+  onRenderStateChange('INTERPRET_END', {})
+
+  return {
+    imageData: new Blob([result.returnValue], {type: 'image/bmp'}),
+    gasUsed: result.gasUsed.toString(),
+  }
+}
+
