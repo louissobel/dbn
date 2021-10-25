@@ -77,9 +77,11 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.lines = []
         self.label_prefix_counts = {}
 
-        # Initially, we _know_ all variables are present in the Env;
+        # Initially, we _know_ all variables are local.
         # if we are not in a command then they all default to present
-        self.symbols_known_to_be_in_env = symbol_collector.variables
+        self.symbol_directory = structures.SymbolDirectory.with_locals(
+            symbol_collector.variables
+        )
 
         self.visit(node)
 
@@ -88,16 +90,11 @@ class DBNEVMCompiler(DBNAstVisitor):
         return "\n".join(self.lines)
 
     @contextlib.contextmanager
-    def new_set_of_symbols_known_to_be_in_env(self, new_set):
-        old_set = self.symbols_known_to_be_in_env
-        self.symbols_known_to_be_in_env = new_set
+    def new_symbol_directory(self, new_directory):
+        old_directory = self.symbol_directory
+        self.symbol_directory = new_directory
         yield
-        self.symbols_known_to_be_in_env = old_set
-
-    @contextlib.contextmanager
-    def new_symbol_known_to_be_in_env(self, new_symbol):
-        with self.new_set_of_symbols_known_to_be_in_env({new_symbol} | self.symbols_known_to_be_in_env):
-            yield
+        self.symbol_directory = old_directory
 
     def emit_comment(self, comment):
         # TODO: escape the comment?
@@ -176,7 +173,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         if metadata.owning_contract:
             self.validate_metadata_hex_string('owning_contract', metadata.owning_contract, expected_length=20)
             # TODO: verify it's a 20 byte hex string?
-            self.emit_raw("@metadataOwningContract [%s]" % metadata.owning_contract)
+            self.emit_raw("@metadataOwningContract [!%s]" % metadata.owning_contract)
         else:
             self.emit_raw("@metadataOwningContract []")
 
@@ -233,8 +230,8 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_newline()
 
     def visit_block_node(self, node):
-        symbols_known_to_be_in_env_for_this_block = self.symbols_known_to_be_in_env.copy()
-        with self.new_set_of_symbols_known_to_be_in_env(symbols_known_to_be_in_env_for_this_block):
+        symbol_directory_for_this_block = self.symbol_directory.copy()
+        with self.new_symbol_directory(symbol_directory_for_this_block):
             for sub_node in node.children:
                 self.visit(sub_node)
 
@@ -244,7 +241,7 @@ class DBNEVMCompiler(DBNAstVisitor):
                 if self.is_variable_set(sub_node):
                     symbol = sub_node.left.value
                     self.log("setting %s in a block..." % symbol)
-                    symbols_known_to_be_in_env_for_this_block.add(symbol)
+                    symbol_directory_for_this_block.set_local(symbol)
 
     def is_variable_set(self, node):
         return isinstance(node, DBNSetNode) and isinstance(node.left, DBNWordNode)
@@ -269,20 +266,21 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.emit_label(label)
 
         elif isinstance(left, DBNWordNode):
-            # Skip setting the bitmap for now...
-
             # Get the value on the stack
             self.visit(node.right)
             self.handle_env_set(left.value)
 
     def visit_word_node(self, node):
         symbol = node.value
-        if symbol in self.symbols_known_to_be_in_env:
+        self.log(self.symbol_directory)
+
+        location = self.symbol_directory.location_for(symbol)
+        if location.is_local():
             self.handle_env_get_known_present(symbol)
-            self.log("Local get %s, known present: %s" % (symbol, self.symbols_known_to_be_in_env))
+            self.log("Local get %s, directory: %s" % (symbol, self.symbol_directory))
         else:
             self.handle_env_get(symbol)
-            self.log("NON LOCAL get %s, known present: %s" % (symbol, self.symbols_known_to_be_in_env))
+            self.log("NON LOCAL get %s, directory: %s" % (symbol, self.symbol_directory))
 
     def handle_env_set(self, symbol):
         """
@@ -367,7 +365,7 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         # and then the body itself!
         # while we visit it, we _know_ the var is set
-        with self.new_symbol_known_to_be_in_env(node.var.value):
+        with self.new_symbol_directory(self.symbol_directory.with_local(node.var.value)):
             self.visit(node.body)
 
         # and now loop!
@@ -602,7 +600,7 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         # While we're visiting the body, we _know_
         # that the formal args will always be set
-        with self.new_set_of_symbols_known_to_be_in_env(set(dfn.args)):
+        with self.new_symbol_directory(structures.SymbolDirectory.with_locals(dfn.args)):
             self.visit(node.body)
 
         # TODO: emit default return value if it is a Number?
