@@ -45,13 +45,13 @@ class DBNTokenizer:
         self.register('CLOSEANGLEBRACKET', r'(>)')
 
         # then keywords
-        self.register('SET',               r'(Set)')
-        self.register('REPEAT',            r'(Repeat)')
+        self.register('SET',               r'(Set) ')
+        self.register('REPEAT',            r'(Repeat) ')
         self.register('QUESTION',          r'(Same|NotSame|Smaller|NotSmaller)\?'),
-        self.register('COMMAND',           r'(Command)'),
-        self.register('NUMBERDEF',         r'(Number)'),
-        self.register('LOAD',              r'(Load)'),
-        self.register('VALUE',             r'(Value)'),
+        self.register('COMMAND',           r'(Command) '),
+        self.register('NUMBERDEF',         r'(Number) '),
+        self.register('LOAD',              r'(Load) '),
+        self.register('VALUE',             r'(Value) '),
 
         # then literals
         self.register('WORD',              r'([A-z_][\w\d]*)')

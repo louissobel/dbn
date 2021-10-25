@@ -83,6 +83,9 @@ class DBNEVMCompiler(DBNAstVisitor):
             symbol_collector.variables
         )
 
+        # stack_size is relative to command / program scope
+        self.stack_size = 0
+
         self.visit(node)
 
         # Special metadata functions
@@ -90,9 +93,10 @@ class DBNEVMCompiler(DBNAstVisitor):
         return "\n".join(self.lines)
 
     @contextlib.contextmanager
-    def new_symbol_directory(self, new_directory):
+    def new_symbol_directory(self, new_directory, why='unknown'):
         old_directory = self.symbol_directory
         self.symbol_directory = new_directory
+        self.log("Pushing new directory (%s): %s" % (why, self.symbol_directory))
         yield
         self.symbol_directory = old_directory
 
@@ -159,6 +163,7 @@ class DBNEVMCompiler(DBNAstVisitor):
     def emit_line_no(self, line_no):
         # just comment for now
         # TODO: debug mode where we spit this out for real?
+        self.log("-- Line Number %d" % line_no)
         self.emit_newline()
         self.emit_comment("line number: %d" % line_no)
         return self
@@ -198,6 +203,25 @@ class DBNEVMCompiler(DBNAstVisitor):
             if (len(s) - 2)/2 != expected_length:
                 raise ValueError('metadata %s (%s) is unexpected length! (wanted %d)' % (name, s, expected_length))
 
+
+    ###
+    # Stack tracking
+    def update_stack(self, n, why='unknown'):
+        self.log("Updating stack (%s): %d --> %d" % (
+            why,
+            self.stack_size,
+            self.stack_size + n,
+        ))
+        self.stack_size += n
+
+    @contextlib.contextmanager
+    def fresh_stack(self, why='unknown'):
+        self.log("Pushing fresh stack (%s): 0" % why)
+        old_stack_size = self.stack_size
+        self.stack_size = 0
+        yield
+        self.stack_size = old_stack_size
+
     ####
     # Visitor methods
 
@@ -218,7 +242,6 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         # TODO: Emit some comments about the memory layout?
 
-
         self.visit_block_node(node)
 
         self.emit_newline()
@@ -230,8 +253,11 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_newline()
 
     def visit_block_node(self, node):
+        # save for internal assertions to check stack accounting
+        stack_size_entering = self.stack_size
+
         symbol_directory_for_this_block = self.symbol_directory.copy()
-        with self.new_symbol_directory(symbol_directory_for_this_block):
+        with self.new_symbol_directory(symbol_directory_for_this_block, 'block'):
             for sub_node in node.children:
                 self.visit(sub_node)
 
@@ -240,8 +266,15 @@ class DBNEVMCompiler(DBNAstVisitor):
                 # (and use optimized read path)
                 if self.is_variable_set(sub_node):
                     symbol = sub_node.left.value
-                    self.log("setting %s in a block..." % symbol)
                     symbol_directory_for_this_block.set_local(symbol)
+                    self.log("Update directory for set (%s) in block: %s" % (symbol, self.symbol_directory))
+
+        # some internal assertions to check stack accounting
+        if self.stack_size != stack_size_entering:
+            raise RuntimeError("unbalanced stack for block! %d entering, %d after" % (
+                stack_size_entering,
+                self.stack_size,
+            ))
 
     def is_variable_set(self, node):
         return isinstance(node, DBNSetNode) and isinstance(node.left, DBNWordNode)
@@ -265,22 +298,49 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.emit_jump('setCommand')
             self.emit_label(label)
 
+            self.update_stack(-3, 'set dot')
+
         elif isinstance(left, DBNWordNode):
             # Get the value on the stack
             self.visit(node.right)
-            self.handle_env_set(left.value)
+
+            # If we already know the symbol is local,
+            # then we don't need  to flip the bitmap
+            symbol = left.value
+            location = self.symbol_directory.location_for(symbol)
+            self.log("SET %s (%s), directory: %s" % (symbol, location, self.symbol_directory))
+            if location.is_local():
+                self.handle_env_set_local(symbol)
+            else:
+                self.handle_env_set(symbol)
+
+            self.update_stack(-1, 'set variable')
 
     def visit_word_node(self, node):
         symbol = node.value
-        self.log(self.symbol_directory)
 
         location = self.symbol_directory.location_for(symbol)
+        self.log("GET %s (%s), directory: %s" % (symbol, location, self.symbol_directory))
         if location.is_local():
-            self.handle_env_get_known_present(symbol)
-            self.log("Local get %s, directory: %s" % (symbol, self.symbol_directory))
+            self.handle_env_get_local(symbol)
         else:
             self.handle_env_get(symbol)
-            self.log("NON LOCAL get %s, directory: %s" % (symbol, self.symbol_directory))
+
+        self.update_stack(1, 'get variable')
+
+    def handle_env_set_local(self, symbol):
+        """
+        assumes value to set is top of stack
+        _and_ that the bitmap is already set for
+        this symbol
+        """
+
+        # TODO: better error message for unexpected symbol
+        index = self.symbol_mapping[symbol]
+
+        self.emit_load_env_base()  # [env_base|value
+        self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32)) # [addr|value
+        self.emit_opcode(MSTORE)
 
     def handle_env_set(self, symbol):
         """
@@ -290,7 +350,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         # TODO: better error message for unexpected symbol
         index = self.symbol_mapping[symbol]
 
-        self.emit_load_env_base()  # [env_base|value
+        self.emit_load_env_base()       # [env_base
 
         # toggle bitmap
         self.emit_opcode(DUP1)          # [env_base|env_base
@@ -304,7 +364,8 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))
         self.emit_raw("MSTORE($$, $$)")
 
-    def handle_env_get_known_present(self, symbol):
+
+    def handle_env_get_local(self, symbol):
         """
         Optimization for formal args, repeat args, etc
         where we don't need to check the bitmap / climb the env
@@ -336,6 +397,26 @@ class DBNEVMCompiler(DBNAstVisitor):
     def visit_repeat_node(self, node):
         self.emit_line_no(node.line_no)
 
+        # Set the bitmap for the loop var
+        var_symbol = node.var.value
+        location = self.symbol_directory.location_for(var_symbol)
+        if not location.is_local():
+            # then I need to set the bitmap..
+            # TODO: better error message?
+            index = self.symbol_mapping[var_symbol]
+
+            # also the layering here feels kind of messy...
+
+            self.emit_load_env_base()       # [env_base
+
+            # toggle bitmap
+            self.emit_opcode(DUP1)          # [env_base|env_base
+            self.emit_opcode(MLOAD)         # [bitmap|env_base
+            self.emit_bit_for_index(index)  # [bit|bitmap|env_base
+            self.emit_opcode(OR)            # [new_bitmap|env_base
+            self.emit_opcode(SWAP1)         # [env_base|new_bitmap
+            self.emit_opcode(MSTORE)        # [
+
         self.visit(node.end)
         self.visit(node.start)
 
@@ -361,11 +442,12 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         # set value in the environment
         self.emit_opcode(DUP2)
-        self.handle_env_set(node.var.value)
+        self.handle_env_set_local(node.var.value)
 
         # and then the body itself!
         # while we visit it, we _know_ the var is set
-        with self.new_symbol_directory(self.symbol_directory.with_local(node.var.value)):
+        self.update_stack(1, 'repeat body')
+        with self.new_symbol_directory(self.symbol_directory.with_local(node.var.value), 'repeat'):
             self.visit(node.body)
 
         # and now loop!
@@ -393,6 +475,8 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_opcode(POP)
         self.emit_opcode(POP)
         self.emit_opcode(POP)
+
+        self.update_stack(-3, 'repeat end')
 
     def visit_question_node(self, node):
         self.emit_line_no(node.line_no)
@@ -422,6 +506,8 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         after_body_label = self.generate_label('questionAfterBody')
         self.emit_jumpi(after_body_label)
+
+        self.update_stack(-2, 'question')
         self.visit(node.body)
         self.emit_label(after_body_label)
 
@@ -539,6 +625,8 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.emit_opcode(MLOAD)
             self.emit_raw("MSTORE(%d, $$)" % self.ENV_POINTER_ADDRESS)
 
+            self.update_stack(-1 * len(dfn.args), 'Command call')
+
     def handle_builtin_pen(self, node):
         if len(node.args) != 1:
             raise self.invalid_argument_count("Pen", 1, len(node.args))
@@ -546,6 +634,8 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_comment("set Pen")
         self.visit(node.args[0])
         self.emit_raw("MSTORE(%d, $$)" % self.PEN_ADDRESS)
+
+        self.update_stack(-1, 'Pen')
 
     def handle_builtin_line(self, node):
         # first, return address
@@ -566,6 +656,8 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_jump('lineCommand')
         self.emit_label(label)
 
+        self.update_stack(-4, 'Line')
+
     def handle_builtin_paper(self, node):
         label = self.generate_label("postPaperCall")
 
@@ -580,6 +672,8 @@ class DBNEVMCompiler(DBNAstVisitor):
         # run the command!
         self.emit_jump('paperCommand')
         self.emit_label(label)
+
+        self.update_stack(-1, 'Paper')
 
     def invalid_argument_count(self, command_name, expected, got):
         return ValueError("%s expects %d arguments, got %d" % (command_name, expected, got))
@@ -600,8 +694,10 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         # While we're visiting the body, we _know_
         # that the formal args will always be set
-        with self.new_symbol_directory(structures.SymbolDirectory.with_locals(dfn.args)):
-            self.visit(node.body)
+        with self.new_symbol_directory(structures.SymbolDirectory.with_locals(dfn.args), 'command_def'):
+            # we also track stack from zero...
+            with self.fresh_stack('command_def'):
+                self.visit(node.body)
 
         # TODO: emit default return value if it is a Number?
         # self.add('LOAD_INTEGER', 0)
@@ -610,11 +706,13 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_label(after_procedure_label)
 
     def visit_value_node(self, node):
+        # TODO!
         self.emit_line_no(node.line_no)
         self.visit(node.result)
         self.add('RETURN')
 
     def visit_load_node(self, node):
+        # TODO!
         self.emit_line_no(node.line_no)
         self.add('LOAD_CODE', node.value)
 
@@ -632,6 +730,8 @@ class DBNEVMCompiler(DBNAstVisitor):
         # then move over all but the first byte
         self.emit_raw("SHR(%d, $$)" % (8 * 31))
 
+        self.update_stack(-1, 'get dot')
+
     def visit_binary_op_node(self, node):
         self.visit(node.right)
         self.visit(node.left)
@@ -644,8 +744,12 @@ class DBNEVMCompiler(DBNAstVisitor):
         }
         self.emit_opcode(ops[node.value])
 
+        self.update_stack(-1, 'binary op')
+
     def visit_number_node(self, node):
         self.emit_push(node.value)
+
+        self.update_stack(1, 'push number literal')
 
     def visit_noop_node(self, node):
         pass #NOOP
