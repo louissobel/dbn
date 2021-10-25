@@ -15,6 +15,7 @@ import Container from 'react-bootstrap/Container';
 import About from './About'
 import DBNEditor from './DBNEditor'
 import NFTViewer from './NFTViewer'
+import Gallery from './Gallery'
 import EthereumConnect from './EthereumConnect'
 
 const COMPILE_PATH = '/evm_compile'
@@ -27,7 +28,7 @@ function DBNFTNavbar(props) {
         <Nav className="me-auto">
           <Nav.Link as={Link} to="/" active={props.active === "about"}>About</Nav.Link>
           <Nav.Link as={Link} to="/create" active={props.active === "create"}>Create</Nav.Link>
-          <Nav.Link as={Link} to="/" active={props.active === "gallery"}>Gallery</Nav.Link>
+          <Nav.Link as={Link} to="/gallery" active={props.active === "gallery"}>Gallery</Nav.Link>
         </Nav>
         <EthereumConnect />
       </Container>
@@ -50,6 +51,11 @@ function App() {
             <Route exact path="/">
               <DBNFTNavbar active="about"/>
               <About />
+            </Route>
+
+            <Route path='/gallery'>
+              <DBNFTNavbar active="gallery" />
+              <Gallery />
             </Route>
 
             <Route path='/dbnft/:tokenId'>

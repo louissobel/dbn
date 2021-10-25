@@ -8,7 +8,7 @@ const GAS_LIMIT = new BN(0xffffffff)
 
 onmessage = ({ data }) => {
   var renderFn;
-  if (data.code) {
+  if (data.code || data.code === "") {
     renderFn = renderDBN;
   } else if (data.bytecode) {
     renderFn = renderDBNFromBytecode

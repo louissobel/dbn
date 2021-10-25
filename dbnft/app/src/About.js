@@ -56,7 +56,7 @@ function About() {
               </Col>
               <Col xs={6} >
                 <h6>Output:</h6>
-                <ImageViewer spinnerWhileEmpty={true} imageData={imageData} magnify={1}/>
+                <ImageViewer imageData={imageData} magnify={1}/>
               </Col>
             </Row>
 

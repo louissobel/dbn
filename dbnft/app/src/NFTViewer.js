@@ -14,23 +14,7 @@ import Alert from 'react-bootstrap/Alert';
 import renderDBN from './dbn_renderer'
 import TokenMetadataTable from './TokenMetadataTable'
 import DBNImageResult from './DBNImageResult'
-
-function LoadingText() {
-  const [dotCount, setDotCount] = useState(1);
-
-  // TODO: we should cancel the timeout on unmount...
-  useEffect(() => {
-    setTimeout(() => {
-      setDotCount((dotCount+1)%5)
-    }, 250)
-  }, [dotCount])
-
-  return (
-    <span class="dbn-loading-text">
-      Loading.{".".repeat(dotCount)}
-    </span>
-  )
-}
+import LoadingText from './LoadingText'
 
 const eth = new Eth('http://localhost:8545')
 

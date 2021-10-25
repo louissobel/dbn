@@ -89,6 +89,7 @@ class ImageViewer extends React.Component {
         style={{width: this.side()+"px", height: this.side()+"px"}}
         onMouseMove={this.imageMouseOver.bind(this)}
         onMouseLeave={this.imageMouseOut.bind(this)}
+        onClick={this.props.onClick}
       >
         <canvas ref={this.canvas} width={this.side()} height={this.side()}/>
       </div>
