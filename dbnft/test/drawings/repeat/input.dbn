@@ -1,7 +1,16 @@
-Repeat A 0 100 {
+
+Command SetAB {
+	Set [A B] B
+}
+
+Command R1 A {
 	Repeat B 0 A {
-		Set [A B] B
+		SetAB
 	}
+}
+
+Repeat A 0 100 {
+	R1 A
 	Repeat C A 0 {
 		Set [C A] C
 	}
