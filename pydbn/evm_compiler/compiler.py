@@ -61,7 +61,7 @@ class DBNEVMCompiler(DBNAstVisitor):
     def log(self, message):
         prefix = ''
         if self.getting_scope_dependencies:
-            prefix = '>>>> Getting Block Dependencies: '
+            prefix = '>>>> Getting Scope Dependencies: '
         if self.verbose:
             print(prefix + str(message), file=sys.stderr)
 
@@ -73,12 +73,14 @@ class DBNEVMCompiler(DBNAstVisitor):
         # stack_size is relative to command / program scope
         self.stack_size = 0
         self.getting_scope_dependencies = False
+        self.getting_root_scope_dependencies = False
+        self.root_stack_slots = []
 
         symbol_collector = SymbolCollector().collect_symbols(node)
         self.symbol_mapping = dict(
             (s, i) for i, s in enumerate(symbol_collector.variables)
         )
-        self.log(self.symbol_mapping)
+        self.log('Symbol Mapping: %s' % self.symbol_mapping)
 
         # Initially, we _know_ all variables are local.
         # if we are not in a command then they all default to present
@@ -89,11 +91,35 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.procedure_definitions_by_name = {
             dfn.name : dfn for dfn in symbol_collector.procedure_definitions
         }
+        self.log('Procedures: %s' % self.procedure_definitions_by_name)
+
+        # Stack variable allocation decisions
         for dfn in symbol_collector.procedure_definitions:
             dfn.scope_dependencies = self.get_scope_dependencies(dfn.node)
-            self.make_variable_location_decisions_for(dfn)
+            dfn.local_env_args, dfn.stack_slots = (
+                self.make_variable_location_decisions_for(
+                    dfn.scope_dependencies,
+                    dfn.args,
+                    dfn.name,
+                )
+            )
 
-        self.log(self.procedure_definitions_by_name)
+        # Ok — make a _top level_ stack allocation decision
+        root_scope_dependencies = self.get_scope_dependencies(node, root=True)
+        root_locals_env_args, root_stack_slots = (
+            self.make_variable_location_decisions_for(
+                root_scope_dependencies,
+                [],
+                '<root>'
+            )
+        )
+        assert not root_locals_env_args, 'we are not passing any args...'
+        for slot in root_stack_slots:
+            assert not slot.is_arg, 'we are not passing any args'
+        self.root_stack_slots = root_stack_slots
+        self.symbol_directory = self.symbol_directory.with_stack(
+            {s.symbol: i for (i, s) in enumerate(reversed(root_stack_slots))}
+        )
 
         self.visit(node)
 
@@ -111,7 +137,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.symbol_directory = old_directory
 
     @contextlib.contextmanager
-    def stashed_state_to_get_scope_dependencies(self):
+    def stashed_state_to_get_scope_dependencies(self, root=False):
         old_lines = self.lines
         self.lines = []
 
@@ -119,9 +145,13 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.label_prefix_counts = {}
 
         self.getting_scope_dependencies = True
+        if root:
+            self.getting_root_scope_dependencies = True
         self.scope_dependencies = structures.ScopeDependencies()
         yield
         self.scope_dependencies = None
+        if root:
+            self.getting_root_scope_dependencies = False
         self.getting_scope_dependencies = False
 
         self.label_prefix_counts = old_label_prefix_counts
@@ -271,7 +301,19 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         # TODO: Emit some comments about the memory layout?
 
+        self.emit_newline()
+        self.emit_comment('placeholders for root-level stack vars')
+        for _ in self.root_stack_slots:
+            self.emit_push(0); # TODO: I can shrink this in size...
+        self.update_stack(len(self.root_stack_slots), 'root stack slots')
+
         self.visit_block_node(node)
+
+        self.emit_newline()
+        self.emit_comment('clear away root-level stack vars')
+        for _ in self.root_stack_slots:
+            self.emit_opcode(POP);
+        self.update_stack(-1 * len(self.root_stack_slots), 'clearing root stack slots')
 
         self.emit_newline()
         self.emit_comment("return to caller control")
@@ -734,6 +776,7 @@ class DBNEVMCompiler(DBNAstVisitor):
 
             arg_nodes_by_name = dict(zip(dfn.args, node.args))
             # First, stack slots (reversed)
+            # TODO: move these to the definition :)
             self.log("PROC CALL found stack slots:%s locals:%s" % (dfn.stack_slots, dfn.local_env_args))
             for slot in reversed(dfn.stack_slots):
                 if slot.is_arg:
@@ -751,54 +794,6 @@ class DBNEVMCompiler(DBNAstVisitor):
             for arg in reversed(dfn.local_env_args):
                 self.visit(arg_nodes_by_name[arg])
 
-            # Ok, initialize new environment
-
-            # Load current ENV_BASE.
-            self.emit_load_env_base()                              # [old_env_base
-            self.emit_opcode(DUP1)                                 # [old_env_base|old_env_base 
-            next_env_increment = (2 + len(self.symbol_mapping)) * 32
-            self.emit_raw("ADD(%d, $$)" % next_env_increment)      # [new_env_base|old_env_base
-
-            # We need to
-            #  a) store old_env_base in new_env_base+32 (parent pointer)
-            #  b) save the new env base _back_ to the ENV_POINTER_ADDRESS
-            #  c) initialize new_env_base to the new bitmap
-            #  d) save the new variables in the env
-            self.emit_opcode(SWAP1)     # [old_env_base|new_env_base
-            self.emit_opcode(DUP2)      # [new_env_base|old_env_base|new_env_base
-            self.emit_raw("ADD(32, $$)")# [new_env_base+32|old_env_base|new_env_base
-            self.emit_opcode(MSTORE)    # [new_env_base
-
-            self.emit_opcode(DUP1)      # [new_env_base|new_env_base
-            self.emit_raw("MSTORE(%d, $$)" % self.ENV_POINTER_ADDRESS) # [new_env_base
-
-            # build the bitmap
-            if not dfn.local_env_args:
-                self.emit_push(0)           # [0|new_env_base
-            else:
-                for i, symbol in enumerate(dfn.local_env_args):
-                    index = self.symbol_mapping[symbol] # TODO: better error message?
-                    self.emit_bit_for_index(index)
-
-                    if i != 0:
-                        self.emit_opcode(OR)
-
-            self.emit_opcode(DUP2)     # [new_env_base|new_bitmap|new_env_base
-            self.emit_opcode(MSTORE)   # [new_env_base
-
-            # Store the arguments!
-            # Currently on the stack with the top being the first, etc
-            # We don't use the same code as "Set" handling because we
-            # already have the bitmap set and the env_base on the stack
-            for symbol in dfn.local_env_args:                       # [new_env_base|arg*
-                index = self.symbol_mapping[symbol] # TODO: better error message?
-                self.emit_opcode(SWAP1)                             # [arg*|new_env_base
-                self.emit_opcode(DUP2)                              # [new_env_base|arg*|new_env_base
-                self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))   # [env_location|arg*|new_env_base
-                self.emit_raw("MSTORE($$, $$)")                     # [new_env_base|arg*
-                self.update_stack(-1, 'command local env copy')
-            self.emit_opcode(POP)                                   # [
-
             self.emit_jump(dfn.label)
             self.emit_label(post_call_label)
 
@@ -810,7 +805,7 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.emit_raw("MSTORE(%d, $$)" % self.ENV_POINTER_ADDRESS)
 
             # TODO: this maybe needs to consider any noop arg optimizations we make...
-            stack_consumed = len(dfn.stack_slots) + 1 # + 1 for return address
+            stack_consumed = len(dfn.stack_slots) + len(dfn.local_env_args) + 1 # + 1 for return address
             self.update_stack(-1 * stack_consumed, 'Command return')
 
     def handle_builtin_pen(self, node):
@@ -874,33 +869,55 @@ class DBNEVMCompiler(DBNAstVisitor):
         procedure_start_label = self.generate_label('userProcedureDefinition')
         dfn.label = procedure_start_label
 
+        if self.getting_root_scope_dependencies:
+            # Then generating the label is all we do for a procedure definition
+            # (leaving behind a stub)
+            return
+
         after_procedure_label = self.generate_label('afterUserProcedureDefinition')
 
         # Move execution to after the procedure body
         self.emit_jump(after_procedure_label)
 
         self.emit_label(procedure_start_label)
+        """
+        Caller:
+            - pushes return address on the stack
+            - args on stack
+              - first, stack args (not reversed!)
+              - next, reversed env args
+            - ex: Foo A B C D (C D local, A B stack):
+               --> [C|D|B|A|ret
+            - jumps to procedure
+        Callee:
+            - mints a fresh environment
+               - bitmap is zero
+               - parent is set
+             - sets up its stack slots
+             - copies local vars ito the new environment
+         - promises to pop any stack vars
+         - promises to jump back to return address!
+        Caller:
+         - pops away the environment
+        """
 
         # we also track stack from zero...
         with self.fresh_stack('command_def'):
 
-            dfn.local_env_args
+            self.update_stack(
+                len(dfn.local_env_args) + len(dfn.stack_slots),
+                'command definition starting args',
+            )
 
-            # list built in order of the sack, as in
-            # [a, b, c], the stack should end up [a|b|c
-            # (and we  need to assign stack location in reverse)
-            # this is so that we can understand depth by a simple
-            # increment rather than re-computing the whole get / set list
-            stack_slots = dfn.stack_slots
+            self.handle_create_new_env_and_copy_in_locals(dfn.local_env_args)
+            self.update_stack(-1 * len(dfn.local_env_args), 'command local env copy')
 
             # While we're visiting the body, we _know_
             # that the formal args will always be set
             new_directory = (structures.SymbolDirectory()
                 .with_locals(dfn.local_env_args)
-                .with_stack({s.symbol: i for (i, s) in enumerate(reversed(stack_slots))})
+                .with_stack({s.symbol: i for (i, s) in enumerate(reversed(dfn.stack_slots))})
             )
-
-            self.update_stack(len(dfn.stack_slots), 'procedure stack args')
 
             with self.new_symbol_directory(new_directory, 'command_def'):
                 self.visit(node.body)
@@ -909,13 +926,72 @@ class DBNEVMCompiler(DBNAstVisitor):
             # (before jump)
             for _ in range(len(dfn.stack_slots)):
                 self.emit_opcode(POP)
-            self.update_stack(-1 * len(dfn.stack_slots), 'procedure stack args pop')
+            self.update_stack(-1 * len(dfn.stack_slots), 'procedure definition stack slots pop')
 
-        # TODO: emit default return value if it is a Number?
-        # self.add('LOAD_INTEGER', 0)
-        self.emit_raw('JUMP($$)')
+            # TODO: emit default return value if it is a Number?
+            # self.add('LOAD_INTEGER', 0)
+            if self.stack_size != 0:
+                raise AssertionError("we're about to jump to return, but stack is not at zero!")
+
+            self.emit_raw('JUMP($$)')
 
         self.emit_label(after_procedure_label)
+
+    def handle_create_new_env_and_copy_in_locals(self, local_env_args):
+        """
+        assumes that local_env_args are on the stack in reversed order
+        like if local_env_args is [A B C D]
+        we expect stack to be [A|B|C|D
+        """
+
+        # Build new environment.....
+        # Load current ENV_BASE.
+        self.emit_load_env_base()                              # [old_env_base
+        self.emit_opcode(DUP1)                                 # [old_env_base|old_env_base 
+        next_env_increment = (2 + len(self.symbol_mapping)) * 32
+        self.emit_raw("ADD(%d, $$)" % next_env_increment)      # [new_env_base|old_env_base
+
+        # We need to
+        #  a) store old_env_base in new_env_base+32 (parent pointer)
+        #  b) save the new env base _back_ to the ENV_POINTER_ADDRESS
+        #  c) initialize new_env_base to the new bitmap
+        #  d) save the new variables in the env
+        self.emit_opcode(SWAP1)     # [old_env_base|new_env_base
+        self.emit_opcode(DUP2)      # [new_env_base|old_env_base|new_env_base
+        self.emit_raw("ADD(32, $$)")# [new_env_base+32|old_env_base|new_env_base
+        self.emit_opcode(MSTORE)    # [new_env_base
+
+        self.emit_opcode(DUP1)      # [new_env_base|new_env_base
+        self.emit_raw("MSTORE(%d, $$)" % self.ENV_POINTER_ADDRESS) # [new_env_base
+
+        # build the bitmap
+        # TODO: (uh... we can do this compile time... I think?)
+        # we need to set to zero even if there's env vars
+        # because we don't clean up popped environments
+        if not local_env_args:
+            self.emit_push(0)           # [0|new_env_base
+        else:
+            for i, symbol in enumerate(local_env_args):
+                index = self.symbol_mapping[symbol] # TODO: better error message?
+                self.emit_bit_for_index(index)
+
+                if i != 0:
+                    self.emit_opcode(OR)
+
+        self.emit_opcode(DUP2)     # [new_env_base|new_bitmap|new_env_base
+        self.emit_opcode(MSTORE)   # [new_env_base
+
+        # Store the arguments!
+        # Currently on the stack with the top being the first, etc
+        # We don't use the same code as "Set" handling because we
+        # already have the bitmap set and the env_base on the stack
+        for symbol in local_env_args:                           # [new_env_base|arg*
+            index = self.symbol_mapping[symbol] # TODO: better error message?
+            self.emit_opcode(SWAP1)                             # [arg*|new_env_base
+            self.emit_opcode(DUP2)                              # [new_env_base|arg*|new_env_base
+            self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))   # [env_location|arg*|new_env_base
+            self.emit_raw("MSTORE($$, $$)")                     # [new_env_base|arg*
+        self.emit_opcode(POP)                                   # [
 
     def visit_value_node(self, node):
         # TODO!
@@ -970,16 +1046,16 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     ####
     # Infos
-    def get_scope_dependencies(self, node):
-        with self.stashed_state_to_get_scope_dependencies():
+    def get_scope_dependencies(self, node, root=False):
+        with self.stashed_state_to_get_scope_dependencies(root=root):
             self.visit(node)
             return self.scope_dependencies
 
 
-    def make_variable_location_decisions_for(self, dfn):
-        self.log("\n\n[][][][][][][] Stack decision for %s" % dfn.name)
+    def make_variable_location_decisions_for(self, scope_dependencies, args, name):
+        self.log("\n\n[][][][][][][] Stack decision for %s" % name)
 
-        expected_globals = dfn.scope_dependencies.globals_expected_by_any_called_function(
+        expected_globals = scope_dependencies.globals_expected_by_any_called_function(
             self.procedure_definitions_by_name,
         )
 
@@ -988,25 +1064,33 @@ class DBNEVMCompiler(DBNAstVisitor):
         stack_vars = []
         stack_slots = []
 
-        all_gets = dfn.scope_dependencies.variable_gets
+        all_gets = scope_dependencies.variable_gets
         self.log("---> Gets:")
         for g in all_gets:
             self.log("   • %s" % (g,))
-        all_sets = dfn.scope_dependencies.variable_sets
+        all_sets = scope_dependencies.variable_sets
         self.log("---> Sets:")
         for s in all_sets:
             self.log("   • %s" % (s,))
 
-        arg_set = set(dfn.args)
+        arg_set = set(args)
         non_arg_variables = ({a.symbol for a in all_gets} | {a.symbol for a in all_sets}) - arg_set
-        all_args = non_arg_variables | arg_set
+        all_symbols = non_arg_variables | arg_set
         arg_info = {
             s: self._get_symbol_access_info(s, expected_globals, all_gets, all_sets)
-            for s in all_args
+            for s in all_symbols
         }
 
-        # TODO: we can do better than this...
-        stack_prioritized_variables = dfn.args + list(non_arg_variables)
+        # Prioritize putting things on the stack
+        # that have the deepest accessess
+        stack_prioritized_variables = sorted(
+            all_symbols,
+            key = lambda s : (
+                -(arg_info[s]['deepest_access'] or 0),
+                s, # include symbol name to keep sort stable
+            )
+        )
+        # import random; random.shuffle(stack_prioritized_variables)
 
         self.log("---> Variables (%s)" % stack_prioritized_variables)
         for s in stack_prioritized_variables:
@@ -1025,9 +1109,9 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.log("local env args: %s" % local_env_args)
         self.log("stack args: %s" % stack_args)
         self.log("stack vars: %s" % stack_vars)
-        dfn.local_env_args = local_env_args
-        dfn.stack_slots = stack_slots
         self.log("[][][][][][][]\n\n")
+
+        return (local_env_args, stack_slots)
 
     def _is_stack_eligible(self, symbol, info, nudge=None):
         if nudge is None:
@@ -1048,9 +1132,10 @@ class DBNEVMCompiler(DBNAstVisitor):
             and (info['farthest_get'] is None or (info['farthest_get'] + nudge) <= 16)
         )
 
-        self.log("   • %s: expected_global:%s writes:%d reads:%d non_local_reads:%d nudged_farthest_get:%s nudged_farthest_set:%s always_reachable:%s semantically_eligible:%s" % (
+        self.log("   • %s: expected_global:%s deepest_unnudged_access:%d, writes:%d reads:%d non_local_reads:%d nudged_farthest_get:%s nudged_farthest_set:%s always_reachable:%s semantically_eligible:%s" % (
             symbol,
             info['expected_global'],
+            info['deepest_access'],
             info['write_count'],
             info['read_count'],
             info['non_local_read_count'],
@@ -1083,6 +1168,7 @@ class DBNEVMCompiler(DBNAstVisitor):
             'expected_global': symbol in expected_globals,
             'read_count': len(gets),
             'write_count': len(sets),
-            'non_local_read_count': len([a for a in gets if a.is_global])
+            'non_local_read_count': len([a for a in gets if a.is_global]),
+            'deepest_access': max(farthest_get or 0, farthest_set or 0),
         }
 
