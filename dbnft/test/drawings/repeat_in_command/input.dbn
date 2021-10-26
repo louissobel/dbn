@@ -1,0 +1,8 @@
+Command Go X {
+	Repeat X 50 70 {
+	   Pen X
+	   Line X X X 100
+	}
+}
+
+Go 7

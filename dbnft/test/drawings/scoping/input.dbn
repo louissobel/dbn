@@ -10,7 +10,6 @@
 
 Command MakeXCommand X0 Y0 Depth {
   Pen (100 - Depth * 50)
-
   Line X0 Y0 X1 Y1
 
   Same? Depth 0 {
@@ -27,7 +26,6 @@ Pen 100
 
 Set X1 100
 Set Y1 100
-
 
 MakeXCommand 0 0 0
 Pen 100

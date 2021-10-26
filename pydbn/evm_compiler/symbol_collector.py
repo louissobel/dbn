@@ -6,7 +6,7 @@ from .structures import ProcedureDefinition
 class SymbolCollector(DBNAstVisitor):
 
     def collect_symbols(self, node):
-        self.procedure_definitions = set()
+        self.procedure_definitions = []
         self.variables = set()
         self.called_procedures = set()
 
@@ -51,7 +51,8 @@ class SymbolCollector(DBNAstVisitor):
             formal_args.append(arg.value)
             self.variables.add(arg.value)
 
-        self.procedure_definitions.add(ProcedureDefinition(
+        self.procedure_definitions.append(ProcedureDefinition(
+            node,
             node.procedure_name.value,
             formal_args,
             node.procedure_type == 'number',
