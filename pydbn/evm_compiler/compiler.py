@@ -69,6 +69,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.lines = []
         self.label_prefix_counts = {}
         self.line_no = 0
+        self.no_env = False
 
         # stack_size is relative to command / program scope
         self.stack_size = 0
@@ -88,15 +89,28 @@ class DBNEVMCompiler(DBNAstVisitor):
             symbol_collector.variables
         )
 
+        self.procedure_definitions = symbol_collector.procedure_definitions
         self.procedure_definitions_by_name = {
             dfn.name : dfn for dfn in symbol_collector.procedure_definitions
         }
         self.log('Procedures: %s' % self.procedure_definitions_by_name)
 
-        # Stack variable allocation decisions
-        for dfn in symbol_collector.procedure_definitions:
+        # Optimize
+        self._allocate_stack_variables(node)
+
+
+        self.visit(node)
+
+        # Special metadata functions
+        self.emit_metadata(metadata)
+
+        return "\n".join(self.lines)
+
+    def _allocate_stack_variables(self, node):
+       # Stack variable allocation decisions
+        for dfn in self.procedure_definitions:
             dfn.scope_dependencies = self.get_scope_dependencies(dfn.node)
-            dfn.local_env_args, dfn.stack_slots = (
+            dfn.local_env_args, dfn.stack_slots, dfn.needs_env = (
                 self.make_variable_location_decisions_for(
                     dfn.scope_dependencies,
                     dfn.args,
@@ -106,27 +120,20 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         # Ok — make a _top level_ stack allocation decision
         root_scope_dependencies = self.get_scope_dependencies(node, root=True)
-        root_locals_env_args, root_stack_slots = (
+        root_locals_env_args, root_stack_slots, _ = (
             self.make_variable_location_decisions_for(
                 root_scope_dependencies,
                 [],
                 '<root>'
             )
         )
-        assert not root_locals_env_args, 'we are not passing any args...'
-        for slot in root_stack_slots:
-            assert not slot.is_arg, 'we are not passing any args'
+        if root_locals_env_args or any(slot.is_arg for slot in root_stack_slots):
+            raise RuntimeError('we are not passing any args...')
+
         self.root_stack_slots = root_stack_slots
         self.symbol_directory = self.symbol_directory.with_stack(
             {s.symbol: i for (i, s) in enumerate(reversed(root_stack_slots))}
         )
-
-        self.visit(node)
-
-        # Special metadata functions
-        self.emit_metadata(metadata)
-
-        return "\n".join(self.lines)
 
     @contextlib.contextmanager
     def new_symbol_directory(self, new_directory, why='unknown'):
@@ -736,21 +743,27 @@ class DBNEVMCompiler(DBNAstVisitor):
                 )
 
             """
-            Ok: calling discipline
             Caller:
-             - pushes return address on the stack
-             - mints a fresh environment
-                - bitmap is zero
-                - parent is set
-             - sets up the stack vars
-             - copies local vars ito the new environment
+                - pushes return address on the stack
+                - args on stack
+                  - first, reversed stack slots
+                  - next, reversed env args
+                - ex: Foo A B C D (C D local, A B _ stack slots):
+                   --> [C|D|A|B|_|ret
+                - jumps to procedure
             Callee:
+                - mints a fresh environment
+                   - bitmap is zero
+                   - parent is set
+                 - sets up its stack slots
+                 - copies local vars ito the new environment
              - promises to pop any stack vars
+             - pops away the environment
              - promises to jump back to return address!
             Caller:
-             - pops away the environment
-
+             
             """
+
             # TODO: better error messages!!
             try:
                 dfn = self.procedure_definitions_by_name[procedure_name]
@@ -796,13 +809,6 @@ class DBNEVMCompiler(DBNAstVisitor):
 
             self.emit_jump(dfn.label)
             self.emit_label(post_call_label)
-
-            # Post Call:
-            #  - reset current env to the parent env
-            self.emit_load_env_base()
-            self.emit_raw("ADD(32, $$)")
-            self.emit_opcode(MLOAD)
-            self.emit_raw("MSTORE(%d, $$)" % self.ENV_POINTER_ADDRESS)
 
             # TODO: this maybe needs to consider any noop arg optimizations we make...
             stack_consumed = len(dfn.stack_slots) + len(dfn.local_env_args) + 1 # + 1 for return address
@@ -865,7 +871,10 @@ class DBNEVMCompiler(DBNAstVisitor):
     def visit_procedure_definition_node(self, node):
         self.emit_line_no(node.line_no)
 
-        dfn = self.procedure_definitions_by_name[node.procedure_name.value]
+        name = node.procedure_name.value
+        self.emit_comment(';;;; defining %s' % name)
+
+        dfn = self.procedure_definitions_by_name[name]
         procedure_start_label = self.generate_label('userProcedureDefinition')
         dfn.label = procedure_start_label
 
@@ -880,26 +889,6 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_jump(after_procedure_label)
 
         self.emit_label(procedure_start_label)
-        """
-        Caller:
-            - pushes return address on the stack
-            - args on stack
-              - first, stack args (not reversed!)
-              - next, reversed env args
-            - ex: Foo A B C D (C D local, A B stack):
-               --> [C|D|B|A|ret
-            - jumps to procedure
-        Callee:
-            - mints a fresh environment
-               - bitmap is zero
-               - parent is set
-             - sets up its stack slots
-             - copies local vars ito the new environment
-         - promises to pop any stack vars
-         - promises to jump back to return address!
-        Caller:
-         - pops away the environment
-        """
 
         # we also track stack from zero...
         with self.fresh_stack('command_def'):
@@ -909,8 +898,12 @@ class DBNEVMCompiler(DBNAstVisitor):
                 'command definition starting args',
             )
 
-            self.handle_create_new_env_and_copy_in_locals(dfn.local_env_args)
-            self.update_stack(-1 * len(dfn.local_env_args), 'command local env copy')
+            if dfn.needs_env:
+                self.handle_create_new_env_and_copy_in_locals(dfn.local_env_args)
+                self.update_stack(-1 * len(dfn.local_env_args), 'command local env copy')
+            else:
+                if len(dfn.local_env_args) != 0:
+                    raise RuntimeError("invariant violated: needs_env is false but there are local_env_vars expected")
 
             # While we're visiting the body, we _know_
             # that the formal args will always be set
@@ -927,6 +920,9 @@ class DBNEVMCompiler(DBNAstVisitor):
             for _ in range(len(dfn.stack_slots)):
                 self.emit_opcode(POP)
             self.update_stack(-1 * len(dfn.stack_slots), 'procedure definition stack slots pop')
+
+            if dfn.needs_env:
+                self.handle_pop_env()
 
             # TODO: emit default return value if it is a Number?
             # self.add('LOAD_INTEGER', 0)
@@ -992,6 +988,12 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))   # [env_location|arg*|new_env_base
             self.emit_raw("MSTORE($$, $$)")                     # [new_env_base|arg*
         self.emit_opcode(POP)                                   # [
+
+    def handle_pop_env(self):
+        self.emit_load_env_base()
+        self.emit_raw("ADD(32, $$)")
+        self.emit_opcode(MLOAD)
+        self.emit_raw("MSTORE(%d, $$)" % self.ENV_POINTER_ADDRESS)
 
     def visit_value_node(self, node):
         # TODO!
@@ -1059,10 +1061,10 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.procedure_definitions_by_name,
         )
 
-        stack_args = []
         local_env_args = []
-        stack_vars = []
         stack_slots = []
+
+        stack_vars = set()
 
         all_gets = scope_dependencies.variable_gets
         self.log("---> Gets:")
@@ -1076,7 +1078,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         arg_set = set(args)
         non_arg_variables = ({a.symbol for a in all_gets} | {a.symbol for a in all_sets}) - arg_set
         all_symbols = non_arg_variables | arg_set
-        arg_info = {
+        symbol_info = {
             s: self._get_symbol_access_info(s, expected_globals, all_gets, all_sets)
             for s in all_symbols
         }
@@ -1086,32 +1088,55 @@ class DBNEVMCompiler(DBNAstVisitor):
         stack_prioritized_variables = sorted(
             all_symbols,
             key = lambda s : (
-                -(arg_info[s]['deepest_access'] or 0),
+                -(symbol_info[s]['deepest_access'] or 0),
                 s, # include symbol name to keep sort stable
             )
         )
-        # import random; random.shuffle(stack_prioritized_variables)
 
         self.log("---> Variables (%s)" % stack_prioritized_variables)
         for s in stack_prioritized_variables:
-            eligible = self._is_stack_eligible(s, arg_info[s], nudge=len(stack_slots))
+            eligible = self._is_stack_eligible(s, symbol_info[s], nudge=len(stack_slots))
             if s in arg_set:
                 if eligible:
-                    stack_args.append(s)
+                    stack_vars.add(s)
                     stack_slots.append(structures.ProcedureDefinition.StackSlot(True, s))
                 else:
                     local_env_args.append(s)
             else:
                 if eligible:
-                    stack_vars.append(s)
+                    stack_vars.add(s)
                     stack_slots.append(structures.ProcedureDefinition.StackSlot(False, s))
 
-        self.log("local env args: %s" % local_env_args)
-        self.log("stack args: %s" % stack_args)
+        # Ok, now one more optimization, do we need an environment at all?
+        self.log("--> Environment Decision")
+        vars_needing_env = []
+        for s in all_symbols:
+            if s in stack_vars:
+                self.log("   • %s: stack var, doesn't need env" % s)
+            else:
+                # there's one exception. if the symbol:
+                # - is not written to (and is not an arg, which have implicit writes)
+                # - is only ever read non-locally
+                # then we can effectively delegate to the existing environment
+                info = symbol_info[s]
+                not_written = (not s in arg_set) and (info['write_count'] == 0)
+                only_read_non_locally = (info['read_count'] == info['non_local_read_count'])
+                if not_written and only_read_non_locally:
+                    self.log("   • %s: not stack var but not arg, never written, and only read non-locally, so does not ned env" % s)
+                else:
+                    self.log("   • %s: not stack var, needs env" % s)
+                    vars_needing_env.append(s)
+        
+        self.log("--> Need Env to serve %s" % vars_needing_env)
+
+
         self.log("stack vars: %s" % stack_vars)
+        self.log("local env args: %s" % local_env_args)
+        self.log("stack slots: %s" % stack_slots)
+        self.log("env needed: %s" % bool(vars_needing_env))
         self.log("[][][][][][][]\n\n")
 
-        return (local_env_args, stack_slots)
+        return (local_env_args, stack_slots, bool(vars_needing_env))
 
     def _is_stack_eligible(self, symbol, info, nudge=None):
         if nudge is None:
@@ -1171,4 +1196,3 @@ class DBNEVMCompiler(DBNAstVisitor):
             'non_local_read_count': len([a for a in gets if a.is_global]),
             'deepest_access': max(farthest_get or 0, farthest_set or 0),
         }
-

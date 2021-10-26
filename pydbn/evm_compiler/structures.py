@@ -14,6 +14,7 @@ class ProcedureDefinition(object):
 
         self.stack_slots = []
         self.local_env_args = args
+        self.needs_env = True
 
     def __repr__(self):
         return "<%s %s (%s) @%s>" % (
