@@ -84,3 +84,4 @@ SWAP16  = Opcode('SWAP16')
 
 
 REVERT = Opcode('REVERT', 2)
+ADDRESS = Opcode('ADDRESS')

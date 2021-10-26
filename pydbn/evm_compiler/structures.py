@@ -1,16 +1,19 @@
+import sys
 from collections import namedtuple
 
 class ProcedureDefinition(object):
+    StackSlot = namedtuple('StackSlot', ['is_arg', 'symbol'])
+
     def __init__(self, node, name, args, is_number):
         self.node = node
         self.name = name
         self.args = args
         self.is_number = is_number
         self.label = None
-        self.block_dependencies = None
+        self.scope_dependencies = None
 
-        self.stack_args = None
-        self.local_env_args = None
+        self.stack_slots = []
+        self.local_env_args = args
 
     def __repr__(self):
         return "<%s %s (%s) @%s>" % (
@@ -20,7 +23,7 @@ class ProcedureDefinition(object):
             '[uncompiled]' if self.label is None else self.label,
         )
 
-class BlockDependencies(object):
+class ScopeDependencies(object):
     VariableAccess = namedtuple('VariableAccess', [
         'symbol',
         'stack_size',
@@ -33,7 +36,7 @@ class BlockDependencies(object):
         self.procedures_called = []
 
     def __repr__(self):
-        return "<BlockDependencies gets:%s sets:%s calls:%s>" % (
+        return "<ScopeDependencies gets:%s sets:%s calls:%s>" % (
             self.variable_gets,
             self.variable_sets,
             self.procedures_called,
@@ -52,30 +55,12 @@ class BlockDependencies(object):
             seen.add(call.symbol)
 
             dfn = procedure_definitions_by_name[call.symbol]
-            for get in dfn.block_dependencies.variable_gets:
+            for get in dfn.scope_dependencies.variable_gets:
                 if get.is_global:
                     expected.add(get.symbol)
-            expected |= dfn.block_dependencies.globals_expected_by_any_called_function(procedure_definitions_by_name, seen)
+            expected |= dfn.scope_dependencies.globals_expected_by_any_called_function(procedure_definitions_by_name, seen)
 
         return expected
-
-    def is_stack_eligible(self, symbol, procedure_definitions_by_name, shift_stack=0):
-        expected_globals = self.globals_expected_by_any_called_function(
-            procedure_definitions_by_name,
-        )
-        if symbol in expected_globals:
-            return False
-
-        gets = [a for a in self.variable_gets if a.symbol == symbol]
-        sets = [a for a in self.variable_sets if a.symbol == symbol]
-
-        deepest_get = max(gets, key=lambda a : a.stack_size).stack_size + shift_stack if gets else None 
-        deepest_set = max(sets, key=lambda a : a.stack_size).stack_size + shift_stack if sets else None
-
-        return (
-            (deepest_set is None or deepest_set < 17)
-            and (deepest_get is None or deepest_get < 16)
-        )
 
 Metadata = namedtuple('Metadata', ['owning_contract', 'description'])
 EMPTY_METADATA = Metadata(None, None)
@@ -85,35 +70,47 @@ class SymbolDirectory(object):
     Compiler uses this to keep track of where various symbols can be found
     (local env, stack, etc)
     """
-    LOCAL_ENV = object()
-    GLOBAL = object()
-    STACK = object()
 
     class SymbolLocation(object):
+        LOCAL_ENV = object()
+        GLOBAL = object()
+        STACK = object()
+
+        @classmethod
+        def local(cls):
+            return cls(cls.LOCAL_ENV)
+
+        @classmethod
+        def _global(cls):
+            return cls(cls.GLOBAL)
+
+        @classmethod
+        def stack(cls, slot):
+            return cls(cls.STACK, slot)
 
         def __init__(self, location, slot=None):
             self.location = location
             self.slot = slot
 
-            if self.slot and not location == SymbolDirectory.STACK:
+            if self.slot and not location == self.STACK:
                 raise ValueError("only Stack location has slot")
 
         def __repr__(self):
-            if self.location == SymbolDirectory.LOCAL_ENV:
+            if self.location == self.LOCAL_ENV:
                 return "<Local>"
-            elif self.location == SymbolDirectory.STACK:
+            elif self.location == self.STACK:
                 return "<Stack %d>" % self.slot
             else:
                 return "<Unknown>"
 
         def is_local(self):
-            return self.location == SymbolDirectory.LOCAL_ENV
+            return self.location == self.LOCAL_ENV
 
         def is_stack(self):
-            return self.location == SymbolDirectory.STACK
+            return self.location == self.STACK
 
         def is_global(self):
-            return self.location == SymbolDirectory.GLOBAL
+            return self.location == self.GLOBAL
 
     def __init__(self, initial_mapping=None):
         if initial_mapping:
@@ -130,7 +127,7 @@ class SymbolDirectory(object):
     def location_for(self, symbol):
         return self.symbol_mapping.get(
             symbol,
-            self.SymbolLocation(self.GLOBAL),
+            self.SymbolLocation._global(),
         )
 
     def copy(self):
@@ -140,13 +137,13 @@ class SymbolDirectory(object):
         """
         mutates!
         """
-        self.symbol_mapping[symbol] = self.SymbolLocation(self.LOCAL_ENV)
+        self.symbol_mapping[symbol] = self.SymbolLocation.local()
 
     def set_stack(self, symbol, slot):
         """
         mutates!
         """
-        self.symbol_mapping[symbol] = self.SymbolLocation(self.STACK, slot)
+        self.symbol_mapping[symbol] = self.SymbolLocation.stack(slot)
 
     def with_local(self, symbol):
         c = self.copy()
@@ -163,5 +160,11 @@ class SymbolDirectory(object):
         c = self.copy()
         for s, i in stack_slots.items():
             c.set_stack(s, i)
+        return c
+
+    def with_locations(self, mapping):
+        c = self.copy()
+        for s, l in mapping.items():
+            c.symbol_mapping[s] = l
         return c
 

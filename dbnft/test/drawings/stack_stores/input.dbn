@@ -1,0 +1,109 @@
+
+
+Command TestStackStoreArgs A B {
+	Set [N A] 100
+	Set [N B] 100
+}
+Set N 0
+TestStackStoreArgs 0 1
+
+Command ExpectsGlobalBC N {
+	Set [N B] 100
+	Set [N C] 100
+}
+Command TestStackStoreSkipsGlobal A B C {
+	Set [N A] 100
+	Set B 3
+	ExpectsGlobalBC N
+}
+Set N 1
+TestStackStoreSkipsGlobal 2 30 4
+
+Command TestStackStoreSets A B {
+	Set A (A+1)
+	Set B (A)
+	Set [N B] 100
+}
+Set N 2
+TestStackStoreSets 3 0
+
+Command TestManyArgs A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 A12 A13 A14 A15 A16 A17 A18 A19 A20 {
+	Set [N A1] 100
+	Set [N A2] 100
+	Set [N A3] 100
+	Set [N A4] 100
+	Set [N A5] 100
+	Set [N A6] 100
+	Set [N A7] 100
+	Set [N A8] 100
+	Set [N A9] 100
+	Set [N A10] 100
+	Set [N A11] 100
+	Set [N A12] 100
+	Set [N A13] 100
+	Set [N A14] 100
+	Set [N A15] 100
+	Set [N A16] 100
+	Set [N A17] 100
+	Set [N A18] 100
+	Set [N A19] 100
+	Set [N A20] 100
+}
+Set N 3
+TestManyArgs 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24
+
+Command TestCallWithManyArgs A5 A17 {
+	TestManyArgs A5 6 7 8 9 10 11 12 13 14 15 16 A17 18 19 20 21 22 23 24
+}
+Set N 4
+TestCallWithManyArgs 5 17
+
+// It's a little harder to contrive a situation where the
+// _set_ is too deep, but let's do it with repeats
+// (which are only things that add Set depth for now)
+Command TestCallWithDeepSet A {
+	Repeat R0 0 0 {
+	  Repeat R1 0 0 {
+	    Repeat R2 0 0 {
+	    	Repeat R3 0 0 {
+	    	  Repeat R4 0 0 {
+	    	    Repeat R5 0 0 {
+	    	  		Repeat R6 0 0 {
+	    	  		    Repeat R7 0 0 {
+	    	  		    	Repeat R8 0 0 {
+	    	  		    		Set A 5
+	    	  		    	}
+	    	  		    }
+	    	  		}
+	    	  	}
+	    	  }
+	    	}
+	    }
+	  }
+	}
+	Set [N A] 100
+}
+Set N 5
+TestCallWithDeepSet 0
+
+
+Command TestRepeatVarShadows A {
+    Set [N A] 100
+	Repeat A 1 4 {
+	  Set [N A] 100
+	}
+	Set [N (A+1)] 100
+}
+Set N 6
+TestRepeatVarShadows 0
+
+
+Command TestRepeatVarSetInLoop A {
+	Repeat A 0 5 {
+	  Set [N A] 100
+	  Set A 24
+	}
+	Set [N A] 100
+}
+Set N 7
+TestRepeatVarSetInLoop 0

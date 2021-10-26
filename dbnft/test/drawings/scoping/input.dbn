@@ -21,12 +21,17 @@ Command MakeXCommand X0 Y0 Depth {
   }
 }
 
-Paper 0
-Pen 100
-
 Set X1 100
 Set Y1 100
 
-MakeXCommand 0 0 0
+Command Main {
+  Paper 0
+  Pen 100
+
+  MakeXCommand 0 0 0
+}
+
+Main
+
 Pen 100
 Line 0 Y1 X1 Y1

@@ -60,7 +60,7 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     def log(self, message):
         prefix = ''
-        if self.getting_block_dependencies:
+        if self.getting_scope_dependencies:
             prefix = '>>>> Getting Block Dependencies: '
         if self.verbose:
             print(prefix + str(message), file=sys.stderr)
@@ -72,7 +72,7 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         # stack_size is relative to command / program scope
         self.stack_size = 0
-        self.getting_block_dependencies = False
+        self.getting_scope_dependencies = False
 
         symbol_collector = SymbolCollector().collect_symbols(node)
         self.symbol_mapping = dict(
@@ -90,8 +90,8 @@ class DBNEVMCompiler(DBNAstVisitor):
             dfn.name : dfn for dfn in symbol_collector.procedure_definitions
         }
         for dfn in symbol_collector.procedure_definitions:
-            dfn.block_dependencies = self.get_procedure_block_dependencies(dfn.node)
-            self.log(dfn.block_dependencies)
+            dfn.scope_dependencies = self.get_scope_dependencies(dfn.node)
+            self.make_variable_location_decisions_for(dfn)
 
         self.log(self.procedure_definitions_by_name)
 
@@ -111,18 +111,18 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.symbol_directory = old_directory
 
     @contextlib.contextmanager
-    def stashed_state_to_get_block_dependencies(self):
+    def stashed_state_to_get_scope_dependencies(self):
         old_lines = self.lines
         self.lines = []
 
         old_label_prefix_counts = self.label_prefix_counts
         self.label_prefix_counts = {}
 
-        self.getting_block_dependencies = True
-        self.block_dependencies = structures.BlockDependencies()
+        self.getting_scope_dependencies = True
+        self.scope_dependencies = structures.ScopeDependencies()
         yield
-        self.block_dependencies = None
-        self.getting_block_dependencies = False
+        self.scope_dependencies = None
+        self.getting_scope_dependencies = False
 
         self.label_prefix_counts = old_label_prefix_counts
 
@@ -321,16 +321,20 @@ class DBNEVMCompiler(DBNAstVisitor):
 
             label = self.generate_label("postSetCommand")
             self.emit_push_label(label) # return
-            self.update_stack(1, "Set command internal")
+            self.update_stack(1, "Set command internal (Return)")
 
             self.visit(node.right)      # color
             self.visit(bracket_left)    # x
+
             self.emit_push(self.PIXEL_DATA_START)
+            self.update_stack(1, "Set command internal (pixeldata)")
+
             self.visit(bracket_right)   # y
+
             self.emit_jump('setCommand')
             self.emit_label(label)
 
-            self.update_stack(-4, 'set dot')
+            self.update_stack(-5, 'set dot')
 
         elif isinstance(left, DBNWordNode):
             # Get the value on the stack
@@ -342,9 +346,9 @@ class DBNEVMCompiler(DBNAstVisitor):
             # of tracking dependencies
             symbol = left.value
 
-            if self.getting_block_dependencies:
-                self.block_dependencies.variable_sets.append(
-                    structures.BlockDependencies.VariableAccess(
+            if self.getting_scope_dependencies:
+                self.scope_dependencies.variable_sets.append(
+                    structures.ScopeDependencies.VariableAccess(
                         symbol,
                         self.stack_size,
                         False,
@@ -358,34 +362,7 @@ class DBNEVMCompiler(DBNAstVisitor):
             if location.is_local():
                 self.handle_env_set_local(symbol)
             elif location.is_stack():
-                # [value|...
-                distance = self.stack_size - location.slot - 1 # (-1 to account for value at top)
-                if distance > 16:
-                    raise AssertionError("cannot set stack-stored symbol! too deep!")
-                if distance < 1:
-                    raise AssertionError("cannot set stack-stored symbol! distance somehow < 1...")
-
-                opcode = [
-                    SWAP1,
-                    SWAP2,
-                    SWAP3,
-                    SWAP4,
-                    SWAP5,
-                    SWAP6,
-                    SWAP7,
-                    SWAP8,
-                    SWAP9,
-                    SWAP10,
-                    SWAP11,
-                    SWAP12,
-                    SWAP13,
-                    SWAP14,
-                    SWAP15,
-                    SWAP16,
-                ][distance-1]
-                self.emit_opcode(opcode)
-                self.emit_opcode(POP)
-
+                self.handle_env_set_stack(location)
             else:
                 self.handle_env_set(symbol)
 
@@ -396,9 +373,9 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         location = self.symbol_directory.location_for(symbol)
 
-        if self.getting_block_dependencies:
-            self.block_dependencies.variable_gets.append(
-                structures.BlockDependencies.VariableAccess(
+        if self.getting_scope_dependencies:
+            self.scope_dependencies.variable_gets.append(
+                structures.ScopeDependencies.VariableAccess(
                     symbol,
                     self.stack_size,
                     location.is_global(),
@@ -411,31 +388,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         if location.is_local():
             self.handle_env_get_local(symbol)
         elif location.is_stack():
-            distance = self.stack_size - location.slot
-            if distance > 16:
-                raise AssertionError("cannot access stack-stored symbol! too deep!")
-            if distance < 1:
-                raise AssertionError("cannot access stack-stored symbol! distance somehow < 1...")
-
-            opcode = [
-                DUP1,
-                DUP2,
-                DUP3,
-                DUP4,
-                DUP5,
-                DUP6,
-                DUP7,
-                DUP8,
-                DUP9,
-                DUP10,
-                DUP11,
-                DUP12,
-                DUP13,
-                DUP14,
-                DUP15,
-                DUP16,
-            ][distance-1]
-            self.emit_opcode(opcode)
+            self.handle_env_get_stack(location)
         else:
             self.handle_env_get(symbol)
 
@@ -454,6 +407,35 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_load_env_base()  # [env_base|value
         self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32)) # [addr|value
         self.emit_opcode(MSTORE)
+
+    def handle_env_set_stack(self, location):
+        # [value|...
+        distance = self.stack_size - location.slot - 1 # (-1 to account for value at top)
+        if distance > 16:
+            raise AssertionError("cannot set stack-stored symbol! too deep!")
+        if distance < 1:
+            raise AssertionError("cannot set stack-stored symbol! distance somehow < 1...")
+
+        opcode = [
+            SWAP1,
+            SWAP2,
+            SWAP3,
+            SWAP4,
+            SWAP5,
+            SWAP6,
+            SWAP7,
+            SWAP8,
+            SWAP9,
+            SWAP10,
+            SWAP11,
+            SWAP12,
+            SWAP13,
+            SWAP14,
+            SWAP15,
+            SWAP16,
+        ][distance-1]
+        self.emit_opcode(opcode)
+        self.emit_opcode(POP)
 
     def handle_env_set(self, symbol):
         """
@@ -490,6 +472,33 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))
         self.emit_raw("MLOAD($$)")
 
+    def handle_env_get_stack(self, location):
+        distance = self.stack_size - location.slot
+        if distance > 16:
+            raise AssertionError("cannot access stack-stored symbol! too deep!")
+        if distance < 1:
+            raise AssertionError("cannot access stack-stored symbol! distance somehow < 1...")
+
+        opcode = [
+            DUP1,
+            DUP2,
+            DUP3,
+            DUP4,
+            DUP5,
+            DUP6,
+            DUP7,
+            DUP8,
+            DUP9,
+            DUP10,
+            DUP11,
+            DUP12,
+            DUP13,
+            DUP14,
+            DUP15,
+            DUP16,
+        ][distance-1]
+        self.emit_opcode(opcode)
+
     def handle_env_get(self, symbol):
         """
         call helper function, which takes args
@@ -513,7 +522,19 @@ class DBNEVMCompiler(DBNAstVisitor):
         # Set the bitmap for the loop var
         var_symbol = node.var.value
         location = self.symbol_directory.location_for(var_symbol)
-        if not location.is_local():
+        if location.is_local():
+            # Then this is already a local variable and I don't need to do
+            # anything pre-entry
+            new_location = location
+        elif location.is_stack():
+            # Same as above, I don't need to do anything
+            new_location = location
+        else:
+            # For the duration of the block, I can now consider
+            # this a local variable. Pre-loop entry, let's make
+            # sure the bitmap is set
+            new_location = structures.SymbolDirectory.SymbolLocation.local()
+
             # then I need to set the bitmap..
             # TODO: better error message?
             index = self.symbol_mapping[var_symbol]
@@ -550,30 +571,38 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_raw("SUB(0, $$)")
 
         ##### loop entry
+        # The repeat owns its own copy of "value" even if it is already stored elsewhere
+        # on the stack. This ensures that writes to the value inside the loop
+        # get overwritten on loop entry (meaning the last loop will still set OK)
         # [step|value|end
+        self.update_stack(1, 'repeat body')
         self.emit_label(body_entry_label)
 
         # set value in the environment
+        self.update_stack(1, 'repeat local value copy')
         self.emit_opcode(DUP2)
 
         # For dependency tracking purposes, this is a regular set
-        # (that just happens to have the bitmap set elsewhere)
-        # TOOD: reeaeeally not sure about this
-        if self.getting_block_dependencies:
-            self.block_dependencies.variable_sets.append(
-                structures.BlockDependencies.VariableAccess(
+        if self.getting_scope_dependencies:
+            self.scope_dependencies.variable_sets.append(
+                structures.ScopeDependencies.VariableAccess(
                     var_symbol,
                     self.stack_size,
                     False,
                     self.line_no,
                 )
             )
-        self.handle_env_set_local(var_symbol)
+
+        self.emit_comment('  --> setting repeat iteration variable %s' % var_symbol)
+        if new_location.is_local():
+            self.handle_env_set_local(var_symbol)
+        else:
+            self.handle_env_set_stack(new_location)
+        self.update_stack(-1, 'repeat local value set')
 
         # and then the body itself!
         # while we visit it, we _know_ the var is set
-        self.update_stack(1, 'repeat body')
-        with self.new_symbol_directory(self.symbol_directory.with_local(node.var.value), 'repeat'):
+        with self.new_symbol_directory(self.symbol_directory.with_locations({var_symbol: new_location}), 'repeat'):
             self.visit(node.body)
 
         # and now loop!
@@ -654,9 +683,9 @@ class DBNEVMCompiler(DBNAstVisitor):
         elif procedure_name == "DEBUGGER":
             self.emit_debug()
         else:
-            if self.getting_block_dependencies:
-                self.block_dependencies.procedures_called.append(
-                    structures.BlockDependencies.VariableAccess(
+            if self.getting_scope_dependencies:
+                self.scope_dependencies.procedures_called.append(
+                    structures.ScopeDependencies.VariableAccess(
                         procedure_name,
                         self.stack_size,
                         True,
@@ -704,10 +733,19 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.update_stack(1, 'Command Return Destination')
 
             arg_nodes_by_name = dict(zip(dfn.args, node.args))
-            # First, stack args (reversed)
-            self.log("PROC CALL found stack args: %s" % dfn.stack_args)
-            for arg in reversed(dfn.stack_args):
-                self.visit(arg_nodes_by_name[arg])
+            # First, stack slots (reversed)
+            self.log("PROC CALL found stack slots:%s locals:%s" % (dfn.stack_slots, dfn.local_env_args))
+            for slot in reversed(dfn.stack_slots):
+                if slot.is_arg:
+                    self.visit(arg_nodes_by_name[slot.symbol])
+                else:
+                    # it's a placeholder, so let's just emit the cheapest, smallest
+                    # instruction (one from the class W_base)
+                    # TODO: we _could_ put the placeholders in the definition,
+                    #   but then we couldn't visit the args first...
+                    #   or else we could put the env storing in the definition too??
+                    self.emit_opcode(ADDRESS)
+                    self.update_stack(1, 'command stack slot placeholder')
 
             # Then, local env args (also reversed)
             for arg in reversed(dfn.local_env_args):
@@ -758,6 +796,7 @@ class DBNEVMCompiler(DBNAstVisitor):
                 self.emit_opcode(DUP2)                              # [new_env_base|arg*|new_env_base
                 self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))   # [env_location|arg*|new_env_base
                 self.emit_raw("MSTORE($$, $$)")                     # [new_env_base|arg*
+                self.update_stack(-1, 'command local env copy')
             self.emit_opcode(POP)                                   # [
 
             self.emit_jump(dfn.label)
@@ -770,7 +809,9 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.emit_opcode(MLOAD)
             self.emit_raw("MSTORE(%d, $$)" % self.ENV_POINTER_ADDRESS)
 
-            self.update_stack(-1 * (len(dfn.args) + 1), 'Command call')
+            # TODO: this maybe needs to consider any noop arg optimizations we make...
+            stack_consumed = len(dfn.stack_slots) + 1 # + 1 for return address
+            self.update_stack(-1 * stack_consumed, 'Command return')
 
     def handle_builtin_pen(self, node):
         if len(node.args) != 1:
@@ -843,62 +884,32 @@ class DBNEVMCompiler(DBNAstVisitor):
         # we also track stack from zero...
         with self.fresh_stack('command_def'):
 
-            local_env_args = []
+            dfn.local_env_args
 
             # list built in order of the sack, as in
             # [a, b, c], the stack should end up [a|b|c
             # (and we  need to assign stack location in reverse)
             # this is so that we can understand depth by a simple
             # increment rather than re-computing the whole get / set list
-            stack_args = []
-
-            if dfn.block_dependencies:
-                # Then let's try and figure out what can go on the stack!
-                self.log("\n\n[][][][][][][] Stack decision for %s" % dfn.name)
-
-                for arg in dfn.args:
-                    stack_eligible = dfn.block_dependencies.is_stack_eligible(
-                        arg,
-                        self.procedure_definitions_by_name,
-                        # for checking eligbility, we shift the stack by the number of
-                        # stack_args that we've already decided to allocate
-                        # TODO: should we optimize the order in some way?
-                        shift_stack=len(stack_args),
-                    )
-
-                    if stack_eligible:
-                        stack_args.append(arg)
-                    else:
-                        local_env_args.append(arg)
-
-                self.log("local: %s" % local_env_args)
-                self.log("stack: %s" % stack_args)
-                self.log("[][][][][][][]\n\n")
-            else:
-                local_env_args = dfn.args
+            stack_slots = dfn.stack_slots
 
             # While we're visiting the body, we _know_
             # that the formal args will always be set
             new_directory = (structures.SymbolDirectory()
-                .with_locals(local_env_args)
-                .with_stack({s: i for (i, s) in enumerate(reversed(stack_args))})
+                .with_locals(dfn.local_env_args)
+                .with_stack({s.symbol: i for (i, s) in enumerate(reversed(stack_slots))})
             )
 
-            # Callee will take care of making sure these are in place
-            dfn.stack_args = stack_args
-            self.log("setting stack args: %s" % stack_args)
-            dfn.local_env_args = local_env_args
-
-            self.update_stack(len(dfn.stack_args), 'procedure stack args')
+            self.update_stack(len(dfn.stack_slots), 'procedure stack args')
 
             with self.new_symbol_directory(new_directory, 'command_def'):
                 self.visit(node.body)
 
             # But _we_ are responsible for popping the stack variables away
             # (before jump)
-            for _ in range(len(dfn.stack_args)):
+            for _ in range(len(dfn.stack_slots)):
                 self.emit_opcode(POP)
-            self.update_stack(-1 * len(dfn.stack_args), 'procedure stack args pop')
+            self.update_stack(-1 * len(dfn.stack_slots), 'procedure stack args pop')
 
         # TODO: emit default return value if it is a Number?
         # self.add('LOAD_INTEGER', 0)
@@ -959,7 +970,119 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     ####
     # Infos
-    def get_procedure_block_dependencies(self, node):
-        with self.stashed_state_to_get_block_dependencies():
-            self.visit_procedure_definition_node(node)
-            return self.block_dependencies
+    def get_scope_dependencies(self, node):
+        with self.stashed_state_to_get_scope_dependencies():
+            self.visit(node)
+            return self.scope_dependencies
+
+
+    def make_variable_location_decisions_for(self, dfn):
+        self.log("\n\n[][][][][][][] Stack decision for %s" % dfn.name)
+
+        expected_globals = dfn.scope_dependencies.globals_expected_by_any_called_function(
+            self.procedure_definitions_by_name,
+        )
+
+        stack_args = []
+        local_env_args = []
+        stack_vars = []
+        stack_slots = []
+
+        all_gets = dfn.scope_dependencies.variable_gets
+        self.log("---> Gets:")
+        for g in all_gets:
+            self.log("   • %s" % (g,))
+        all_sets = dfn.scope_dependencies.variable_sets
+        self.log("---> Sets:")
+        for s in all_sets:
+            self.log("   • %s" % (s,))
+
+        arg_set = set(dfn.args)
+        non_arg_variables = ({a.symbol for a in all_gets} | {a.symbol for a in all_sets}) - arg_set
+        all_args = non_arg_variables | arg_set
+        arg_info = {
+            s: self._get_symbol_access_info(s, expected_globals, all_gets, all_sets)
+            for s in all_args
+        }
+
+        # TODO: we can do better than this...
+        stack_prioritized_variables = dfn.args + list(non_arg_variables)
+
+        self.log("---> Variables (%s)" % stack_prioritized_variables)
+        for s in stack_prioritized_variables:
+            eligible = self._is_stack_eligible(s, arg_info[s], nudge=len(stack_slots))
+            if s in arg_set:
+                if eligible:
+                    stack_args.append(s)
+                    stack_slots.append(structures.ProcedureDefinition.StackSlot(True, s))
+                else:
+                    local_env_args.append(s)
+            else:
+                if eligible:
+                    stack_vars.append(s)
+                    stack_slots.append(structures.ProcedureDefinition.StackSlot(False, s))
+
+        self.log("local env args: %s" % local_env_args)
+        self.log("stack args: %s" % stack_args)
+        self.log("stack vars: %s" % stack_vars)
+        dfn.local_env_args = local_env_args
+        dfn.stack_slots = stack_slots
+        self.log("[][][][][][][]\n\n")
+
+    def _is_stack_eligible(self, symbol, info, nudge=None):
+        if nudge is None:
+            raise ValueError("nudge must be specified")
+
+        # an accessed variable is eligible to be stored on the stack IF:
+        # - no called procedures expect it to be set
+        #   (if we set it, then this applies. if it's read-only though, the below applies)
+        # - we never do any non-local gets for it
+        # - never gets too far away for gets / sets
+
+        semantically_eligible = (
+            (not info['expected_global'])
+            and (info['non_local_read_count'] == 0)
+        )
+        always_reachable = (
+            (info['farthest_set'] is None or (info['farthest_set'] + nudge) <= 16)
+            and (info['farthest_get'] is None or (info['farthest_get'] + nudge) <= 16)
+        )
+
+        self.log("   • %s: expected_global:%s writes:%d reads:%d non_local_reads:%d nudged_farthest_get:%s nudged_farthest_set:%s always_reachable:%s semantically_eligible:%s" % (
+            symbol,
+            info['expected_global'],
+            info['write_count'],
+            info['read_count'],
+            info['non_local_read_count'],
+            info['farthest_get'] + nudge if info['farthest_get'] else None,
+            info['farthest_set'] + nudge if info['farthest_set'] else None,
+            always_reachable,
+            semantically_eligible,
+        ))
+
+        return always_reachable and semantically_eligible
+
+    def _get_symbol_access_info(self, symbol, expected_globals, all_gets, all_sets):
+        gets = [a for a in all_gets if a.symbol == symbol]
+        sets = [a for a in all_sets if a.symbol == symbol]
+
+        get_distances = [
+            (access.stack_size) + 1
+            for access in gets
+        ]
+        set_distances = [
+            access.stack_size
+            for access in sets
+        ]
+        farthest_get = max(get_distances) if gets else None
+        farthest_set = max(set_distances) if sets else None
+
+        return {
+            'farthest_get': farthest_get,
+            'farthest_set': farthest_set,
+            'expected_global': symbol in expected_globals,
+            'read_count': len(gets),
+            'write_count': len(sets),
+            'non_local_read_count': len([a for a in gets if a.is_global])
+        }
+

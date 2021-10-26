@@ -1,7 +1,11 @@
 Command Go X {
-	Repeat X 50 70 {
+	Repeat X 50 60 {
 	   Pen X
 	   Line X X X 100
+	}
+	Repeat Y 60 70 {
+	   Pen Y
+	   Line Y Y Y 100
 	}
 }
 
