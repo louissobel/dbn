@@ -10,6 +10,7 @@ class ProcedureDefinition(object):
         self.args = args
         self.is_number = is_number
         self.label = None
+        self.epilogue_label = None
         self.scope_dependencies = None
 
         self.stack_slots = []
@@ -168,4 +169,12 @@ class SymbolDirectory(object):
         for s, l in mapping.items():
             c.symbol_mapping[s] = l
         return c
+
+
+BuiltinProcedure = namedtuple('BuiltinProcedure', [
+    'name',
+    'procedure_type',
+    'argc',
+    'handler',
+])
 

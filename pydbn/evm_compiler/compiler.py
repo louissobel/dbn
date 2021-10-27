@@ -77,11 +77,15 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.getting_root_scope_dependencies = False
         self.root_stack_slots = []
 
+        self.current_procedure_definition = None
+
         symbol_collector = SymbolCollector().collect_symbols(node)
         self.symbol_mapping = dict(
             (s, i) for i, s in enumerate(symbol_collector.variables)
         )
         self.log('Symbol Mapping: %s' % self.symbol_mapping)
+
+        self.setup_builtins()
 
         # Initially, we _know_ all variables are local.
         # if we are not in a command then they all default to present
@@ -134,6 +138,19 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.symbol_directory = self.symbol_directory.with_stack(
             {s.symbol: i for (i, s) in enumerate(reversed(root_stack_slots))}
         )
+
+    def setup_builtins(self):
+        line = structures.BuiltinProcedure('Line', 'command', 4, self.handle_builtin_line)
+        paper = structures.BuiltinProcedure('Paper', 'command', 1, self.handle_builtin_paper)
+        pen = structures.BuiltinProcedure('Pen', 'command', 1, self.handle_builtin_pen)
+
+        debugger = structures.BuiltinProcedure('DEBUGGER', 'command', 0, self.handle_builtin_debugger)
+        self.builtin_procedures = {
+            'Line': line,
+            'Paper': paper,
+            'Pen': pen,
+            'DEBUGGER': debugger,
+        }
 
     @contextlib.contextmanager
     def new_symbol_directory(self, new_directory, why='unknown'):
@@ -200,6 +217,48 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     def emit_jumpi(self, label):
         self.lines.append("JUMPI($%s, $$)" % label)
+        return self
+
+    def emit_dup(self, depth):
+        self.emit_opcode([
+            DUP1,
+            DUP2,
+            DUP3,
+            DUP4,
+            DUP5,
+            DUP6,
+            DUP7,
+            DUP8,
+            DUP9,
+            DUP10,
+            DUP11,
+            DUP12,
+            DUP13,
+            DUP14,
+            DUP15,
+            DUP16,
+        ][depth-1])
+        return self
+
+    def emit_swap(self, depth):
+        self.emit_opcode([
+            SWAP1,
+            SWAP2,
+            SWAP3,
+            SWAP4,
+            SWAP5,
+            SWAP6,
+            SWAP7,
+            SWAP8,
+            SWAP9,
+            SWAP10,
+            SWAP11,
+            SWAP12,
+            SWAP13,
+            SWAP14,
+            SWAP15,
+            SWAP16,
+        ][depth-1])
         return self
 
     def emit_bit_for_index(self, index):
@@ -331,9 +390,6 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_newline()
 
     def visit_block_node(self, node):
-        # save for internal assertions to check stack accounting
-        stack_size_entering = self.stack_size
-
         symbol_directory_for_this_block = self.symbol_directory.copy()
         with self.new_symbol_directory(symbol_directory_for_this_block, 'block'):
             for sub_node in node.children:
@@ -342,21 +398,22 @@ class DBNEVMCompiler(DBNAstVisitor):
                 # If we set a variable in a block, for the remainder of the block
                 # we can later assume that that variable is present
                 # (and use optimized read path)
-                if self.is_variable_set(sub_node):
+                if self.node_is_variable_set(sub_node):
                     symbol = sub_node.left.value
                     if symbol_directory_for_this_block.location_for(symbol).is_global():
                         symbol_directory_for_this_block.set_local(symbol)
                         self.log("Update directory for set (%s) in block: %s" % (symbol, self.symbol_directory))
 
-        # some internal assertions to check stack accounting
-        if self.stack_size != stack_size_entering:
-            raise RuntimeError("unbalanced stack for block! %d entering, %d after" % (
-                stack_size_entering,
-                self.stack_size,
-            ))
+                elif self.node_is_value(sub_node):
+                    # then actually, we're done.
+                    # TODO: emit some kind of warning about the dead code?
+                    break
 
-    def is_variable_set(self, node):
+    def node_is_variable_set(self, node):
         return isinstance(node, DBNSetNode) and isinstance(node.left, DBNWordNode)
+
+    def node_is_value(self, node):
+        return isinstance(node, DBNValueNode)
 
     def visit_set_node(self, node):
         self.emit_line_no(node.line_no)
@@ -465,25 +522,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         if distance < 1:
             raise AssertionError("cannot set stack-stored symbol! distance somehow < 1...")
 
-        opcode = [
-            SWAP1,
-            SWAP2,
-            SWAP3,
-            SWAP4,
-            SWAP5,
-            SWAP6,
-            SWAP7,
-            SWAP8,
-            SWAP9,
-            SWAP10,
-            SWAP11,
-            SWAP12,
-            SWAP13,
-            SWAP14,
-            SWAP15,
-            SWAP16,
-        ][distance-1]
-        self.emit_opcode(opcode)
+        self.emit_swap(distance)
         self.emit_opcode(POP)
 
     def handle_env_set(self, symbol):
@@ -528,25 +567,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         if distance < 1:
             raise AssertionError("cannot access stack-stored symbol! distance somehow < 1...")
 
-        opcode = [
-            DUP1,
-            DUP2,
-            DUP3,
-            DUP4,
-            DUP5,
-            DUP6,
-            DUP7,
-            DUP8,
-            DUP9,
-            DUP10,
-            DUP11,
-            DUP12,
-            DUP13,
-            DUP14,
-            DUP15,
-            DUP16,
-        ][distance-1]
-        self.emit_opcode(opcode)
+        self.emit_dup(distance)
 
     def handle_env_get(self, symbol):
         """
@@ -718,107 +739,108 @@ class DBNEVMCompiler(DBNAstVisitor):
     def visit_procedure_call_node(self, node):
         if node.procedure_type == 'command':
             self.emit_line_no(node.line_no)
-        else:
-            # TODO: handle numbers
-            raise ValueError("can only handle commands right now!")
 
         procedure_name = node.procedure_name.value
-        if procedure_name == "Line":
-            self.handle_builtin_line(node)
-        elif procedure_name == "Pen":
-            self.handle_builtin_pen(node)
-        elif procedure_name == "Paper":
-            self.handle_builtin_paper(node)
-        elif procedure_name == "DEBUGGER":
-            self.emit_debug()
-        else:
-            if self.getting_scope_dependencies:
-                self.scope_dependencies.procedures_called.append(
-                    structures.ScopeDependencies.VariableAccess(
-                        procedure_name,
-                        self.stack_size,
-                        True,
-                        self.line_no,
-                    )
-                )
 
-            """
-            Caller:
-                - pushes return address on the stack
-                - args on stack
-                  - first, reversed stack slots
-                  - next, reversed env args
-                - ex: Foo A B C D (C D local, A B _ stack slots):
-                   --> [C|D|A|B|_|ret
-                - jumps to procedure
-            Callee:
-                - mints a fresh environment
-                   - bitmap is zero
-                   - parent is set
-                 - sets up its stack slots
-                 - copies local vars ito the new environment
-             - promises to pop any stack vars
-             - pops away the environment
-             - promises to jump back to return address!
-            Caller:
-             
-            """
+        builtin = self.builtin_procedures.get(procedure_name)
+        if builtin is not None:
+            return self.handle_builtin(builtin, node)
 
-            # TODO: better error messages!!
-            try:
-                dfn = self.procedure_definitions_by_name[procedure_name]
-            except KeyError:
-                raise ValueError("no definition for %s" % procedure_name)
-
-            if dfn.label is None:
-                raise ValueError("%s not yet defined" % procedure_name)
-
-            if len(node.args) != len(dfn.args):
-                # TODO: line numbers!
-                raise ValueError("%s expects %d args, got %d" % (
+        if self.getting_scope_dependencies:
+            self.scope_dependencies.procedures_called.append(
+                structures.ScopeDependencies.VariableAccess(
                     procedure_name,
-                    len(dfn.args),
-                    len(node.args),
-                ))
+                    self.stack_size,
+                    True,
+                    self.line_no,
+                )
+            )
 
-            post_call_label = self.generate_label('postUserProcedureCall')
+        """
+        Caller:
+            - pushes return address on the stack
+            - args on stack
+              - first, reversed stack slots
+              - next, reversed env args
+            - ex: Foo A B C D (C D local, A B _ stack slots):
+               --> [C|D|A|B|_|ret
+            - jumps to procedure
+        Callee:
+            - mints a fresh environment
+               - bitmap is zero
+               - parent is set
+             - sets up its stack slots
+             - copies local vars ito the new environment
+         - promises to pop any stack vars
+         - pops away the environment
+         - promises to jump back to return address!
+        Caller:
+         
+        """
+        try:
+            dfn = self.procedure_definitions_by_name[procedure_name]
+        except KeyError:
+            raise ValueError("no definition for %s" % procedure_name)
 
-            # Return value
-            self.emit_push_label(post_call_label)
-            self.update_stack(1, 'Command Return Destination')
+        if dfn.label is None:
+            raise ValueError("%s not yet defined" % procedure_name)
 
-            arg_nodes_by_name = dict(zip(dfn.args, node.args))
-            # First, stack slots (reversed)
-            # TODO: move these to the definition :)
-            self.log("PROC CALL found stack slots:%s locals:%s" % (dfn.stack_slots, dfn.local_env_args))
-            for slot in reversed(dfn.stack_slots):
-                if slot.is_arg:
-                    self.visit(arg_nodes_by_name[slot.symbol])
-                else:
-                    # it's a placeholder, so let's just emit the cheapest, smallest
-                    # instruction (one from the class W_base)
-                    # TODO: we _could_ put the placeholders in the definition,
-                    #   but then we couldn't visit the args first...
-                    #   or else we could put the env storing in the definition too??
-                    self.emit_opcode(ADDRESS)
-                    self.update_stack(1, 'command stack slot placeholder')
+        if len(node.args) != len(dfn.args):
+            raise ValueError("%s expects %d args, got %d" % (
+                procedure_name,
+                len(dfn.args),
+                len(node.args),
+            ))
 
-            # Then, local env args (also reversed)
-            for arg in reversed(dfn.local_env_args):
-                self.visit(arg_nodes_by_name[arg])
+        post_call_label = self.generate_label('postUserProcedureCall')
 
-            self.emit_jump(dfn.label)
-            self.emit_label(post_call_label)
+        # Return value
+        self.emit_push_label(post_call_label)
+        self.update_stack(1, 'Command Return Destination')
 
-            # TODO: this maybe needs to consider any noop arg optimizations we make...
-            stack_consumed = len(dfn.stack_slots) + len(dfn.local_env_args) + 1 # + 1 for return address
-            self.update_stack(-1 * stack_consumed, 'Command return')
+        arg_nodes_by_name = dict(zip(dfn.args, node.args))
+        # First, stack slots (reversed)
+        # TODO: move these to the definition :)
+        self.log("PROC CALL found stack slots:%s locals:%s" % (dfn.stack_slots, dfn.local_env_args))
+        for slot in reversed(dfn.stack_slots):
+            if slot.is_arg:
+                self.visit(arg_nodes_by_name[slot.symbol])
+            else:
+                # it's a placeholder, so let's just emit the cheapest, smallest
+                # instruction (one from the class W_base)
+                # TODO: should we instead set to zero somehow? (CALLDATASIZE?)
+                # TODO: we _could_ put the placeholders in the definition,
+                # but it's simpler from a stack-allocation perspective to do it here.
+                self.emit_opcode(ADDRESS)
+                self.update_stack(1, 'command stack slot placeholder')
+
+        # Then, local env args (also reversed)
+        for arg in reversed(dfn.local_env_args):
+            self.visit(arg_nodes_by_name[arg])
+
+        self.emit_jump(dfn.label)
+        self.emit_label(post_call_label)
+
+        # TODO: this maybe needs to consider any noop arg optimizations we make...
+        stack_consumed = len(dfn.stack_slots) + len(dfn.local_env_args) + 1 # + 1 for return address
+        if dfn.is_number:
+            # one less stack slot is consumed if we're calling a "Number":
+            # it guarantees to leave one value on the stack
+            stack_consumed -= 1
+
+        self.update_stack(-1 * stack_consumed, 'Command return')
+
+    def handle_builtin(self, builtin, node):
+        if node.procedure_type != builtin.procedure_type:
+            raise TypeError("cannot use %s as a %s" % (builtin.name, node.procedure_type))
+
+        if len(node.args) != builtin.argc:
+            self.invalid_argument_count(builtin.name, builtin.argc, len(node.args))
+
+        self.emit_comment('Calling Builtin: %s' % builtin.name)
+        builtin.handler(node)
 
     def handle_builtin_pen(self, node):
-        if len(node.args) != 1:
-            raise self.invalid_argument_count("Pen", 1, len(node.args))
-
-        self.emit_comment("set Pen")
         self.visit(node.args[0])
         self.emit_raw("MSTORE(%d, $$)" % self.PEN_ADDRESS)
 
@@ -833,9 +855,6 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_raw("MLOAD(%d) ; get pen" % self.PEN_ADDRESS)
 
         self.update_stack(3, 'Line Internals')
-
-        if len(node.args) != 4:
-            raise self.invalid_argument_count("Line", 4, len(node.args))
 
         # get the arguments on the stack in reverse order
         for arg_node in reversed(node.args):
@@ -854,9 +873,6 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_push(self.PIXEL_DATA_START)
         self.update_stack(2, 'Paper Internals')
 
-        if len(node.args) != 1:
-            raise self.invalid_argument_count("Paper", 1, len(node.args))
-
         self.visit(node.args[0])
 
         # run the command!
@@ -865,6 +881,9 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         self.update_stack(-3, 'Paper')
 
+    def handle_builtin_debugger(self, node):
+        self.emit_debug()
+
     def invalid_argument_count(self, command_name, expected, got):
         return ValueError("%s expects %d arguments, got %d" % (command_name, expected, got))
 
@@ -872,25 +891,31 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_line_no(node.line_no)
 
         name = node.procedure_name.value
+        dfn = self.procedure_definitions_by_name[name]
+        if self.current_procedure_definition:
+            raise ValueError("cannot define a procedure within another!")
+        self.current_procedure_definition = dfn
+
         self.emit_comment(';;;; defining %s' % name)
 
-        dfn = self.procedure_definitions_by_name[name]
-        procedure_start_label = self.generate_label('userProcedureDefinition')
-        dfn.label = procedure_start_label
+        
+        dfn.label = self.generate_label('userProcedureDefinition')
+
+        if dfn.is_number:
+            dfn.epilogue_label = self.generate_label('userProcedureDefinitionEpilogue')
 
         if self.getting_root_scope_dependencies:
             # Then generating the label is all we do for a procedure definition
             # (leaving behind a stub)
+            self.current_procedure_definition = None
             return
 
         after_procedure_label = self.generate_label('afterUserProcedureDefinition')
 
         # Move execution to after the procedure body
         self.emit_jump(after_procedure_label)
+        self.emit_label(dfn.label)
 
-        self.emit_label(procedure_start_label)
-
-        # we also track stack from zero...
         with self.fresh_stack('command_def'):
 
             self.update_stack(
@@ -903,7 +928,7 @@ class DBNEVMCompiler(DBNAstVisitor):
                 self.update_stack(-1 * len(dfn.local_env_args), 'command local env copy')
             else:
                 if len(dfn.local_env_args) != 0:
-                    raise RuntimeError("invariant violated: needs_env is false but there are local_env_vars expected")
+                    raise AssertionError("invariant violated: needs_env is false but there are local_env_vars expected")
 
             # While we're visiting the body, we _know_
             # that the formal args will always be set
@@ -915,8 +940,40 @@ class DBNEVMCompiler(DBNAstVisitor):
             with self.new_symbol_directory(new_directory, 'command_def'):
                 self.visit(node.body)
 
-            # But _we_ are responsible for popping the stack variables away
-            # (before jump)
+            # Epilogue:
+            # - _we_ are responsible for popping the stack variables away
+            # - and popping any environment we pushed
+            #
+            # If this procedure is a Number, then either:
+            # - we got here explicitly, in which case stack is [V|slot*|ret
+            # - or we fell through, in which case stack is just [slot*|ret
+            # We can statically determine based off stack size
+            if dfn.is_number:
+                # Add the default return
+                # Explicit "values" will jump straight to the epilogue
+                # TODO: some kind of warning if we use the default?
+                # _can_ I statically know???? I don't think so.
+                # Runtime warnings???
+                self.emit_push(0)
+                self.emit_label(dfn.epilogue_label)
+                self.update_stack(1, 'Number return value')
+
+                # ok now, we assert that stack size is dfn.stack_slots + 1
+                if self.stack_size != len(dfn.stack_slots) + 1:
+                    raise AssertionError('at end of number but unexpected stack size %d' % self.stack_size)
+                # That said, the _actual_ stack is
+                # [V|slots*|ret
+
+                # the depth to which we swap the return value is the same
+                # as the number of stack slots:
+                #  - [V|ret --> no swap
+                #  - [V|slot|slot|slot|ret --> SWAP3 [slot|slot|slot|V|ret
+                swap_depth = len(dfn.stack_slots)
+                if swap_depth > 0:
+                    if swap_depth > 16:
+                        raise AssertionError('too many stack slots, retval is unreachable (%d)' % len(dfn.stack_slots))
+                    self.emit_swap(swap_depth)
+
             for _ in range(len(dfn.stack_slots)):
                 self.emit_opcode(POP)
             self.update_stack(-1 * len(dfn.stack_slots), 'procedure definition stack slots pop')
@@ -924,14 +981,18 @@ class DBNEVMCompiler(DBNAstVisitor):
             if dfn.needs_env:
                 self.handle_pop_env()
 
-            # TODO: emit default return value if it is a Number?
-            # self.add('LOAD_INTEGER', 0)
+            if dfn.is_number:
+                # [V|ret
+                self.emit_opcode(SWAP1) # [ret|V
+                self.update_stack(-1, 'Number return value domain transfer')
+
             if self.stack_size != 0:
-                raise AssertionError("we're about to jump to return, but stack is not at zero!")
+                raise AssertionError("we're about to jump to return, but stack is not empty: %d" % 0)
 
             self.emit_raw('JUMP($$)')
 
         self.emit_label(after_procedure_label)
+        self.current_procedure_definition = None
 
     def handle_create_new_env_and_copy_in_locals(self, local_env_args):
         """
@@ -996,10 +1057,63 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_raw("MSTORE(%d, $$)" % self.ENV_POINTER_ADDRESS)
 
     def visit_value_node(self, node):
-        # TODO!
+        if self.current_procedure_definition is None:
+            raise ValueError("cannot use Value outside of a Number")
+        if not self.current_procedure_definition.is_number:
+            raise ValueError("cannot use Value outside of a Number")
+
         self.emit_line_no(node.line_no)
+
+        # Stack accounting for "Value" is bespoke.
+        # When we're compiling this, the stack is:
+        # [x*|slots*|ret
+        # (where stack_size, as usual, does not include ret)
+        # In execution, we need to:
+        # - pop off all x
+        # - visit the result
+        # - then jump
+        #
+        # After Value, the stack_size counter needs to be the same as what it was on entry,
+        # so that overall block accounting still adds up. This works because Value in effect
+        # takes us _out_ of the scope we're doing accounting for, so it's as if it never existed.
+        #
+        # But, three things:
+        #  a) we need the "stack_size" to even determine how much to pop
+        #  b) in visiting the result, the stack size needs to be correct
+        #     (so any stack slot reads are correct)
+        #  c) visiting the result will also implicitly increment the stack_size
+        #     (or, it _must_)
+        #
+        # So we just stash the existing value and restore it on the other side
+        stack_size_on_entry = self.stack_size
+
+        # Let's get rid of everything on on top of slots*
+        # (this means that Values in nested Repeats pay a size penalty...)
+        # And remember that stack_size does _not_ include the return address
+        extra_stack_items = self.stack_size - len(self.current_procedure_definition.stack_slots)
+
+        self.log("Reached Value node for dfn: %s, current stack depth: %d, dfn slots: %d, popping: %d" % (
+            self.current_procedure_definition,
+            self.stack_size,
+            len(self.current_procedure_definition.stack_slots),
+            extra_stack_items,
+        ))
+
+        for _ in range(extra_stack_items):
+            self.emit_opcode(POP)
+
+        # Update stack_size so that any stack slot reads in this visit are aligned
+        self.update_stack(-1 * extra_stack_items, 'extra stack items popped in Value')
+
         self.visit(node.result)
-        self.add('RETURN')
+
+        # OK: now we just jump to the function epilogue
+        if not self.current_procedure_definition.epilogue_label:
+            raise AssertionError("there needs to be an epilogue label set to handle Value..")
+        self.emit_jump(self.current_procedure_definition.epilogue_label)
+
+        # Restore the stack
+        self.stack_size = stack_size_on_entry
 
     def visit_load_node(self, node):
         # TODO!
@@ -1129,6 +1243,9 @@ class DBNEVMCompiler(DBNAstVisitor):
         
         self.log("--> Need Env to serve %s" % vars_needing_env)
 
+
+        if len(stack_slots) > 16:
+            raise AssertionError("we should never end up with more than 16 stack slots!")
 
         self.log("stack vars: %s" % stack_vars)
         self.log("local env args: %s" % local_env_args)
