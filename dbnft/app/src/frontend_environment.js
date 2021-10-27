@@ -13,7 +13,7 @@ const configForEnvironment = {
 	// should this be testnet?
 	cloudflareStaging: {
 		compileEndpoint: 'https://1ard2p8bka.execute-api.us-east-1.amazonaws.com/preview/evm_compile',
-		coordinatorContractAddress: process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS_DEVELOPMENT,
+		coordinatorContractAddress: "0x1B11e128180603A62f28c9D60B1DcdaD8B5D8a16",
 		ethNetwork: 'http://localhost:8545',
 		verbose: true,
 	}
