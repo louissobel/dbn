@@ -15,12 +15,7 @@ import TokenMetadataTable from './TokenMetadataTable'
 import DBNImageResult from './DBNImageResult'
 import LoadingText from './LoadingText'
 
-const eth = new Eth('http://localhost:8545')
-
-const dbnCoordinator = new eth.Contract(
-  DBNCoordinator.abi,
-  process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS,
-)
+import {eth, dbnCoordinator} from './eth_tools'
 
 function NFTViewer() {
 

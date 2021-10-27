@@ -5,23 +5,13 @@ import { Icon } from '@iconify/react'
 import { AutoSizer, List, WindowScroller } from 'react-virtualized'
 
 
-import DBNCoordinator from './contracts/DBNCoordinator'
-import Eth  from 'web3-eth';
-
 import renderDBN from './dbn_renderer'
 import LoadingText from './LoadingText'
 import ImageViewer from './ImageViewer'
 
-
-const eth = new Eth('http://localhost:8545')
-
-const dbnCoordinator = new eth.Contract(
-  DBNCoordinator.abi,
-  process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS,
-)
+import {dbnCoordinator} from './eth_tools'
 
 const renderJobCache = {}
-
 
 class RenderJob {
   constructor(tokenId) {

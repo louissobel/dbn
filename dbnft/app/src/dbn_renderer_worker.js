@@ -2,8 +2,6 @@ import './dbn_renderer_worker_etherjs_workaround'
 import {evmAssemble, evmInterpret} from './evm_tools'
 import { BN } from 'ethereumjs-util'
 
-const COMPILE_PATH = '/evm_compile';
-
 const GAS_LIMIT = new BN(0xffffffff)
 
 onmessage = ({ data }) => {
@@ -16,8 +14,13 @@ onmessage = ({ data }) => {
     throw new Error("unhandled request: " + data)
   }
 
+  const opts = {
+    compileEndpoint: data.frontendEnvironment.config.compileEndpoint,
+    verbose: data.frontendEnvironment.config.verbose,
+  }
+
   try {
-    renderFn(data, (s, d) => {
+    renderFn(data, opts, (s, d) => {
       postMessage({
         message: 'update',
         value: {
@@ -80,7 +83,7 @@ const makeStepListener = function(throttleInterval) {
   }
 }
 
-const renderDBN = async function(data, onRenderStateChange) {
+const renderDBN = async function(data, opts, onRenderStateChange) {
   onRenderStateChange('COMPILE_START', {})
 
   const metadata = {};
@@ -91,8 +94,7 @@ const renderDBN = async function(data, onRenderStateChange) {
     metadata['description'] = "0x" + Buffer.from(data.description, 'utf-8').toString('hex')
   }
 
-
-  const response = await fetch(COMPILE_PATH, {
+  const response = await fetch(opts.compileEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -106,16 +108,20 @@ const renderDBN = async function(data, onRenderStateChange) {
     throw new Error('Unexpected result: ' + response.status);
   }
   const assemblyCode = await response.text()
-  console.log(assemblyCode)
+  if (opts.verbose) {
+    console.log(assemblyCode)
+  }
   onRenderStateChange('COMPILE_END', {result: assemblyCode})
 
 
   onRenderStateChange('ASSEMBLE_START', {})
   const bytecode = await evmAssemble(assemblyCode)
-  console.log(bytecode)
+  if (opts.verbose) {
+    console.log(bytecode)
+  }
   onRenderStateChange('ASSEMBLE_END', {result: bytecode})
 
-  const interpretResult = await renderDBNFromBytecode({bytecode: bytecode}, onRenderStateChange)
+  const interpretResult = await renderDBNFromBytecode({bytecode: bytecode}, opts, onRenderStateChange)
 
   var renderedDescription;
   if (data.description) {
@@ -145,7 +151,7 @@ const renderDBN = async function(data, onRenderStateChange) {
   }
 }
 
-const renderDBNFromBytecode = async function(data, onRenderStateChange) {
+const renderDBNFromBytecode = async function(data, opts, onRenderStateChange) {
   onRenderStateChange('INTERPRET_START', {})
 
   const result = await evmInterpret(

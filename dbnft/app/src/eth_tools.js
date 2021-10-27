@@ -1,3 +1,9 @@
+import DBNCoordinator from './contracts/DBNCoordinator'
+import Eth  from 'web3-eth';
+
+import frontendEnvironment from './frontend_environment'
+
+
 // takes and returns hex
 const prependDeployHeader = function(bytecode) {
   const inputLength = (bytecode.length - 2) / 2 // -2 takes off '0x'
@@ -31,6 +37,16 @@ const prependDeployHeader = function(bytecode) {
   return '0x' + deployHeader.toString('hex') + bytecode.slice(2)
 }
 
+
+const eth = new Eth(frontendEnvironment.config.ethNetwork)
+
+const dbnCoordinator = new eth.Contract(
+  DBNCoordinator.abi,
+  frontendEnvironment.config.coordinatorContractAddress,
+)
+
 export {
-  prependDeployHeader
+  prependDeployHeader,
+  eth,
+  dbnCoordinator,
 }

@@ -2,7 +2,9 @@
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import Worker from 'worker-loader!./dbn_renderer_worker.js'
 
-// TODO: terminate the worker
+// TODO: terminate the worker??
+
+import frontendEnvironment from './frontend_environment'
 
 // String --> bitmapBlob (or error...)
 // Emits
@@ -30,6 +32,7 @@ const renderDBN = async function(data, onRenderStateChange) {
       reject(e)
     }
 
+    data.frontendEnvironment = frontendEnvironment;
     worker.postMessage(data)    
   });
 }

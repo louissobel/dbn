@@ -13,6 +13,8 @@ import DBNCoordinator from './contracts/DBNCoordinator'
 import {prependDeployHeader} from './eth_tools'
 import TokenMetadataTable from './TokenMetadataTable'
 
+import frontendEnvironment from './frontend_environment'
+
 function DBNFTMinter(props) {
   const web3React = useWeb3React()
 
@@ -27,9 +29,12 @@ function DBNFTMinter(props) {
     setIsMinting(true)
 
     const web3 = web3React.library;
+
+    // TODO: why is this different than the gallery??
+    console.log(frontendEnvironment.config.coordinatorContractAddress)
     const dbnCoordinator = new web3.eth.Contract(
       DBNCoordinator.abi,
-      process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS,
+      frontendEnvironment.config.coordinatorContractAddress,
     )
 
     const deployBytecode = prependDeployHeader(props.bytecode)
