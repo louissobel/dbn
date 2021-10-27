@@ -2,21 +2,15 @@ import React, {useState} from 'react';
 
 import { useWeb3React } from '@web3-react/core'
 
-import Accordion from 'react-bootstrap/Accordion';
 import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
-import Form from 'react-bootstrap/Form';
-import Col from 'react-bootstrap/Col';
-import Row from 'react-bootstrap/Row';
 import { Icon } from '@iconify/react';
-import { Link } from "react-router-dom";
 
 
-import {ConnectorFunction} from './EthereumConnect'
 import ImageViewer from './ImageViewer'
 import DBNCoordinator from './contracts/DBNCoordinator'
-import {prependDeployHeader} from './evm_tools'
+import {prependDeployHeader} from './eth_tools'
 import TokenMetadataTable from './TokenMetadataTable'
 
 function DBNFTMinter(props) {
@@ -28,9 +22,6 @@ function DBNFTMinter(props) {
   const [mintResult, setMintResult] = useState(null)
 
   const [showModal, setShowModal] = useState(false)
-
-  const [formName, setFormName] = useState("")
-  const [formDescription, setFormDescription] = useState("")
 
   async function doMint() {
     setIsMinting(true)

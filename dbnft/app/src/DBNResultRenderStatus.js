@@ -86,6 +86,8 @@ function DBNResultRenderStatus({renderState, codeSize, gasUsed, darkmode}) {
         </>
       );
       break;
+    default:
+      throw new Error('unknown render state: ' + renderState);
   }
 
   return ( 

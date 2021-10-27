@@ -1,5 +1,5 @@
 import './dbn_renderer_worker_etherjs_workaround'
-import {evmAssemble, evmInterpret, initializeVM} from './evm_tools'
+import {evmAssemble, evmInterpret} from './evm_tools'
 import { BN } from 'ethereumjs-util'
 
 const COMPILE_PATH = '/evm_compile';

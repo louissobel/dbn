@@ -1,11 +1,8 @@
 
-import {evmAssemble, evmInterpret} from './evm_tools'
-
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import Worker from 'worker-loader!./dbn_renderer_worker.js'
 
-const COMPILE_PATH = '/evm_compile';
-
+// TODO: terminate the worker
 
 // String --> bitmapBlob (or error...)
 // Emits

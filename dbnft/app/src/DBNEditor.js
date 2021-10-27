@@ -3,17 +3,10 @@ import React from 'react';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
-import Accordion from 'react-bootstrap/Accordion';
-import Button from 'react-bootstrap/Button';
-import ButtonGroup from 'react-bootstrap/ButtonGroup';
-import { Icon } from '@iconify/react';
+
 
 import renderDBN from './dbn_renderer'
 import CodeInput from './CodeInput'
-import ImageViewer from './ImageViewer'
-import DBNImageControlBar from './DBNImageControlBar'
-import DBNFTMinter from './DBNFTMinter'
-import DBNResultRenderStatus from './DBNResultRenderStatus'
 import DBNImageResult from './DBNImageResult'
 
 
@@ -92,6 +85,8 @@ class DBNEditor extends React.Component {
             })
           }
           break
+        default:
+          break;
       }
     })
     .then((result) => {
@@ -146,8 +141,6 @@ class DBNEditor extends React.Component {
         <Row className="pt-5">
           <Col sm={12} md={9} lg={6}>
             <DBNImageResult
-              description="hello"
-
               renderState={this.state.renderState}
               imageData={this.state.imageData}
               description={this.state.description}

@@ -10,7 +10,7 @@
   "license": "ISC",
   "devDependencies": {
     "@ethereumjs/vm": "file:../../ethereumjs-monorepo/packages/vm",
-    "@ethersproject/asm": "file:./@ethersproject/asm",
+    "@ethersproject/asm": "file:./app/@ethersproject/asm",
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-ganache": "^2.0.1",
     "@nomiclabs/hardhat-waffle": "^2.0.1",

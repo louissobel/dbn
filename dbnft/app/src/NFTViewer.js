@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
 import { useParams } from 'react-router-dom'
-import { useWeb3React } from '@web3-react/core'
 
 import DBNCoordinator from './contracts/DBNCoordinator'
 import Eth  from 'web3-eth';
@@ -36,7 +35,6 @@ function NFTViewer() {
   const [imageData, setImageData] = useState(null);
 
   const {tokenId} = useParams()
-  const web3React = useWeb3React()
 
   useEffect(async () => {
     try {

@@ -1,18 +1,12 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { useHistory } from "react-router-dom";
-import { useWeb3React } from '@web3-react/core'
 import { Icon } from '@iconify/react'
 import { AutoSizer, List, WindowScroller } from 'react-virtualized'
 
 
 import DBNCoordinator from './contracts/DBNCoordinator'
 import Eth  from 'web3-eth';
-
-import Container from 'react-bootstrap/Container';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
-import Alert from 'react-bootstrap/Alert';
 
 import renderDBN from './dbn_renderer'
 import LoadingText from './LoadingText'
@@ -120,7 +114,7 @@ function Item({ id, present }) {
       renderJob.onNewImage = null
     }
 
-  }, [present])
+  }, [present, id])
 
 
   function goToDetail() {
