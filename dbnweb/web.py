@@ -1,12 +1,14 @@
 import os
 import sys
 import json
+import base64
 
 import flask
 from flask import abort
 
 sys.path.insert(0, os.environ['DBNROOT'])
 import pydbn
+import pydbn.evm_compile_lambda
 
 app = flask.Flask(__name__)
 app.debug = True
@@ -33,33 +35,17 @@ def index():
 
 @app.route('/evm_compile', methods=('POST',))
 def evm_compile():
-    input_data = flask.request.json
-    if input_data is None:
-         abort(400, 'input data not json')
+    input_data = base64.b64encode(flask.request.stream.read())
 
-    print(input_data)
-    dbn_script = input_data['code']
-    input_metadata = input_data['metadata']
-    metadata = pydbn.evm_compiler.Metadata(
-        owning_contract=input_metadata.get('owning_contract'),
-        description=input_metadata.get('description'),
-    )
+    response = pydbn.evm_compile_lambda.handler({
+        'body': input_data,
+        'isBase64Encoded': True,
+    }, None)
 
-    print(dbn_script)
-    print(metadata)
+    if response['statusCode'] != 200:
+        abort(response['statusCode'], response['body'])
 
-    tokens = pydbn.parser.tokenize(dbn_script)
-    print(tokens)
-    dbn_ast = pydbn.parser.parse(tokens)
-    print(dbn_ast)
-    compiler = pydbn.evm_compiler.DBNEVMCompiler(verbose=True)
-    compilation = compiler.compile(
-        dbn_ast,
-        metadata=metadata,
-    )
-    return compilation
-
-
+    return response['body']
 
 if __name__ == "__main__":
     app.run('0.0.0.0', port=4000)

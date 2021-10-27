@@ -835,7 +835,7 @@ class DBNEVMCompiler(DBNAstVisitor):
             raise TypeError("cannot use %s as a %s" % (builtin.name, node.procedure_type))
 
         if len(node.args) != builtin.argc:
-            self.invalid_argument_count(builtin.name, builtin.argc, len(node.args))
+            raise self.invalid_argument_count(builtin.name, builtin.argc, len(node.args))
 
         self.emit_comment('Calling Builtin: %s' % builtin.name)
         builtin.handler(node)

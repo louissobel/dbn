@@ -44,7 +44,7 @@ def handler(event, context):
             dbn_ast,
             metadata=metadata,
         )
-    except ValueError as v:
+    except ValueError as e:
         return error(500, 'compile error: ' + str(e))
 
     return {
