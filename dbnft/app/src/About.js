@@ -3,35 +3,27 @@ import React, {useState, useEffect} from 'react';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import { Link } from "react-router-dom";
 
-import ImageViewer from './ImageViewer'
-import renderDBN from './dbn_renderer'
+import SampleCodeAndImage from './SampleCodeAndImage'
 
 function About() {
 
-  const [imageData, setImageData] = useState(null)
+  const [assemblyCode, setAssemblyCode] = useState(null)
 
-  const sampleCode = "Repeat X 0 100 {\n\
-  Pen (100 - X)\n\
+  const sampleCode = 
+`Repeat X 0 100 {
+  Pen X\n\
   Line X 0 X 100\n\
-}"
-  
-  useEffect(() => {
-    renderDBN({code: sampleCode}, (e, d) => {
-      if (e === 'INTERPRET_PROGRESS') {
-        setImageData(d.imageData)
-      }
-    })
-    .then((r) => setImageData(r.imageData))
-    .catch(error => console.error('', error))
-  }, []);
+}`
   
   return (
     <Container>
-      <Row className="pt-5" >
+      <Row className="pt-2 dbn-about-body" >
         <Col sm={12} md={9} lg={8} xl={6}>
           <div class="p-3 dbn-about-content">
             <h2>Design By Numbers NFT</h2>
+            <h6><em>Create on-chain NFTs by compiling DBN to native EVM bytecode</em></h6>
 
             <p>
               Design By Numbers
@@ -43,32 +35,53 @@ function About() {
             </p>
 
             <p>
-              The language allows users to draw in 101 levels of gray to a 101✕101 bitmap.
+              The language allows people to draw in 101 levels of gray to a 101✕101 bitmap.
               There is basic support for variables, loops, conditionals, and user-defined-procedures.
             </p>
 
-            <Row>
-              <Col xs={6} >
-                <h6>Input:</h6>
-                <pre class="dbn-about-sample-code">
-                  {sampleCode}
-                </pre>
-              </Col>
-              <Col xs={6} >
-                <h6>Output:</h6>
-                <ImageViewer imageData={imageData} magnify={1}/>
-              </Col>
-            </Row>
+            <SampleCodeAndImage code={sampleCode} onAssemblyPresent={setAssemblyCode} />
 
+            <h4>NFT</h4>
+            <p>
+              While there are many ways someone could create an NFT of an image, most of them
+              involve storing the image itself outside of the blockchain. Here, artists
+              can instead create NFTs consisting of the actual DBN code
+              (transformed into a <a target="_blank" href="https://ethervm.io/">different form</a>)
+              necessary to render the final image.
+            </p>
 
-
+            <h6>The above code becomes:</h6>
+            <pre class="dbn-about-sample-code" style={{height: "100px"}}>
+              {assemblyCode}
+            </pre>
           </div>
         </Col>
 
-        <Col sm={12} md={9} lg={4} xl={6}>
-          <div class="p-3 dbn-about-samples"  style={{backgroundColor: 'blue'}}>
-            Gallery Wall
-          </div>
+        <Col sm={12} md={12} lg={4} xl={6}>
+          <Row className="p-3">
+            <div className="mt-3 p-3 dbn-about-get-started text-white">
+                <h4>Start Creating:</h4>
+                <p>
+                  <ul>
+                    <li>
+                      <Link className="text-white" to="/create">Editor</Link>
+                    </li>
+                    <li>
+                      <Link className="text-white" to="/reference">Language Reference</Link>
+                    </li>
+                    <li>
+                      <Link className="text-white" to="/gallery">Gallery</Link>
+                    </li>
+                  </ul>
+
+                </p>
+            </div>
+          </Row>
+          <Row className="p-3">
+            <div style={{backgroundColor: "blue"}} >
+            </div>
+          </Row>
+
         </Col>
       </Row>
     </Container>

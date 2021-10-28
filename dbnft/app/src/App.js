@@ -16,6 +16,7 @@ import About from './About'
 import DBNEditor from './DBNEditor'
 import NFTViewer from './NFTViewer'
 import Gallery from './Gallery'
+import Reference from './Reference'
 import EthereumConnect from './EthereumConnect'
 
 const COMPILE_PATH = '/evm_compile'
@@ -29,6 +30,7 @@ function DBNFTNavbar(props) {
           <Nav.Link as={Link} to="/" active={props.active === "about"}>About</Nav.Link>
           <Nav.Link as={Link} to="/create" active={props.active === "create"}>Create</Nav.Link>
           <Nav.Link as={Link} to="/gallery" active={props.active === "gallery"}>Gallery</Nav.Link>
+          <Nav.Link as={Link} to="/reference" active={props.active === "reference"}>Reference</Nav.Link>
         </Nav>
         <EthereumConnect />
       </Container>
@@ -61,6 +63,11 @@ function App() {
             <Route path='/dbnft/:tokenId'>
               <DBNFTNavbar active="gallery" />
               <NFTViewer />
+            </Route>
+
+            <Route path='/reference'>
+              <DBNFTNavbar active="reference" />
+              <Reference />
             </Route>
 
             <Route path="*">

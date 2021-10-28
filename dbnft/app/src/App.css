@@ -124,8 +124,12 @@ body {
   --dbn-lighter-background-color: #ece9f5;
 }
 
-.dbn-about-content {
+.dbn-about-body {
   background-color:  var(--dbn-lighter-background-color);
+}
+
+.dbn-about-content {
+  
 }
 
 .dbn-about-sample-code {
@@ -134,6 +138,27 @@ body {
   padding: 3px;
   border-radius: 3px;
   border: 1px solid rgba(0,0,0,.2);
+  min-height: 50px;
+}
+
+.dbn-about-get-started {
+  background-color: #524283;
+  border-radius: 8px;
+}
+
+.dbn-reference-inline-code {
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.dbn-reference-section .dbn-sample-code-and-image {
+  margin-top: 1rem;
+}
+
+.dbn-reference-section {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  border-bottom:  2px solid rgba(0,0,0, .3);
 }
 
 .render-logs {
