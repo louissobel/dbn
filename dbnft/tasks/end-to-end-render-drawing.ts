@@ -79,6 +79,7 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
     console.log("Drawing Deployed to: ", deployEvent.args.addr)
 
     const tokenURI = await coordinator.tokenURI(transferEvent.args.tokenId)
+    console.log(tokenURI)
     const parsed = JSON.parse(tokenURI.split('data:application/json,')[1])
 
     console.log("Got Token Metadata")
@@ -87,9 +88,10 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
     console.log(" -> Drawing address: ", parsed.drawing_address)
     console.log(" -> External URL: ", parsed.external_url)
 
-    const imageData = Buffer.from(parsed.image.split('data:image/bmp;base64,')[1], 'base64')
-    console.log(` -> Writing image to ${output}`)
-    fs.writeFileSync(output, imageData)
+    // const imageData = Buffer.from(parsed.image.split('data:image/bmp;base64,')[1], 'base64')
+
+    console.log(` -> Writing image (SVG) to ${output}`)
+    fs.writeFileSync(output, parsed.image_data)
   });
 
 

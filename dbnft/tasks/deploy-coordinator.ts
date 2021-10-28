@@ -15,6 +15,9 @@ task("deploy-coordinator", "Deploys the DBN coordinator")
       case 'localhost':
         baseExternalURL = 'http://localhost:3000/dbnft/'
         break;
+      case 'rinkeby':
+        baseExternalURL = 'https://testnet.dbnft.io/dbnft/'
+        break;
       default:
         throw new Error("unhandled network: " + hre.network.name)
     }

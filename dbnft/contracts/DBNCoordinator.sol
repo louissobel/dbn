@@ -142,9 +142,11 @@ contract DBNCoordinator is ERC721Enumerable {
             'data:application/json,',
             fragment,
             // image data :)
-            '","image":"',
+            '","image_data":"',
+                "<svg xmlns='http://www.w3.org/2000/svg' width='303' height='303'><image width='303' height='303' style='image-rendering: pixelated' href='"
                 "data:image/bmp;base64,",
                 string(Base64.encode(bitmapData)),
+                "'/></svg>"
             '"}'
         ));
     }

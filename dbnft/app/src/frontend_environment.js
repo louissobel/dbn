@@ -10,21 +10,29 @@ const configForEnvironment = {
 		verbose: true,
 	},
 
+	localhost_rinkeby: {
+		compileEndpoint: '/evm_compile',
+		coordinatorContractAddress: process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS_RINKEBY,
+		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',
+		verbose: true, 
+	},
+
 	// should this be testnet?
 	cloudflareStaging: {
 		compileEndpoint: 'https://1ard2p8bka.execute-api.us-east-1.amazonaws.com/preview/evm_compile',
 		coordinatorContractAddress: "0x1B11e128180603A62f28c9D60B1DcdaD8B5D8a16",
 		ethNetwork: 'http://localhost:8545',
 		verbose: true,
-	}
-
-
+	},
 }
 
 const UNKNOWN_CONFIG = {environment: 'unknown'}
 
 const environmentFromHostname = function (hostname) {
 	if (hostname === 'localhost') {
+		if (process.env.REACT_APP_LOCALHOST_USE_RINKEBY === 'true') {
+			return 'localhost_rinkeby'
+		}
 		return 'localhost'
 	} else if (hostname.match(/.+?.dbnft.pages.dev/)) {
 		return 'cloudflareStaging'
