@@ -115,6 +115,13 @@
   font-size: 0.9rem;
 }
 
+.code-input-codemirror-holder {
+  border: 1px solid rgba(0,0,0,.5);
+  overflow: hidden;
+  font-size: 0.85rem;
+  border-radius: 8px;
+}
+
 body {
   /*background-color: #fbfaff !important;*/
   background-color: #d6d2e7 !important;

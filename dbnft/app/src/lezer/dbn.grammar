@@ -1,0 +1,163 @@
+@precedence {
+  times @left,
+  plus @left
+}
+
+
+@top Program { Statement* }
+
+Statement {
+	newline |
+	Block |
+	Command |
+	SetStatement |
+	RepeatStatement |
+	QuestionStatement |
+	DefineCommand |
+	ValueStatement
+}
+
+Block {
+	"{" newline Statement* "}" newline
+}
+
+DefineCommand {
+	ProcedureDef CommandIdentifier FormalArg* newline? Block
+}
+
+Command {
+	CommandName Expression* newline
+}
+
+SetStatement {
+	Set (
+	  DotSet{"[" Expression Expression "]" Expression} |
+	  (VariableSet Expression)
+	)
+	newline
+}
+
+RepeatStatement {
+	Repeat RepeatArg Expression Expression Block
+}
+
+QuestionStatement {
+	Question Expression Expression Block
+}
+
+ValueStatement {
+	Value Expression
+}
+
+CommandName {
+	BuiltinCommand |
+	CommandIdentifier	
+}
+
+Expression {
+	Number |
+	VariableGet |
+	NumberCall |
+	DotGet |
+	ParenthesizedExpression {"(" ExpressionGivenWereParenthesized ")"}
+}
+
+ExpressionGivenWereParenthesized {
+	Expression | BinaryOperation
+}
+
+BinaryOperation {
+	ExpressionGivenWereParenthesized !plus AddOperators ExpressionGivenWereParenthesized |
+  	ExpressionGivenWereParenthesized !times MulOperators ExpressionGivenWereParenthesized
+}
+
+NumberCall {
+	"<" CommandName Expression* ">"
+}
+
+DotGet {
+	"[" Expression Expression "]"
+}
+
+
+
+
+@tokens {
+	Identifier {
+		std.asciiLetter
+		(std.asciiLetter | std.digit)*
+	}
+
+	BuiltinCommand {
+		"Line " |
+		"Pen "   |
+		"Paper "
+	}
+
+	ProcedureDef {
+		(("N" | "n") "umber ") |
+		(("C" | "c") "ommand ")
+	}
+
+	Set {
+		(("S" | "s") "et ")
+	}
+
+	Repeat {
+		(("R" | "r") "epeat ")
+	}
+
+	Question {
+		(("S" | "s") "maller? ") |
+		(("N" | "n") "otSmaller? ") |
+		(("S" | "s") "ame? ") |
+		(("N" | "n") "otSame? ")
+	}
+
+	Value {
+		("V" | "v") "alue"
+	}
+
+	CommandIdentifier { Identifier }
+	@precedence {
+		ProcedureDef,
+		Set,
+		Repeat,
+		Question,
+		Value,
+		BuiltinCommand,
+		CommandIdentifier
+	}
+
+
+	VariableSet {
+		Identifier
+	}
+
+	VariableGet  {
+		Identifier
+	}
+
+	FormalArg {
+		Identifier
+	}
+
+	RepeatArg {
+		Identifier
+	}
+
+
+	Number { $[0123456789]+ }
+
+	AddOperators { $[+-]}
+	MulOperators { $[*/]}
+	LineComment { "//" ![\n]* }
+	@precedence { LineComment, MulOperators }
+
+	space { $[ \t]}
+	newline { "\n" }
+
+	"{" "}"
+}
+
+@skip { space | LineComment }
