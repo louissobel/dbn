@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
@@ -6,6 +6,8 @@ import Col from 'react-bootstrap/Col';
 import { Link } from "react-router-dom";
 
 import SampleCodeAndImage from './SampleCodeAndImage'
+import InteractiveCodeAndImage from './InteractiveCodeAndImage'
+
 
 function ReferenceSection({name, anchor, children}) {
   return (
@@ -25,6 +27,8 @@ function InlineCode({ children }) {
 
 function Reference() {
 
+  const editorRef = useRef()
+
   return (
     <Container>
       <Row>
@@ -37,9 +41,38 @@ function Reference() {
             <ReferenceSection name="Line">
               <p>
                 <InlineCode>Line</InlineCode>, followed by four
-                values separated by a space, (<InlineCode>x0 y0 x1 y1</InlineCode>)
+                values separated by a space will draw between 
                 the two points specified.
               </p>
+
+              <InteractiveCodeAndImage func='line' initialSpec={[
+                {
+                  type: 'constant',
+                  value: "Line",
+                },
+                {
+                  type: 'xcoord',
+                  value: '0',
+                  name: 'x0',
+                },
+                {
+                  type: 'ycoord',
+                  value: '0',
+                  name: 'y0',
+                },
+                {
+                  type: 'xcoord',
+                  value: '100',
+                  name: 'x1',
+                },
+                {
+                  type: 'ycoord',
+                  value: '100',
+                  name: 'y1',
+                }
+              ]}/>
+
+
             </ReferenceSection>
 
             <ReferenceSection name="Paper">
@@ -48,7 +81,19 @@ function Reference() {
                 with the specified color.
               </p>
 
-              <SampleCodeAndImage code={"Paper 0"} />
+              <InteractiveCodeAndImage func='paper' initialSpec={[
+                {
+                  type: 'constant',
+                  value: "Paper",
+                },
+                {
+                  type: 'xcoord',
+                  value: '0',
+                  name: 'v',
+                },
+              ]}/>
+
+              <SampleCodeAndImage code={"Line 0 0 100 100"} />
               <SampleCodeAndImage code={"Paper 50"} noheaders />
               <SampleCodeAndImage code={"Paper 100"} noheaders />
 
