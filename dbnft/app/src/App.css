@@ -211,8 +211,12 @@ body {
   background-color: #1b1bac;
 }
 
+.dbn-ui-editable-tooltip-holder.dbn-ui-editable-tooltip-holder-colorpicker .rc-slider-rail {
+  background:  linear-gradient(90deg, rgba(255,255,255,1) 0%, rgba(0,0,0,1) 100%);
+}
+
 .dbn-ui-editable-tooltip-holder .rc-slider-track {
-  background-color: #1b1bac;
+  display: none;
 }
 
 .dbn-ui-editable-tooltip-holder .rc-slider-handle {

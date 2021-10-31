@@ -9,15 +9,68 @@ import 'rc-slider/assets/index.css'
 import CodeMirror from '@uiw/react-codemirror';
 import {dbnLanguage, dbnftHighlightStyle} from './lang-dbn/dbn'
 
-import {Tooltip, showTooltip} from "@codemirror/tooltip"
 import {StateField, EditorSelection} from "@codemirror/state"
 import {drawSelection} from "@codemirror/view"
+import {lineNumbers} from "@codemirror/gutter"
 import {EditorView} from "@codemirror/view"
 
 
 // not "width" or "height" because alignmet can change
 const SLIDER_LENGTH = 101 + 10*2;
 const SLIDER_BREADTH = 20;
+
+function SpecItemSlider(props) {
+  const vertical = props.alignment === 'vertical';
+
+  const value = props.spec.find((s) => {
+      return s.name === props.controls
+  }).value
+
+  function onChange(newValue) {
+    props.dispatch({
+      name: props.controls,
+      newValue: newValue,
+      type: 'new_value',
+    })
+  }
+
+  var handleStyle = {}
+  if (props.colorPicker) {
+    let color = 255 * (1 - value / 100.0)
+    handleStyle['backgroundColor'] = `rgb(${color}, ${color}, ${color})`
+
+    // handle contrast against the grey overall tooltip background
+    // TODO: is that the final tooltip background?
+    if (value < 35) {
+      handleStyle['border'] = '1px solid rgb(170, 170, 170)'
+    }
+  }
+
+  return (
+    <div
+      className={classNames(
+        "dbn-ui-editable-tooltip-holder",
+        {'dbn-ui-editable-tooltip-holder-vertical': vertical},
+        {'dbn-ui-editable-tooltip-holder-colorpicker': props.colorPicker}
+      )}
+
+      tabIndex={-1}
+      style={{
+        left: props.coords.left,
+        top: props.coords.top,
+      }}
+    >
+      <Slider
+        vertical={vertical}
+        min={0}
+        max={100}
+        value={value}
+        onChange={onChange}
+        handleStyle={handleStyle}
+      />
+    </div>
+  )
+}
 
 function composeString(spec) {
   return spec.map((s) => {
@@ -41,81 +94,41 @@ function findSpecItemAndStartPosAt(spec, pos) {
   throw new Error("this shouldn't happen....")
 }
 
-function SpecItemSlider(props) {
-  const vertical = props.alignment === 'vertical';
-  return (
-    <div
-      className={classNames(
-        "dbn-ui-editable-tooltip-holder",
-        {'dbn-ui-editable-tooltip-holder-vertical': vertical}
-      )}
-      onFocus={props.onFocus}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget)) {
-          props.onBlur(e)
-        }
-      }}
+function specReducer(currentSpec, action) {
+  const newSpec = [];
+  for (let item of currentSpec) {
+    if (item.name === action.name) {
+      newSpec.push({
+        name: item.name,
+        type: item.type,
+        value: action.newValue.toString(),
+      })
+    } else {
+      newSpec.push(item)
+    }
 
-      tabIndex={-1}
-      style={{
-        left: props.coords.left,
-        top: props.coords.top,
-      }}
-    >
-      <Slider
-        vertical={vertical}
-        min={0}
-        max={100}
-        value={
-          props.spec.find((s) => {
-              return s.name === props.controls
-          }).value
-        }
-        onFocus={props.onFocus}
-        onChange={(newValue) => 
-          props.dispatch({
-            name: props.controls,
-            newValue: newValue,
-            type: 'new_value',
-          })
-        }
-      />
-    </div>
-  )
+  }
+  return newSpec;
 }
 
 function UIEditableCodeMirror(props) {
-  const [spec, dispatch] = useReducer((currentSpec, action) => {
+  const [spec, dispatch] = useReducer(specReducer, props.initialSpec)
 
-    const newSpec = [];
-    for (let item of currentSpec) {
-      if (item.name === action.name) {
-        newSpec.push({
-          name: item.name,
-          type: item.type,
-          value: action.newValue.toString(),
-        })
-      } else {
-        newSpec.push(item)
-      }
-
-    }
-
+  useEffect(() => {
     if (props.onChange) {
-      props.onChange(newSpec);
+      props.onChange(spec);
     }
-
-    return newSpec;
-
-  }, props.initialSpec)
+  }, [spec])
   
   const [activeSpecItem, setActiveSpecItem] = useState(null)
   const [tooltipCoords, setTooltipCoords] = useState(null)
-  const [editorHasFocus, setEditorHasFocus] = useState(false)
-  const [tooltipHasFocus, setTooltipHasFocus] = useState(false)
+  const [containerHasFocus, setContainerHasFocus] = useState(false)
 
-  const showTooltip = editorHasFocus || tooltipHasFocus
-  const tooltipShowing = showTooltip && activeSpecItem && tooltipCoords
+  const tooltipShowing = containerHasFocus && activeSpecItem && tooltipCoords
+  const code = composeString(spec)
+
+  const editorRef = useRef()
+  const containerRef = useRef()
 
   function ensureActiveSpecItem(nextItem) {
     if (!nextItem) {
@@ -124,11 +137,13 @@ function UIEditableCodeMirror(props) {
       }
     } else {
       if (!activeSpecItem || activeSpecItem.name !== nextItem.name) {
+        setTooltipCoords(null)
         setActiveSpecItem(nextItem)
       }
     }
   }
 
+  // onVisibleTooltipChange callback
   useEffect(() => {
     if (!props.onVisibleTooltipChange) {
       return
@@ -141,17 +156,22 @@ function UIEditableCodeMirror(props) {
     }
   }, [tooltipShowing, activeSpecItem])
 
-  const code = composeString(spec)
-  const editorRef = useRef()
-  const containerRef = useRef()
+  // clearing selection on focus out
+  useEffect(() => {
+    if (!containerHasFocus) {
+      const view = editorRef.current.view;
+      if (!view) {
+        return
+      }
 
+      view.dispatch({
+        selection: EditorSelection.single(0)
+      })
+    }
+  }, [containerHasFocus])
 
   function handleEditorUpdate(viewUpdate) {
     const view = viewUpdate.view;
-
-    if (viewUpdate.focusChanged) {
-      setEditorHasFocus(view.hasFocus)
-    }
 
     const currentValue = viewUpdate.state.doc.toString();
     const originalSelection = viewUpdate.startState.selection
@@ -210,6 +230,10 @@ function UIEditableCodeMirror(props) {
       return
     }
 
+    if (!activeSpecItem) {
+      return
+    }
+
     view.requestMeasure({
       read: (view) => {
         return {
@@ -239,24 +263,37 @@ function UIEditableCodeMirror(props) {
           left = cursorLeft - SLIDER_LENGTH/2;
         }
 
-        setTooltipCoords({left, top})
+        // move this state update _out_ of the core measure writeback
+        // this avoids situations where we trigger a re-render while
+        // an editor update is actually in progress
+        setTimeout(() => {
+          setTooltipCoords({left, top})
+        }, 0)
       }
     })
   }, [activeSpecItem])
 
   return (
     <div>
-      <div ref={containerRef} className="dbn-ui-editable-code-wrapper">
+      <div
+        ref={containerRef}
+        className="dbn-ui-editable-code-wrapper"
+        onFocus={() => setContainerHasFocus(true)}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget)) {
+            setContainerHasFocus(false)
+          }
+        }}
+      >
         <CodeMirror
           //value={code}
           ref={editorRef}
           //height="350px"
           extensions={[
+            //lineNumbers(),
             drawSelection(),
             dbnLanguage,
             dbnftHighlightStyle,
-            // cursorTooltipBaseTheme,
-            // cursorTooltipField,
           ]}
           autoFocus={false}
           onUpdate={handleEditorUpdate}
@@ -268,8 +305,7 @@ function UIEditableCodeMirror(props) {
 
           <SpecItemSlider
             alignment={activeSpecItem.type === 'ycoord' ? 'vertical' : 'horizontal'}
-            onFocus={() => setTooltipHasFocus(true)}
-            onBlur={() => setTooltipHasFocus(false)}
+            colorPicker={activeSpecItem.type === 'color'}
             coords={tooltipCoords}
             controls={activeSpecItem.name}
             spec={spec}

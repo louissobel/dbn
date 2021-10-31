@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 
 import SampleCodeAndImage from './SampleCodeAndImage'
 import InteractiveCodeAndImage from './InteractiveCodeAndImage'
-
+import CanvasCoordinatesDemonstration from './CanvasCoordinatesDemonstration'
 
 function ReferenceSection({name, anchor, children}) {
   return (
@@ -38,6 +38,19 @@ function Reference() {
 
         <Col sm={12} md={8} lg={6}>
           <div className="p-2" style={{backgroundColor: "#ece9f5", height:3000}}>
+
+            <ReferenceSection name="Canvas">
+              <p>
+                You draw on a 101x101 pixel canvas, which starts out
+                fully white. There are 10201 points within this canvas,
+                each of which is described by
+                two numbers, <InlineCode>x</InlineCode> and <InlineCode>y</InlineCode>.
+              </p>
+
+              <CanvasCoordinatesDemonstration />
+
+            </ReferenceSection>
+
             <ReferenceSection name="Line">
               <p>
                 <InlineCode>Line</InlineCode>, followed by four
@@ -87,7 +100,7 @@ function Reference() {
                   value: "Paper",
                 },
                 {
-                  type: 'xcoord',
+                  type: 'color',
                   value: '0',
                   name: 'v',
                 },

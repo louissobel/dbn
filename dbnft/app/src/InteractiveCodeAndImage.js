@@ -9,7 +9,7 @@ import UIEditableCodeMirror from './UIEditableCodeMirror'
 // RGB for the "guidebar" to appear showing what's moving in Line
 const GUIDEBAR_COLOR = [0x1b, 0x1b, 0xac]
 
-function InteractiveCodeAndImage({ func, initialSpec }) {
+function InteractiveCodeAndImage({ func, initialSpec, noheaders }) {
   const canvasRef = useRef()
   const [spec, setSpec] = useState(initialSpec)
   const [tooltipItemName, setTooltipItemName] = useState(null)
@@ -150,6 +150,7 @@ function InteractiveCodeAndImage({ func, initialSpec }) {
 
     <Row className="dbn-reference-code-and-image">
       <Col xs={6}>
+        {!noheaders && <h6>Input:</h6>}
         <UIEditableCodeMirror
           initialSpec={initialSpec}
           onChange={setSpec}
@@ -158,6 +159,7 @@ function InteractiveCodeAndImage({ func, initialSpec }) {
       </Col>
 
       <Col xs={6}>
+        {!noheaders && <h6>Output:</h6>}
         <canvas
           ref={canvasRef}
           height={121}
