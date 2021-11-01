@@ -73,15 +73,50 @@ function SpecItemSlider(props) {
 }
 
 function composeString(spec) {
-  return spec.map((s) => {
-    return s.value
-  }).join(" ")
+
+  var startOfLine = true;
+  var out = "";
+
+  for (let item of spec) {
+    if (item.type === 'constant' && item.value === "\n") {
+      out += "\n"
+      startOfLine = true
+    } else {
+      if (startOfLine) {
+        out += item.value
+        startOfLine = false
+      } else {
+        out += " " + item.value;
+      }
+    }
+  }
+
+  return out;
 }
 
 function findSpecItemAndStartPosAt(spec, pos) {
   var i = 0;
+  var startOfLine = true
 
   for (let item of spec) {
+    if (item.type === 'constant' && item.value === "\n") {
+      if (pos === i) {
+        return {
+          startPos: i,
+          item: item,
+        }
+      }
+      i += 1
+      startOfLine = true
+      continue
+    } else {
+      if (startOfLine) {
+        startOfLine = false
+      } else {
+        i += 1 // for the space
+      }
+    }
+
     let end = i + item.value.length;
     if (pos >= i && pos <= end) {
       return {
@@ -89,7 +124,8 @@ function findSpecItemAndStartPosAt(spec, pos) {
         item: item,
       }
     }
-    i += (item.value.length + 1) // +1 for space
+    i += item.value.length
+
   }
   throw new Error("this shouldn't happen....")
 }
@@ -139,6 +175,7 @@ function UIEditableCodeMirror(props) {
       if (!activeSpecItem || activeSpecItem.name !== nextItem.name) {
         setTooltipCoords(null)
         setActiveSpecItem(nextItem)
+        console.log(nextItem)
       }
     }
   }
@@ -197,16 +234,16 @@ function UIEditableCodeMirror(props) {
 
     // Find whatever is under "from"
     let line = viewUpdate.state.doc.lineAt(range.head)
-    let {startPos, item} = findSpecItemAndStartPosAt(spec, range.from - line.from)
+    let {startPos, item} = findSpecItemAndStartPosAt(spec, range.from)
 
     var expectedSelection
     if (item.type === 'constant') {
-      expectedSelection = EditorSelection.single(startPos - line.from)
+      expectedSelection = EditorSelection.single(startPos)
 
       ensureActiveSpecItem(null)
     } else {
-      let expectedTo = startPos - line.from
-      let expectedFrom = startPos + item.value.length - line.from
+      let expectedTo = startPos
+      let expectedFrom = startPos + item.value.length
       expectedSelection = EditorSelection.single(expectedFrom, expectedTo)
 
       ensureActiveSpecItem(item)
@@ -290,7 +327,7 @@ function UIEditableCodeMirror(props) {
           ref={editorRef}
           //height="350px"
           extensions={[
-            //lineNumbers(),
+            lineNumbers(),
             drawSelection(),
             dbnLanguage,
             dbnftHighlightStyle,

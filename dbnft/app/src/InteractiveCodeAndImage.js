@@ -9,22 +9,145 @@ import UIEditableCodeMirror from './UIEditableCodeMirror'
 // RGB for the "guidebar" to appear showing what's moving in Line
 const GUIDEBAR_COLOR = [0x1b, 0x1b, 0xac]
 
-function InteractiveCodeAndImage({ func, initialSpec, noheaders }) {
+function varsFromSpec(vars, spec) {
+  return vars.map((v) => {
+    let item = spec.find((i) => {
+      return i.name === v;
+    })
+    if (!item) {
+      throw new Error(`unknown var ${v} in spec`)
+    }
+
+    return parseInt(item.value)
+  })
+}
+
+function initCanvas(ctx) {
+  ctx.fillStyle = "white";
+  ctx.clearRect(0, 0, 121, 121)
+  ctx.fillRect(10, 10, 101, 101);
+}
+
+function dbnColorToByte(dbnColor) {
+  return 255 * (1 - dbnColor / 100.0);
+}
+
+function makeDBNColorPixel(ctx, dbnColor) {
+  let byteColor = dbnColorToByte(dbnColor)
+  let p = ctx.createImageData(1, 1);
+  p.data[0] = byteColor;
+  p.data[1] = byteColor;
+  p.data[2] = byteColor;
+  p.data[3] = 255;
+  return p
+}
+
+function dbnColorToRGBString(dbnColor) {
+    let byteColor = dbnColorToByte(dbnColor)
+    return `rgb(${byteColor}, ${byteColor}, ${byteColor})`
+}
+
+function makeGuidePixel(ctx) {
+  let p = ctx.createImageData(1, 1);
+  p.data[0] = GUIDEBAR_COLOR[0]
+  p.data[1] = GUIDEBAR_COLOR[1]
+  p.data[2] = GUIDEBAR_COLOR[2]
+  p.data[3] = 255;
+  return p
+}
+
+function drawPaper(ctx, dbnColor) {
+  ctx.fillStyle = dbnColorToRGBString(dbnColor)
+  ctx.fillRect(10, 10, 101, 101)
+}
+
+function drawLine(ctx, dbnColor, x0, y0, x1, y1) {
+  let p = makeDBNColorPixel(ctx, dbnColor);
+
+  // bresenham to get it looking pixelly
+  // http://stackoverflow.com/questions/2734714/modifying-bresenhams-line-algorithm
+  let steep = Math.abs(y1 - y0) > Math.abs(x1 - x0)
+  if (steep) {
+    let t = x0
+    x0 = y0
+    y0 = t
+
+    t = x1
+    x1 = y1
+    y1 = t
+  }
+  if (x0 > x1) {
+    let t = x0
+    x0 = x1
+    x1 = t
+
+    t = y0
+    y0 = y1
+    y1 = t
+  }
+
+  let ystep;
+  if (y0 < y1) {
+    ystep = 1
+  } else {
+    ystep = -1
+  }
+
+  let deltax = x1 - x0
+  let deltay = Math.abs(y1 - y0)
+  let error = -1 * (Math.floor(deltax/2))
+  let y = y0
+
+  for (let x = x0; x<x1+1; x++) {
+    if (steep) {
+      ctx.putImageData(p, y + 10, 10 + 100 - x)
+    } else {
+      ctx.putImageData(p, x + 10, 10 + 100 - y)
+    }
+
+    error = error + deltay
+    if (error > 0) {
+      y = y + ystep
+      error = error - deltax
+    }
+  }
+}
+
+function drawHorizontalGuideline(ctx, value) {
+  let guidePixel = makeGuidePixel(ctx);
+  for (let x = 0; x<121;x++) {
+    ctx.putImageData(guidePixel, x, 10 + 100 - value)
+  }
+}
+
+function drawVerticalGuideline(ctx, value) {
+  let guidePixel = makeGuidePixel(ctx);
+  for (let y = 0; y<121;y++) {
+    ctx.putImageData(guidePixel, 10 + value, y)
+  }
+}
+
+function InteractiveCodeAndImage({ exampleFunc, initialSpec, noheaders }) {
   const canvasRef = useRef()
   const [spec, setSpec] = useState(initialSpec)
   const [tooltipItemName, setTooltipItemName] = useState(null)
 
-  var fn;
-  if (func === 'line') {
-    fn = drawLine;
-  } else if (func === 'paper') {
-    fn = drawPaper;
-  } else {
-    throw new Error('unknown func: ' + fn)
+  let fn = {
+    'line': lineExample,
+    'paper': paperExample,
+    'pen': penExample,
+    'variable': variableExample,
+    'repeat': repeatExample,
+  }[exampleFunc]
+  if (!fn) {
+    throw new Error('unknown exampleFunc: ' + exampleFunc)
   }
 
   useEffect(() => {
-    fn(spec);
+    let canvas = canvasRef.current;
+    let ctx = canvas.getContext('2d')
+
+    fn(ctx);
   }, [spec, tooltipItemName])
 
 
@@ -38,113 +161,163 @@ function InteractiveCodeAndImage({ func, initialSpec, noheaders }) {
     }
   }
 
-  function drawLine(spec) {
-    let [x0, y0, x1, y1] = spec.slice(1).map((i) => parseInt(i.value))
+  function drawTooltipGuide(ctx, nudgeMapping) {
+    let specItem = getSpecItemForTooltip();
+    let value = parseInt(specItem.value);
 
-    let canvas = canvasRef.current;
-    let ctx = canvas.getContext('2d')
+    let nudge = -1;
+    let otherName = nudgeMapping[specItem.name]
+    if (otherName) {
+      let [other] = varsFromSpec([otherName], spec)
+      if (value > other) {
+        nudge = 1
+      }
+    }
 
-    ctx.imageSmoothingEnabled = false;
-    ctx.fillStyle = "white";
-    ctx.clearRect(0, 0, 121, 121)
-    ctx.fillRect(10, 10, 101, 101);
+    if (specItem.type === 'ycoord') {
+      drawHorizontalGuideline(ctx, value + nudge)
+    } else if (specItem.type === 'xcoord') {
+      drawVerticalGuideline(ctx, value + nudge)
+    } else {
+      throw new Error('only know guides for y or x coords')
+    }
+
+  }
+
+  function lineExample(ctx) {
+    let [x0, y0, x1, y1] = varsFromSpec(['x0', 'y0', 'x1', 'y1'], spec)
+
+    initCanvas(ctx)
+    drawLine(ctx, 100, x0, y0, x1, y1)
 
     if (tooltipItemName) {
-      let guidePixel = ctx.createImageData(1, 1);
-      guidePixel.data[0] = GUIDEBAR_COLOR[0]
-      guidePixel.data[1] = GUIDEBAR_COLOR[1]
-      guidePixel.data[2] = GUIDEBAR_COLOR[2]
-      guidePixel.data[3] = 255;
-      let specItem = getSpecItemForTooltip()
-      let value = parseInt(specItem.value)
-
-      for (let i = 0; i<121;i++) {
-        if (specItem.type === 'ycoord') {
-          let nudge = 1
-          if (specItem.name === 'y1' && value > y0) {
-            nudge = -1
-          }
-          if (specItem.name === 'y0' && value > y1) {
-            nudge = -1
-          }
-          ctx.putImageData(guidePixel, i, 10 + 100 - value + nudge)
-        } else {
-          let nudge = -1
-          if (specItem.name === 'x1' && value > x0) {
-            nudge = 1
-          }
-          if (specItem.name === 'x0' && value > x1) {
-            nudge = 1
-          }
-          ctx.putImageData(guidePixel, 10 + value + nudge, i)
-        }
-      }
-    }
-
-    const blackPixel = ctx.createImageData(1, 1);
-    blackPixel.data[3] = 255;
-
-
-    // bresenham to get it looking pixelly
-    // http://stackoverflow.com/questions/2734714/modifying-bresenhams-line-algorithm
-    let steep = Math.abs(y1 - y0) > Math.abs(x1 - x0)
-    if (steep) {
-      let t = x0
-      x0 = y0
-      y0 = t
-
-      t = x1
-      x1 = y1
-      y1 = t
-    }
-    if (x0 > x1) {
-      let t = x0
-      x0 = x1
-      x1 = t
-
-      t = y0
-      y0 = y1
-      y1 = t
-    }
-
-    let ystep;
-    if (y0 < y1) {
-      ystep = 1
-    } else {
-      ystep = -1
-    }
-
-    let deltax = x1 - x0
-    let deltay = Math.abs(y1 - y0)
-    let error = -1 * (Math.floor(deltax/2))
-    let y = y0
-
-    for (let x = x0; x<x1+1; x++) {
-      if (steep) {
-        ctx.putImageData(blackPixel, y + 10, 10 + 100 - x)
-      } else {
-        ctx.putImageData(blackPixel, x + 10, 10 + 100 - y)
-      }
-
-      error = error + deltay
-      if (error > 0) {
-        y = y + ystep
-        error = error - deltax
-      }
+      drawTooltipGuide(ctx, {
+        'y0': 'y1',
+        'y1': 'y0',
+        'x0': 'x1',
+        'x1': 'x0',
+      })
     }
   }
 
-  function drawPaper(spec) {
-    let v = parseInt(spec[1].value)
+  function paperExample(ctx) {
+    let [v] = varsFromSpec(['v'], spec)
 
-    let canvas = canvasRef.current;
-    let ctx = canvas.getContext('2d')
-
-    let color = 255 * (1 - v / 100.0)
-    ctx.fillStyle = `rgb(${color}, ${color}, ${color})`
-    ctx.fillRect(10, 10, 101, 101)
+    drawPaper(ctx, v)
   }
 
+  function penExample(ctx) {
+    let [
+      paper,
+      pen1,
+      x01,
+      y01,
+      x11,
+      y11,
+      x02,
+      y02,
+      x12,
+      y12,
+      pen2,
+      x03,
+      y03,
+      x13,
+      y13,
+    ] = varsFromSpec([
+      'paper',
+      'pen1',
+      'x01',
+      'y01',
+      'x11',
+      'y11',
+      'x02',
+      'y02',
+      'x12',
+      'y12',
+      'pen2',
+      'x03',
+      'y03',
+      'x13',
+      'y13',
+    ], spec)
+
+    initCanvas(ctx)
+
+    drawPaper(ctx, paper)
+
+    drawLine(ctx, pen1, x01, y01, x11, y11)
+    drawLine(ctx, pen1, x02, y02, x12, y12)
+    drawLine(ctx, pen2, x03, y03, x13, y13)
+
+    let tooltipItem = getSpecItemForTooltip()
+    if (tooltipItem && (tooltipItem.type === 'xcoord' || tooltipItem.type === 'ycoord')) {
+      drawTooltipGuide(ctx, {
+        'y01': 'y11',
+        'y11': 'y01',
+        'x01': 'x11',
+        'x11': 'x01',
+        'y02': 'y12',
+        'y12': 'y02',
+        'x02': 'x12',
+        'x12': 'x02',
+        'y03': 'y13',
+        'y13': 'y03',
+        'x03': 'x13',
+        'x13': 'x03',
+      })
+    }
+  }
+
+  function variableExample(ctx) {
+    let [xval, y0, y1] = varsFromSpec(['xval', 'y0', 'y1'], spec)
+
+    initCanvas(ctx)
+    drawLine(ctx, 100, xval, y0, xval, y1)
+
+    let tooltipItem = getSpecItemForTooltip()
+    if (tooltipItem && tooltipItem.type === 'ycoord') {
+      drawTooltipGuide(ctx, {
+        'y1': 'y0',
+        'y0': 'y1',
+      })
+    }
+  }
+
+  function repeatExample(ctx) {
+    let [start, end, y0, y1]  = varsFromSpec([
+      'start',
+      'end',
+      'y0',
+      'y1',
+    ], spec)
+
+    initCanvas(ctx)
+    ctx.imageSmoothingEnabled = false
+
+    let height = Math.abs(y1 - y0) + 1
+    let yTop = Math.max(y1, y0)
+
+    for (let x = Math.min(start, end); x < Math.max(start, end) + 1; x++) {
+      let img = ctx.createImageData(1, height)
+      for (var i = 0; i<height; i++) {
+        let c = dbnColorToByte(x)
+        img.data[i*4 + 0] = c
+        img.data[i*4 + 1] = c
+        img.data[i*4 + 2] = c
+        img.data[i*4 + 3] = 255 // (alpha channel)
+      }
+      ctx.putImageData(img, x+10, (100-yTop) + 10)
+    }
+
+    if (tooltipItemName) {
+      drawTooltipGuide(ctx, {
+        'start': 'end',
+        'end': 'start',
+        'y0': 'y1',
+        'y1': 'y0',
+      })
+    }
+  }
 
   return (
 

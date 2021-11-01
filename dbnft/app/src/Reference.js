@@ -58,31 +58,12 @@ function Reference() {
                 the two points specified.
               </p>
 
-              <InteractiveCodeAndImage func='line' initialSpec={[
-                {
-                  type: 'constant',
-                  value: "Line",
-                },
-                {
-                  type: 'xcoord',
-                  value: '0',
-                  name: 'x0',
-                },
-                {
-                  type: 'ycoord',
-                  value: '0',
-                  name: 'y0',
-                },
-                {
-                  type: 'xcoord',
-                  value: '100',
-                  name: 'x1',
-                },
-                {
-                  type: 'ycoord',
-                  value: '100',
-                  name: 'y1',
-                }
+              <InteractiveCodeAndImage exampleFunc='line' initialSpec={[
+                {value: "Line", type: 'constant'},
+                {value: '0', name: 'x0', type: 'xcoord'},
+                {value: '0', name: 'y0', type: 'ycoord'},
+                {value: '100', name: 'x1', type: 'xcoord'},
+                {value: '100', name: 'y1', type: 'ycoord'},
               ]}/>
 
 
@@ -94,27 +75,94 @@ function Reference() {
                 with the specified color.
               </p>
 
-              <InteractiveCodeAndImage func='paper' initialSpec={[
-                {
-                  type: 'constant',
-                  value: "Paper",
-                },
-                {
-                  type: 'color',
-                  value: '0',
-                  name: 'v',
-                },
+              <InteractiveCodeAndImage exampleFunc='paper' initialSpec={[
+                {value: 'Paper', type: 'constant'},
+                {value: '100', type: 'color', name: 'v'}
               ]}/>
-
-              <SampleCodeAndImage code={"Line 0 0 100 100"} />
-              <SampleCodeAndImage code={"Paper 50"} noheaders />
-              <SampleCodeAndImage code={"Paper 100"} noheaders />
 
             </ReferenceSection>
 
-            <ReferenceSection name="Pen"/>
-            <ReferenceSection name="Variables"/>
-            <ReferenceSection name="Repeat"/>
+
+            <ReferenceSection name="Pen">
+              <p>
+                <InlineCode>Pen</InlineCode> sets the color for subsequent
+                Lines. It will stay in place until another call to Pen.
+              </p>
+
+              <InteractiveCodeAndImage exampleFunc='pen' initialSpec={[
+                {value: "Paper", type: 'constant'},
+                {value: '65', type: 'color', name: 'paper'},
+                {value: '\n', type: 'constant'},
+                {value: "Pen", type: 'constant'},
+                {value: '10', type: 'color', name: 'pen1'},
+                {value: '\n', type: 'constant'},
+                {value: "Line", type: 'constant'},
+                {value: '10', name: 'x01', type: 'xcoord'},
+                {value: '10', name: 'y01', type: 'ycoord'},
+                {value: '90', name: 'x11', type: 'xcoord'},
+                {value: '90', name: 'y11', type: 'ycoord'},
+                {value: '\n', type: 'constant'},
+                {value: "Line", type: 'constant'},
+                {value: '20', name: 'x02', type: 'xcoord'},
+                {value: '10', name: 'y02', type: 'ycoord'},
+                {value: '90', name: 'x12', type: 'xcoord'},
+                {value: '80', name: 'y12', type: 'ycoord'},
+                {value: '\n', type: 'constant'},
+                {value: "Pen", type: 'constant'},
+                {value: '90', type: 'color', name: 'pen2'},
+                {value: '\n', type: 'constant'},
+                {value: "Line", type: 'constant'},
+                {value: '0', name: 'x03', type: 'xcoord'},
+                {value: '100', name: 'y03', type: 'ycoord'},
+                {value: '100', name: 'x13', type: 'xcoord'},
+                {value: '0', name: 'y13', type: 'ycoord'},
+              ]}/>
+            </ReferenceSection>
+
+            <ReferenceSection name="Variables">
+
+              <p>
+                Use the <InlineCode>Set</InlineCode> command to save a value to a variable,
+                which can then be used later wherever you'd use a number.
+              </p>
+
+              <InteractiveCodeAndImage exampleFunc='variable' initialSpec={[
+                {value: "Set X", type: 'constant'},
+                {value: "50", type: 'xcoord', name: 'xval'},
+                {value: '\n', type: 'constant'},
+                {value: "Line", type: 'constant'},
+                {value: 'X', type: 'constant'},
+                {value: '0', name: 'y0', type: 'ycoord'},
+                {value: 'X', type: 'constant'},
+                {value: '100', name: 'y1', type: 'ycoord'},
+              ]}/>
+
+            </ReferenceSection>
+
+            <ReferenceSection name="Repeat">
+              The <InlineCode>Repeat</InlineCode> will
+              run code multiple times, with a specified variable
+              set to a different value each time.
+
+              <InteractiveCodeAndImage exampleFunc='repeat' initialSpec={[
+                {value: 'Repeat X', type: 'constant'},
+                {value: '25', name: 'start', type: 'xcoord'},
+                {value: '75', name: 'end', type: 'xcoord'},
+                {value: '{', type: 'constant'},
+                {value: '\n', type: 'constant'},
+                {value: '  Pen X', type: 'constant'},
+                {value: '\n', type: 'constant'},
+                {value: "  Line", type: 'constant'},
+                {value: 'X', type: 'constant'},
+                {value: '0', name: 'y0', type: 'ycoord'},
+                {value: 'X', type: 'constant'},
+                {value: '100', name: 'y1', type: 'ycoord'},
+                {value: '\n', type: 'constant'},
+                {value: '}', type: 'constant'},
+              ]} />
+
+            </ReferenceSection>
+
             <ReferenceSection name="Math"/>
             <ReferenceSection name="Set Dot"/>
             <ReferenceSection name="Get Dot"/>
