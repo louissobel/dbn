@@ -6,7 +6,7 @@ simple parsing, because next node can be exactly determined by next token and cu
 import operator
 
 from .structures.ast_nodes import *
-from .structures import DBNToken
+from .structures import DBNToken, ParseError
 
 def parse(tokens):
     """
@@ -21,7 +21,7 @@ def parse_program(tokens):
     program_nodes = []
 
     while tokens:
-        first_token = tokens[0]
+        first_token = peek_asserting_present(tokens)
 
         if   first_token.type in ('COMMAND', 'NUMBERDEF'):
             # then it is a procedure definition
@@ -49,7 +49,7 @@ def parse_define_procedure(tokens):
     """
     parses a procedure definition
     """
-    procedure_def_token = tokens.pop(0)
+    procedure_def_token = pop_asserting_present(tokens)
 
     # Arg tokens MUST ALL BE WORDS. so we can bypass the normal parsing route.
     children = []
@@ -61,19 +61,30 @@ def parse_define_procedure(tokens):
             # marks the end of the formal args; parse_block will handle this token
             parsing_args = False
         else:
-            try:
-                children.append(parse_word(tokens))
-            except ValueError:
-                # Then parse_word couldn't handle the stack
-                raise ValueError("Every argument to %s must be a word!" % procedure_def_token.value)
+            if first_token.type != 'WORD':
+                raise ParseError(
+                    "Every argument to a %s definition needs to be a variable name, got \"%s\"" % (
+                        procedure_def_token.value,
+                        first_token.value,
+                    ),
+                    first_token.line_no,
+                    first_token.char_no,
+                )
+
+            children.append(parse_word(tokens))
 
     # we must have at least one!
     if not children:
-        raise ValueError("There must be at least one argument to %s! (it's name)" % procedure_def_token.value)
+        raise ParseError(
+            "%s definition requires at least one argument (the name of the new %s), but none provided" % (
+                procedure_def_token.value,
+                procedure_def_token.value,
+            ),
+            procedure_def_token.line_no,
+            procedure_def_token.char_no,
+        )
 
-    body = parse_block(tokens)
-
-    noop = parse_newline(tokens)
+    body = parse_block(tokens, block_owning_token=procedure_def_token)
 
     children.append(body)
 
@@ -83,8 +94,8 @@ def parse_define_procedure(tokens):
 
     proc_type = 'command' if procedure_def_token.type == 'COMMAND' else 'number'
 
-    # child_tokens included the tokens of the body
-    node_tokens = [procedure_def_token] + child_tokens + noop.tokens
+    # child_tokens includes the tokens of the body
+    node_tokens = [procedure_def_token] + child_tokens
 
     return DBNProcedureDefinitionNode(
         children=children,
@@ -110,41 +121,59 @@ def parse_load(tokens):
         line_no=load_token.line_no,
     )
 
-def parse_block(tokens):
+def parse_block(tokens, block_owning_token=None):
     block_nodes = []
 
     # handle any amount of leading newlines, storing them
+    # TODO: should we really handle _any_ amount of newlines? or just 0 or 1?
     chomping = True
     leading_newline_tokens = []
     while chomping:
-        if tokens[0].type == 'NEWLINE':
-            leading_newline_tokens.append(tokens.pop(0))
+        if not tokens:
+            raise_unexpected_block_start_end_of_input(block_owning_token)
+
+        if peek_asserting_present(tokens).type == 'NEWLINE':
+            leading_newline_tokens.append(pop_asserting_present(tokens))
         else:
             chomping = False
 
-    open_brace_token = tokens.pop(0)
+    open_brace_token = pop_asserting_present(tokens)
+    if open_brace_token.type != 'OPENBRACE':
+        raise_unexpected_block_opening_token(block_owning_token, open_brace_token)
 
-    # assert that the next token is a NEWLINE
-    if not tokens[0].type == 'NEWLINE':
-        raise ValueError('block open brace must be followed by newline')
+
+    validate_is_newline(
+        peek_asserting_present(tokens),
+        "\"{\" must be followed by a newline to define a block",
+    )
 
     in_block = True
     while in_block:
-        first_token = tokens[0]
+        if not tokens:
+            raise_unexpected_block_end_end_of_input(block_owning_token)
+
+        first_token = peek_asserting_present(tokens)
 
         if   first_token.type == 'CLOSEBRACE':
             # then the block is closed
-            close_brace_token = tokens.pop(0)
+            close_brace_token = pop_asserting_present(tokens)
             in_block = False
 
         else:
             next_node = parse_block_statement(tokens)
             block_nodes.append(next_node)
 
+    validate_is_newline(
+        peek_asserting_present(tokens),
+        "The closing \"}\" of a block must be followed by a newline",
+    )
+    trailing_newline_token = pop_asserting_present(tokens)
+
     node_tokens = leading_newline_tokens + [open_brace_token]
     for node in block_nodes:
         node_tokens.extend(node.tokens)
     node_tokens.append(close_brace_token)
+    node_tokens.append(trailing_newline_token)
 
     return DBNBlockNode(
         children=block_nodes,
@@ -164,7 +193,7 @@ def parse_block_statement(tokens):
     Each statement is responsbile for ensuring that it ends with a new line
     and that that newline is popped from the token stack
     """
-    first_token = tokens[0]
+    first_token = peek_asserting_present(tokens)
 
     if   first_token.type == 'SET':
         return parse_set(tokens)
@@ -186,22 +215,57 @@ def parse_block_statement(tokens):
         # then it is just an extra newline (noop)
         return parse_newline(tokens)
 
+    elif first_token.type in ('COMMAND', 'NUMBERDEF'):
+        raise ParseError(
+            "%s definitions can only be at the top level of the program" % first_token.value,
+            first_token.line_no,
+            first_token.char_no,
+        )
+
     else:
-        raise ValueError("I don't know how to parse %s as a statement!" % first_token.type)
+        raise ParseError(
+            "Lines should begin with a command (Line, Pen, Paper, Set, etc) — saw \"%s\"" % (first_token.value),
+            first_token.line_no,
+            first_token.char_no,
+        )
 
 def parse_set(tokens):
     """
     parses a Set
     """
-    set_token = tokens.pop(0)
+    set_token = pop_asserting_present(tokens)
 
     # first_arg, must be either Bracket or Word
-    first_arg = parse_arg(tokens)
-    if not isinstance(first_arg, (DBNBracketNode, DBNWordNode)):
-        raise ValueError("First argument to set must be either Bracket or Word. Got %s" % first_arg)
+    next_token = peek_asserting_present(tokens)
+    validate_not_newline(
+        next_token,
+        "Set needs to be passed two arguments, but none provided",
+    )
 
+    if next_token.type   == 'OPENBRACKET':
+        first_arg = parse_bracket(tokens)
+
+    elif next_token.type == 'WORD':
+        first_arg = parse_word(tokens)
+
+    else:
+        raise ParseError(
+            "First argument to Set must be either a [x y] dot or a variable, but got \"%s\"" % next_token.value,
+            next_token.line_no,
+            next_token.char_no
+        )
+
+    validate_not_newline(
+        peek_asserting_present(tokens),
+        "Set needs to be passed two arguments, but only one provided",
+    )
     second_arg = parse_arg(tokens)
 
+    next_token = peek_asserting_present(tokens)
+    validate_is_newline(
+        peek_asserting_present(tokens),
+        "Set can only be passed two arguments, but got extra"
+    )
     noop = parse_newline(tokens)
 
     node_tokens = [set_token] + first_arg.tokens + second_arg.tokens + noop.tokens
@@ -215,19 +279,37 @@ def parse_repeat(tokens):
     """
     parses a Repeat
     """
-    repeat_token = tokens.pop(0)
+    repeat_token = pop_asserting_present(tokens)
 
-    # variable, must be word
-    # parse word will throw error for us
+    # Variable
+    next_token = peek_asserting_present(tokens)
+    validate_not_newline(
+        next_token,
+        "Repeat needs to be passed three arguments, but none provided",
+    )
+    if next_token.type != 'WORD':
+        raise ParseError(
+            "The first argument to Repeat must be the name of a variable, got \"%s\"" % next_token.value,
+            next_token.line_no,
+            next_token.char_no,
+        )
     var = parse_word(tokens)
 
+    validate_not_newline(
+        peek_asserting_present(tokens),
+        "Repeat needs to be passed three arguments, but only one provided",
+    )
     start = parse_arg(tokens)
+
+    validate_not_newline(
+        peek_asserting_present(tokens),
+        "Repeat needs to be passed three arguments, but only two provided",
+    )
     end = parse_arg(tokens)
-    body = parse_block(tokens)
 
-    noop = parse_newline(tokens)
+    body = parse_block(tokens, block_owning_token=repeat_token)
 
-    node_tokens = [repeat_token] + var.tokens + start.tokens + end.tokens + body.tokens + noop.tokens
+    node_tokens = [repeat_token] + var.tokens + start.tokens + end.tokens + body.tokens
     return DBNRepeatNode(
         children=[var, start, end, body],
         tokens=node_tokens,
@@ -238,15 +320,24 @@ def parse_question(tokens):
     """
     parses a question!
     """
-    question_token = tokens.pop(0)
-    first_arg = parse_arg(tokens)
-    second_arg = parse_arg(tokens)
-    body = parse_block(tokens)
+    question_token = pop_asserting_present(tokens)
 
-    noop = parse_newline(tokens)
+    validate_not_newline(
+        peek_asserting_present(tokens),
+        "%s? needs to be passed two arguments, but got none" % question_token.value,
+    )
+    first_arg = parse_arg(tokens)
+
+    validate_not_newline(
+        peek_asserting_present(tokens),
+        "%s? needs to be passed two arguments, but got only one" % question_token.value,
+    )
+    second_arg = parse_arg(tokens)
+
+    body = parse_block(tokens, block_owning_token=question_token)
 
     question_name = question_token.value
-    node_tokens = [question_token] + first_arg.tokens + second_arg.tokens + body.tokens + noop.tokens
+    node_tokens = [question_token] + first_arg.tokens + second_arg.tokens + body.tokens
     return DBNQuestionNode(
         value=question_name,
         children=[first_arg, second_arg, body],
@@ -263,10 +354,7 @@ def parse_command_call(tokens):
     args = []
     parsing_args = True
     while parsing_args:
-        try:
-            first_token = tokens[0]
-        except IndexError:
-            raise ValueError("Unterminated Command!")
+        first_token = peek_asserting_present(tokens)
 
         if first_token.type == 'NEWLINE':
             parsing_args = False
@@ -289,9 +377,22 @@ def parse_command_call(tokens):
 def parse_value(tokens):
     """
     parses a Value statement
+
+    semantic validation (Value only in command def)
+    occurs at compile-time, not parse
     """
-    value_token = tokens.pop(0)
+    value_token = pop_asserting_present(tokens)
+
+    validate_not_newline(
+        peek_asserting_present(tokens),
+        "Value needs one argument, but got none"
+    )
     arg = parse_arg(tokens)
+
+    validate_is_newline(
+        peek_asserting_present(tokens),
+        "Value can only be passed one argument, got extra"
+    )
     noop = parse_newline(tokens)
 
     node_tokens = [value_token] + arg.tokens + noop.tokens
@@ -307,7 +408,7 @@ def parse_newline(tokens):
     """
     first_token = tokens[0]
     if not first_token.type == 'NEWLINE':
-        raise ValueError("parse_newline called without newline as first token (%s)" % first_token.type)
+        raise AssertionError("parse_newline called without newline as first token (%s)" % first_token.type)
 
     newline_token = tokens.pop(0)
     return DBNNoopNode(tokens=[newline_token])
@@ -319,6 +420,11 @@ def parse_arg(tokens):
     dispatches based on first token
     """
     first_token = tokens[0]
+
+    validate_not_newline(
+        first_token,
+        "Unexpected end of line while processing number, maybe a missing closing \")\", \"]\", or \">\"",
+    )
 
     if   first_token.type == 'NUMBER':
         return parse_number(tokens)
@@ -335,8 +441,45 @@ def parse_arg(tokens):
     elif first_token.type == 'OPENANGLEBRACKET':
         return parse_number_call(tokens)
 
+    ## Error cases
+    elif first_token.type == 'OPERATOR':
+        raise ParseError(
+            "Math operator \"%s\" needs to be wrapped in parentheses" % first_token.value,
+            first_token.line_no,
+            first_token.char_no,
+        )
+    elif first_token.type == 'CLOSEPAREN':
+        raise ParseError(
+            "Found \")\" without a corresponding \"(\"",
+            first_token.line_no,
+            first_token.char_no,
+        )
+    elif first_token.type == 'CLOSEBRACKET':
+        raise ParseError(
+            "Found \"]\" without a corresponding \"[\"",
+            first_token.line_no,
+            first_token.char_no,
+        )
+    elif first_token.type == 'CLOSEANGLEBRACKET':
+        raise ParseError(
+            "Found \">\" without a corresponding \"<\"",
+            first_token.line_no,
+            first_token.char_no,
+        )
+    elif first_token.type in ('OPENBRACE', 'CLOSEBRACE'):
+        raise ParseError(
+            "Blocks (\"{\" or \"}\") aren't supported within a number",
+            first_token.line_no,
+            first_token.char_no,
+        )
     else:
-        raise ValueError("I don't know how to handle token type %s while parsing args!" % first_token.type)
+        raise ParseError(
+            "Cannot use command \"%s\" as a number" % (
+                first_token.value,
+            ),
+            first_token.line_no,
+            first_token.char_no,
+        )
 
 def parse_arithmetic(tokens):
     """
@@ -353,7 +496,7 @@ def parse_arithmetic(tokens):
     }
 
     # grab the open paren token
-    open_paren_token = tokens.pop(0)
+    open_paren_token = pop_asserting_present(tokens)
 
     # Shunting yard algorithm for precedence parsing
     # http://en.wikipedia.org/wiki/Shunting-yard_algorithm
@@ -366,7 +509,11 @@ def parse_arithmetic(tokens):
             right = output_stack.pop()
             left = output_stack.pop()
         except IndexError:
-            raise ValueError('Not enough operands for %s!' % op_token.value)
+            raise ParseError(
+                'Math operator "%s" needs values on both sides' % op_token.value,
+                op_token.line_no,
+                op_token.char_no,
+            )
 
         node_tokens = left.tokens + [op_token] + right.tokens
         new_node = DBNBinaryOpNode(
@@ -378,14 +525,14 @@ def parse_arithmetic(tokens):
 
     parsing = True
     while parsing:
-        first_token = tokens[0]
+        first_token = peek_asserting_present(tokens)
 
         if  first_token.type == 'CLOSEPAREN':
             parsing = False
-            close_paren_token = tokens.pop(0)
+            close_paren_token = pop_asserting_present(tokens)
 
         elif first_token.type == 'OPERATOR':
-            op_token = tokens.pop(0)
+            op_token = pop_asserting_present(tokens)
             precedence, assoc = PRECEDENCE[op_token.value]
 
             while op_stack:
@@ -407,11 +554,23 @@ def parse_arithmetic(tokens):
     while op_stack:
         add_op(op_stack.pop())
 
-    # if result_stack is greater than one, we have problems
-    if len(output_stack) > 1:
-        raise ValueError("Bad arithmetic!")
+    # so now the root op node should be the one element left in the list
+    # if there isn't eactly one thing left, it's an error
 
-    # so now the root op node is the one element in the list
+    if len(output_stack) > 1:
+        raise ParseError(
+            "Missing math operator inside parentheses",
+            open_paren_token.line_no,
+            open_paren_token.char_no,
+        )
+
+    if not output_stack:
+        raise ParseError(
+            "Empty parentheses",
+            open_paren_token.line_no,
+            open_paren_token.char_no,
+        )
+
     final_op = output_stack[0]
 
     # adding the parenthesis tokens
@@ -425,9 +584,32 @@ def parse_bracket(tokens):
     pretty simple... call parse args on tokens, then make sure that
     there are only two, then store left, right
     """
-    open_bracket_token = tokens.pop(0)
+    open_bracket_token = pop_asserting_present(tokens)
+
+    if peek_asserting_present(tokens).type == 'CLOSEBRACKET':
+        raise ParseError(
+            "There must be two arguments within the brackets to describe a dot, got none",
+            open_bracket_token.line_no,
+            open_bracket_token.char_no,
+        )
     first_arg = parse_arg(tokens)
+
+    if peek_asserting_present(tokens).type == 'CLOSEBRACKET':
+        raise ParseError(
+            "There must be two arguments within the brackets to describe a dot, got only one",
+            open_bracket_token.line_no,
+            open_bracket_token.char_no,
+        )
     second_arg = parse_arg(tokens)
+
+
+    next_token = peek_asserting_present(tokens)
+    if next_token.type != 'CLOSEBRACKET':
+        raise ParseError(
+            "There must be two arguments within the brackets to describe a dot, got extra (\"%s\")" % (next_token.value),
+            next_token.line_no,
+            next_token.char_no,
+        )
     close_bracket_token = tokens.pop(0)
 
     node_tokens = [open_bracket_token] + first_arg.tokens + second_arg.tokens + [close_bracket_token]
@@ -440,17 +622,25 @@ def parse_number_call(tokens):
     """
     < name ... >
     """
-    open_angle_bracket_token = tokens.pop(0)
+    open_angle_bracket_token = pop_asserting_present(tokens)
+
+    next_token = peek_asserting_present(tokens)
+    if next_token.type != 'WORD':
+        raise ParseError(
+            "To call a number, the name of the Number must be the first thing after the \"<\", got \"%s\"" % next_token.value,
+            next_token.line_no,
+            next_token.char_no
+        )
     number_name = parse_word(tokens)
 
     args = []
     parsing_args = True
     while parsing_args:
-        first_token = tokens[0]
+        first_token = peek_asserting_present(tokens)
 
         if first_token.type == 'CLOSEANGLEBRACKET':
             parsing_args = False
-            close_angle_bracket_token = tokens.pop(0)
+            close_angle_bracket_token = pop_asserting_present(tokens)
         else:
             args.append(parse_arg(tokens))
 
@@ -471,7 +661,7 @@ def parse_word(tokens):
     """
     word_token = tokens.pop(0)
     if not word_token.type == 'WORD':
-        raise ValueError("parse_word called but first token on stack is not a word (its a %s)" % word_token.type)
+        raise AssertionError("parse_word called but first token on stack is not a word (its a %s)" % word_token.type)
     return DBNWordNode(
         value=word_token.value,
         tokens=[word_token],
@@ -483,8 +673,74 @@ def parse_number(tokens):
     """
     number_token = tokens.pop(0)
     if not number_token.type == 'NUMBER':
-        raise ValueError("parse_number called but first token on stack is not a number (its a %s)" % number_token.type)
+        raise AssertionError("parse_number called but first token on stack is not a number (its a %s)" % number_token.type)
     return DBNNumberNode(
         value=number_token.value,
         tokens=[number_token],
     )
+
+def peek_asserting_present(tokens):
+    if not tokens:
+        raise AssertionError("expected there to be tokens, but none found")
+    return tokens[0]
+
+def pop_asserting_present(tokens):
+    if not tokens:
+        raise AssertionError("expected there to be tokens, but none found")
+    return tokens.pop(0)
+
+def validate_not_newline(token, message):
+    if token.type == 'NEWLINE':
+        raise ParseError(message, token.line_no, token.char_no)
+
+def validate_is_newline(token, message):
+    if token.type != 'NEWLINE':
+        raise ParseError(message, token.line_no, token.char_no)
+
+
+def format_block_owning_token_name(block_owning_token):
+    if block_owning_token.type == 'QUESTION':
+        return 'Question body'
+    elif block_owning_token.type == 'REPEAT':
+        return 'Repeat body'
+    elif block_owning_token.type == 'COMMAND' or block_owning_token.type == 'NUMBERDEF':
+        return '%s definition body' % (block_owning_token.value)
+    else:
+        return 'block'
+
+def raise_unexpected_block_start_end_of_input(block_owning_token):
+    if block_owning_token:
+        raise ParseError(
+            "Unexpected end of input looking for opening \"{\" of %s" % (
+                format_block_owning_token_name(block_owning_token),
+            ),
+            block_owning_token.line_no,
+            block_owning_token.char_no
+        )
+    else:
+        raise AssertionError("end of input reached but no owning block token")
+
+def raise_unexpected_block_end_end_of_input(block_owning_token):
+    if block_owning_token:
+        raise ParseError(
+            "Unexpected end of input looking for closing \"}\" of %s" % (
+                format_block_owning_token_name(block_owning_token),
+            ),
+            block_owning_token.line_no,
+            block_owning_token.char_no,
+        )
+    else:
+        raise AssertionError("end of input reached looking for closing } but no owning block token")
+
+def raise_unexpected_block_opening_token(block_owning_token, unexpected_token):
+    if block_owning_token:
+        raise ParseError(
+            "%s needs to start with \"{\", got \"%s\"" % (
+                format_block_owning_token_name(block_owning_token),
+                unexpected_token.value,
+            ),
+            unexpected_token.line_no,
+            unexpected_token.char_no,
+        )
+    else:
+        raise AssertionError("no block_owning_token but bad delimiter start: %s" % unexpected_token.value)

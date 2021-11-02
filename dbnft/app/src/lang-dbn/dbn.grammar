@@ -18,7 +18,7 @@ Statement {
 }
 
 Block {
-	"{" newline Statement* "}" newline
+	"{" newline Statement* "}"
 }
 
 DefineCommand {

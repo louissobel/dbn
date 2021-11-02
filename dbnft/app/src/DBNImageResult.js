@@ -68,6 +68,7 @@ function DBNImageResult(props) {
 
       <DBNResultRenderStatus
         renderState={props.renderState}
+        renderError={props.renderError}
         codeSize={props.bytecode ? (props.bytecode.length - 2)/2 : null}
         gasUsed={props.gasUsed}
         darkmode={darkmode}

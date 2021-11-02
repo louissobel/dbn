@@ -29,12 +29,19 @@ onmessage = ({ data }) => {
         }
       })
     })
-    .then((result) =>
-      postMessage({
-        message: 'result',
-        value: result,
-      })
-    )
+    .then((result) => {
+      if (result.error) {
+        postMessage({
+          message: 'error',
+          value: result.error,
+        })
+      } else {
+        postMessage({
+          message: 'result',
+          value: result,
+        })
+      }
+    })
     .catch((error) =>
       postMessage({
         message: 'error',
@@ -107,7 +114,19 @@ const renderDBN = async function(data, opts, onRenderStateChange) {
   if (!response.ok) {
     throw new Error('Unexpected result: ' + response.status);
   }
-  const assemblyCode = await response.text()
+  const responseData = await response.json()
+  if (responseData.error) {
+    return {
+      error: {
+        type: responseData.error.type,
+        message: responseData.error.message,
+        lineNumber: responseData.error.line_number,
+      }
+    }
+  }
+
+  const assemblyCode = responseData.result;
+
   if (opts.verbose) {
     console.log(assemblyCode)
   }

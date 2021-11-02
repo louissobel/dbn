@@ -25,7 +25,25 @@ function BytecodeStats({codeSize}) {
   )
 }
 
-function DBNResultRenderStatus({renderState, codeSize, gasUsed, darkmode}) {
+function errorMessage(renderError) {
+  if (!renderError) {
+    return 'Unhandled Error!'
+  }
+
+  if (!renderError.message) {
+    console.error('error without message', renderError)
+    return 'Error!'
+  }
+
+  if (renderError.type === 'parse') {
+    return renderError.message + ' at line ' +  renderError.lineNumber;
+  } else {
+    console.error('unhandled error type', renderError)
+    return 'Error (' + renderError.type + ')'
+  }
+}
+
+function DBNResultRenderStatus({renderState, renderError, codeSize, gasUsed, darkmode}) {
 
   var status;
   switch (renderState) {
@@ -81,7 +99,7 @@ function DBNResultRenderStatus({renderState, codeSize, gasUsed, darkmode}) {
           </div>
 
           <span class="dbn-image-render-status-message">
-            Error!
+            {errorMessage(renderError)}
           </span>
         </>
       );

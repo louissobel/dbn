@@ -26,6 +26,8 @@ class DBNEditor extends React.Component {
       gasUsed: null,
 
       darkmode: false,
+
+      renderError: null,
     };
 
   }
@@ -44,6 +46,7 @@ class DBNEditor extends React.Component {
   dbnRender(code) {
     this.setState({
       renderState: 'RENDERING',
+      renderError: null,
       bytecode: null,
       description: null,
       imageData: null,
@@ -98,8 +101,17 @@ class DBNEditor extends React.Component {
       })
     })
     .catch((error) => {
-      console.error('', error)
-      this.setState({renderState: 'ERROR'})
+      switch (error.type) {
+        case 'parse':
+          this.setState({
+            renderState: 'ERROR',
+            renderError: error,
+          })
+          break;
+        default:
+          console.error('unhandled error!', error)
+          this.setState({renderState: 'ERROR'})
+      }
     })
   }
 
@@ -142,6 +154,7 @@ class DBNEditor extends React.Component {
           <Col sm={12} md={9} lg={6}>
             <DBNImageResult
               renderState={this.state.renderState}
+              renderError={this.state.renderError}
               imageData={this.state.imageData}
               description={this.state.description}
 
@@ -156,6 +169,7 @@ class DBNEditor extends React.Component {
             <CodeInput
               disabled={this.state.renderState === 'RENDERING'}
               onRun={this.dbnRender.bind(this)}
+              errorLine={this.state.renderError?.lineNumber}
             />
           </Col>
         </Row>

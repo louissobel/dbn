@@ -92,7 +92,6 @@
   padding: 5px;
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
-  white-space: nowrap;
   margin-top: 20px;
   transition: 200ms;
 }
@@ -120,6 +119,10 @@
   overflow: hidden;
   font-size: 0.85rem;
   border-radius: 8px;
+}
+
+.code-error-underline {
+  border-bottom: 1px dotted red;
 }
 
 body {

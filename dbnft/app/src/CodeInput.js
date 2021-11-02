@@ -6,9 +6,10 @@ import Button from 'react-bootstrap/Button';
 
 import CodeMirror from '@uiw/react-codemirror';
 import {keymap, highlightSpecialChars, drawSelection, highlightActiveLine} from "@codemirror/view"
-import {Extension, EditorState} from "@codemirror/state"
+import {Extension, EditorState, StateField} from "@codemirror/state"
 import {history, historyKeymap} from "@codemirror/history"
 import {foldGutter, foldKeymap} from "@codemirror/fold"
+import {RangeSet} from "@codemirror/rangeset"
 import {indentOnInput} from "@codemirror/language"
 import {lineNumbers, highlightActiveLineGutter} from "@codemirror/gutter"
 import {defaultKeymap} from "@codemirror/commands"
@@ -17,10 +18,12 @@ import {closeBrackets, closeBracketsKeymap} from "@codemirror/closebrackets"
 import {searchKeymap, highlightSelectionMatches} from "@codemirror/search"
 import {autocompletion, completionKeymap} from "@codemirror/autocomplete"
 import {commentKeymap} from "@codemirror/comment"
-import {EditorView} from "@codemirror/view"
+import {EditorView, Decoration, ViewPlugin} from "@codemirror/view"
 import {rectangularSelection} from "@codemirror/rectangular-selection"
 import {defaultHighlightStyle} from "@codemirror/highlight"
 import {lintKeymap} from "@codemirror/lint"
+import {gutter, GutterMarker} from "@codemirror/gutter"
+
 
 
 import {dbnLanguage, dbnftHighlightStyle} from './lang-dbn/dbn'
@@ -31,12 +34,15 @@ let disabledTheme = EditorView.theme({
   },
 })
 
+const gutterErrorMarker = new class extends GutterMarker {
+  toDOM() { return document.createTextNode("🔺") }
+}
+
 const baseExtensions = [
   lineNumbers(),
   highlightActiveLineGutter(),
   highlightSpecialChars(),
   history(),
-  foldGutter(),
   EditorState.allowMultipleSelections.of(true),
   indentOnInput(),
   defaultHighlightStyle.fallback,
@@ -64,11 +70,13 @@ export default function CodeInput(props) {
   const editor = useRef();
   const [code, setCode] = useState(initial)
   const [usedKeyboardShortcutToRun, setUsedKeyboardShortcutToRun] = useState(false)
+  const [editedAfterRun, setEditedAfterRun] = useState(false)
 
   const textarea = useRef(null)
 
-  function onCodeChange(e) {
-    setCode(e.target.value)
+  function onCodeChange(code) {
+    setEditedAfterRun(true)
+    setCode(code)
   }
 
   function onRunKeyboardShortcut() {
@@ -84,9 +92,12 @@ export default function CodeInput(props) {
   useEffect(() => {
     if (!props.disabled) {
       if (usedKeyboardShortcutToRun) {
-
         setUsedKeyboardShortcutToRun(false)
+        if (editor.current) {
+          editor.current.view.focus()
+        }
       }
+      setEditedAfterRun(false)
     }
   }, [props.disabled])
 
@@ -100,6 +111,8 @@ export default function CodeInput(props) {
     }
 
     return extensions.concat([
+      errorGutter(),
+      errorUnderline(),
       keymap.of([
         {key: "Mod-Enter", run: onRunKeyboardShortcut},
         ...closeBracketsKeymap,
@@ -113,6 +126,54 @@ export default function CodeInput(props) {
     ])
   }
 
+  function errorGutter() {
+    return gutter({
+      lineMarker(view, block) {
+        const line = view.state.doc.lineAt(block.from)
+
+        if (!editedAfterRun && props.errorLine === line.number) {
+          return gutterErrorMarker
+        } else {
+          return null
+        }
+      },
+      initialSpacer: () => gutterErrorMarker
+    })
+  }
+
+  function errorUnderline() {
+    const underlineMark = Decoration.mark({class: "code-error-underline"})
+
+
+    return ViewPlugin.fromClass(class {
+      setDecorations(view) {
+        if (props.errorLine) {
+          let line = view.state.doc.line(props.errorLine);
+          if (line.from === line.to || editedAfterRun) {
+            // then still no decoration
+            this.decorations = RangeSet.empty
+          } else {
+            this.decorations = RangeSet.of([underlineMark.range(line.from, line.to)])
+          }
+        } else {
+          this.decorations = RangeSet.empty
+        }
+      }
+
+      constructor(view) {
+        this.setDecorations(view)
+      }
+
+      update(view) {
+        this.setDecorations(view)
+      }
+    }, {
+      decorations: (v) => {
+        return v.decorations
+      }
+    })
+  }
+
   return (
     <div className="code-input-holder">
       <Row>
@@ -124,10 +185,9 @@ export default function CodeInput(props) {
                   height="350px"
                   extensions={codemirrorExtensions()}
                   onChange={(value, viewUpdate) => {
-                    setCode(value)
+                    onCodeChange(value)
                   }}
                   editable={!props.disabled}
-                  autofocus={!props.disabled && usedKeyboardShortcutToRun}
                   readOnly={props.disabled}
                   basicSetup={false}
             />

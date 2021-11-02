@@ -1,6 +1,6 @@
 import re
 
-from .structures import DBNToken
+from .structures import DBNToken, ParseError
 
 
 def tokenize(string, *args, **kwargs):
@@ -45,13 +45,13 @@ class DBNTokenizer:
         self.register('CLOSEANGLEBRACKET', r'(>)')
 
         # then keywords
-        self.register('SET',               r'(Set) ')
-        self.register('REPEAT',            r'(Repeat) ')
+        self.register('SET',               r'(Set)\b')
+        self.register('REPEAT',            r'(Repeat)\b')
         self.register('QUESTION',          r'(Same|NotSame|Smaller|NotSmaller)\?'),
-        self.register('COMMAND',           r'(Command) '),
-        self.register('NUMBERDEF',         r'(Number) '),
-        self.register('LOAD',              r'(Load) '),
-        self.register('VALUE',             r'(Value) '),
+        self.register('COMMAND',           r'(Command)\b'),
+        self.register('NUMBERDEF',         r'(Number)\b'),
+        self.register('LOAD',              r'(Load)\b'),
+        self.register('VALUE',             r'(Value)\b'),
 
         # then literals
         self.register('WORD',              r'([A-z_][\w\d]*)')
@@ -95,7 +95,8 @@ class DBNTokenizer:
                     value = ''
                 return (type_, value)
 
-        raise ValueError("No matching token type for token at pos %d (%s)" % (pos, string[pos:pos+10]))
+        # Message ends up user-facing
+        raise ValueError("Invalid input: \"%s\"" % (string[pos:].split("\n",1)[0]))
 
     def token_re(self):
         """
@@ -126,7 +127,7 @@ class DBNTokenizer:
             try:
                 token_type, token_value = self.classify(string, token_match.start())
             except ValueError as e:
-                raise ValueError(str(e) + " at %d:%d" % (line_no, token_char_no))
+                raise ParseError(str(e), line_no, token_char_no)
 
             token = DBNToken(
                 token_type,
@@ -147,7 +148,7 @@ class DBNTokenizer:
         yield DBNToken(
             'NEWLINE',
             '\n',
-            -1,
+            line_no,
             -1,
             '\n',
         )
