@@ -103,6 +103,7 @@ class DBNEditor extends React.Component {
     .catch((error) => {
       switch (error.type) {
         case 'parse':
+        case 'compile':
           this.setState({
             renderState: 'ERROR',
             renderError: error,
@@ -147,6 +148,22 @@ class DBNEditor extends React.Component {
     })
   }
 
+  errorLines() {
+    const out = [];
+    if (!this.state.renderError) {
+      return out
+    }
+
+    if (this.state.renderError.lineNumber) {
+      out.push(this.state.renderError.lineNumber)
+    }
+    if (this.state.renderError.relatedLineNumber) {
+      out.push(this.state.renderError.relatedLineNumber)
+    }
+
+    return out
+  }
+
   render() {
     return (
       <Container>
@@ -169,7 +186,7 @@ class DBNEditor extends React.Component {
             <CodeInput
               disabled={this.state.renderState === 'RENDERING'}
               onRun={this.dbnRender.bind(this)}
-              errorLine={this.state.renderError?.lineNumber}
+              errorLines={this.errorLines()}
             />
           </Col>
         </Row>

@@ -131,7 +131,7 @@ export default function CodeInput(props) {
       lineMarker(view, block) {
         const line = view.state.doc.lineAt(block.from)
 
-        if (!editedAfterRun && props.errorLine === line.number) {
+        if (!editedAfterRun && props.errorLines.includes(line.number)) {
           return gutterErrorMarker
         } else {
           return null
@@ -147,14 +147,22 @@ export default function CodeInput(props) {
 
     return ViewPlugin.fromClass(class {
       setDecorations(view) {
-        if (props.errorLine) {
-          let line = view.state.doc.line(props.errorLine);
-          if (line.from === line.to || editedAfterRun) {
-            // then still no decoration
-            this.decorations = RangeSet.empty
-          } else {
-            this.decorations = RangeSet.of([underlineMark.range(line.from, line.to)])
-          }
+        if (props.errorLines && !editedAfterRun) {
+
+          // RangeSet needs sorted input :/
+          let sortedLines = props.errorLines.slice();
+          sortedLines.sort((a, b) => {
+            return a - b
+          })
+
+          this.decorations = RangeSet.of(sortedLines.flatMap((lineNumber) => {
+            let line = view.state.doc.line(lineNumber);
+            if (line.from == line.to) {
+              return [];
+            } else {
+              return [underlineMark.range(line.from, line.to)]
+            }
+          }))
         } else {
           this.decorations = RangeSet.empty
         }
@@ -164,8 +172,10 @@ export default function CodeInput(props) {
         this.setDecorations(view)
       }
 
-      update(view) {
-        this.setDecorations(view)
+      update(viewUpdate) {
+        if (viewUpdate.docChanged) {
+          this.decorations = RangeSet.empty
+        }
       }
     }, {
       decorations: (v) => {

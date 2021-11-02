@@ -37,8 +37,14 @@ function errorMessage(renderError) {
 
   if (renderError.type === 'parse') {
     return renderError.message + ' at line ' +  renderError.lineNumber;
+  } else if (renderError.type === 'compile') {
+    let message = renderError.message;
+    if (renderError.lineNumber && !renderError.lineNumberInMessage) {
+      message += " at line " + renderError.lineNumber
+    }
+    return message
   } else {
-    console.error('unhandled error type', renderError)
+    console.error('unhandled error type in render status', renderError)
     return 'Error (' + renderError.type + ')'
   }
 }

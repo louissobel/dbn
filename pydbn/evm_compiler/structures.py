@@ -1,6 +1,15 @@
 import sys
 from collections import namedtuple
 
+class CompileError(ValueError):
+    def __init__(self, message, line, related_line=None, line_number_in_message=False):
+        super().__init__(message)
+
+        self.message = message
+        self.line = line
+        self.related_line = related_line
+        self.line_number_in_message = line_number_in_message
+
 class ProcedureDefinition(object):
     StackSlot = namedtuple('StackSlot', ['is_arg', 'symbol'])
 
@@ -9,6 +18,7 @@ class ProcedureDefinition(object):
         self.name = name
         self.args = args
         self.is_number = is_number
+
         self.label = None
         self.epilogue_label = None
         self.scope_dependencies = None

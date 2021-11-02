@@ -37,8 +37,7 @@ def handler(event, context):
         dbn_ast = parser.parse(tokens)
     except parser.ParseError as e:
         return handled_error('parse', e.message, e.line)
-    # except Exception as e:
-    #     return unhandled_error(500, 'unhandled error during parse: ' + str(e))
+    # Any other kind of error is system failure and we let it bubble
 
     try:
         compiler = evm_compiler.DBNEVMCompiler(verbose=True)
@@ -46,8 +45,15 @@ def handler(event, context):
             dbn_ast,
             metadata=metadata,
         )
-    except ValueError as e:
-        return unhandled_error(500, 'compile error: ' + str(e))
+    except evm_compiler.CompileError as e:
+        return handled_error(
+            'compile',
+            e.message,
+            e.line,
+            related_line_number=e.related_line,
+            line_number_in_message=e.line_number_in_message,
+        )
+    # Let anything else bubblw
 
     return {
         'statusCode': 200,
@@ -59,7 +65,7 @@ def handler(event, context):
 
 
 # TODO: position?
-def handled_error(type_, message, line_number):
+def handled_error(type_, message, line_number, related_line_number=None, line_number_in_message=False):
     return {
         'statusCode': 200,
         'body': json.dumps({
@@ -68,6 +74,8 @@ def handled_error(type_, message, line_number):
                 'type': type_,
                 'message': message,
                 'line_number': line_number,
+                'related_line_number': related_line_number,
+                'line_number_in_message': line_number_in_message,
             }
         })
     }

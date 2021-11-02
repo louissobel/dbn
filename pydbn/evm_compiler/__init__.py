@@ -1,2 +1,2 @@
 from .compiler import DBNEVMCompiler
-from .structures import Metadata
+from .structures import Metadata, CompileError

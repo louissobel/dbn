@@ -121,6 +121,8 @@ const renderDBN = async function(data, opts, onRenderStateChange) {
         type: responseData.error.type,
         message: responseData.error.message,
         lineNumber: responseData.error.line_number,
+        relatedLineNumber: responseData.error.related_line_number,
+        lineNumberInMessage: responseData.error.line_number_in_message,
       }
     }
   }

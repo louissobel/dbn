@@ -2,6 +2,7 @@ import sys
 import contextlib
 
 from . import structures
+from .structures import CompileError
 from parser.structures.ast_nodes import *
 from parser import DBNAstVisitor
 
@@ -121,9 +122,12 @@ class DBNEVMCompiler(DBNAstVisitor):
                     dfn.name,
                 )
             )
+        self._clear_dfn_labels()
 
         # Ok — make a _top level_ stack allocation decision
         root_scope_dependencies = self.get_scope_dependencies(node, root=True)
+        self._clear_dfn_labels()
+
         root_locals_env_args, root_stack_slots, _ = (
             self.make_variable_location_decisions_for(
                 root_scope_dependencies,
@@ -132,12 +136,17 @@ class DBNEVMCompiler(DBNAstVisitor):
             )
         )
         if root_locals_env_args or any(slot.is_arg for slot in root_stack_slots):
-            raise RuntimeError('we are not passing any args...')
+            raise AssertionError('we are not passing any args, so these should not get set')
 
         self.root_stack_slots = root_stack_slots
         self.symbol_directory = self.symbol_directory.with_stack(
             {s.symbol: i for (i, s) in enumerate(reversed(root_stack_slots))}
         )
+
+    def _clear_dfn_labels(self):
+        for dfn in self.procedure_definitions:
+            dfn.label = None
+            dfn.epilogue_label = None
 
     def setup_builtins(self):
         line = structures.BuiltinProcedure('Line', 'command', 4, self.handle_builtin_line)
@@ -271,7 +280,8 @@ class DBNEVMCompiler(DBNAstVisitor):
          - else:              SHL(index, 1):   (PUSH1(1), PUSH1(index), SHL) (5 bytes)
         """
         if index > 255:
-            raise ValueError("index mustn't be greater than 255!! too many variables?")
+            # we validate there's not too many variables at the start of compilation
+            raise AssertionError("index mustn't be greater than 255!! too many variables?")
 
         if index <= 23:
             self.emit_push(1 << index)
@@ -315,6 +325,7 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.emit_raw("@metadataDescription []")
 
     def validate_metadata_hex_string(self, name, s, expected_length=None):
+        # TODO: what do we want to do with these errors?
         if not s[0:2] == '0x':
             raise ValueError('metadata %s (%s) is not hex string' % (name, s))
 
@@ -780,17 +791,62 @@ class DBNEVMCompiler(DBNAstVisitor):
         try:
             dfn = self.procedure_definitions_by_name[procedure_name]
         except KeyError:
-            raise ValueError("no definition for %s" % procedure_name)
+            raise CompileError(
+                "Calling undefined %s \"%s\"" % (
+                    node.procedure_type,
+                    procedure_name,
+                ),
+                self.line_no,
+            )
 
         if dfn.label is None:
-            raise ValueError("%s not yet defined" % procedure_name)
+            raise CompileError(
+                "Calling %s \"%s\" (at line %d) before it is defined (down at line %d)" % (
+                    node.procedure_type,
+                    procedure_name,
+                    self.line_no,
+                    dfn.node.line_no,
+                ),
+                self.line_no,
+                related_line=dfn.node.line_no,
+                line_number_in_message=True,
+            )
 
         if len(node.args) != len(dfn.args):
-            raise ValueError("%s expects %d args, got %d" % (
-                procedure_name,
-                len(dfn.args),
-                len(node.args),
-            ))
+            raise CompileError(
+                "Calling %s \"%s\" (at line %d) with %d %s, but it is defined (at line %d) with %d" % (
+                    node.procedure_type,
+                    procedure_name,
+                    self.line_no,
+                    len(node.args),
+                    'argument' if len(node.args) == 1 else 'arguments',
+                    dfn.node.line_no,
+                    len(dfn.args),
+                ),
+                self.line_no,
+                related_line=dfn.node.line_no,
+                line_number_in_message=True,
+            )
+
+        if dfn.is_number and node.procedure_type == 'command':
+            raise CompileError(
+                "Cannot use number \"%s\" (defined at line %d) as a command" % (
+                    procedure_name,
+                    dfn.node.line_no,
+                ),
+                self.line_no,
+                related_line=dfn.node.line_no,
+            )
+
+        if not dfn.is_number and node.procedure_type == 'number':
+            raise CompileError(
+                "Cannot use command \"%s\" (defined at line %d) as a number" % (
+                    procedure_name,
+                    dfn.node.line_no,
+                ),
+                self.line_no,
+                related_line=dfn.node.line_no,
+            )
 
         post_call_label = self.generate_label('postUserProcedureCall')
 
@@ -832,10 +888,24 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     def handle_builtin(self, builtin, node):
         if node.procedure_type != builtin.procedure_type:
-            raise TypeError("cannot use %s as a %s" % (builtin.name, node.procedure_type))
+            raise CompileError(
+                "Cannot use \"%s\" as a %s" % (
+                    builtin.name,
+                    node.procedure_type,
+                ),
+                self.line_no,
+            )
 
         if len(node.args) != builtin.argc:
-            raise self.invalid_argument_count(builtin.name, builtin.argc, len(node.args))
+            raise CompileError(
+                "%s expects %d %s, got %d" % (
+                    builtin.name,
+                    builtin.argc,
+                    'argument' if builtin.argc == 1 else 'arguments',
+                    len(node.args),
+                ),
+                self.line_no
+            )
 
         self.emit_comment('Calling Builtin: %s' % builtin.name)
         builtin.handler(node)
@@ -884,21 +954,23 @@ class DBNEVMCompiler(DBNAstVisitor):
     def handle_builtin_debugger(self, node):
         self.emit_debug()
 
-    def invalid_argument_count(self, command_name, expected, got):
-        return ValueError("%s expects %d arguments, got %d" % (command_name, expected, got))
-
     def visit_procedure_definition_node(self, node):
         self.emit_line_no(node.line_no)
 
         name = node.procedure_name.value
         dfn = self.procedure_definitions_by_name[name]
         if self.current_procedure_definition:
-            raise ValueError("cannot define a procedure within another!")
+            raise CompileError(
+                "Cannot define a %s within a %s definition" % (
+                    node.procedure_type,
+                    'number' if dfn.is_number else 'command',
+                ),
+                self.line_no
+            )
         self.current_procedure_definition = dfn
 
         self.emit_comment(';;;; defining %s' % name)
 
-        
         dfn.label = self.generate_label('userProcedureDefinition')
 
         if dfn.is_number:
@@ -938,6 +1010,8 @@ class DBNEVMCompiler(DBNAstVisitor):
             )
 
             with self.new_symbol_directory(new_directory, 'command_def'):
+                # TODO: don't allow Line, Setdot, (field?)
+                # or any other side-effectful things in Number!
                 self.visit(node.body)
 
             # Epilogue:
@@ -1058,9 +1132,15 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     def visit_value_node(self, node):
         if self.current_procedure_definition is None:
-            raise ValueError("cannot use Value outside of a Number")
+            raise CompileError(
+                "Cannot use Value outside of a Number definition",
+                node.line_no,
+            )
         if not self.current_procedure_definition.is_number:
-            raise ValueError("cannot use Value outside of a Number")
+            raise CompileError(
+                "Can only use Value inside a Number definition, not inside a command",
+                node.line_no,
+            )
 
         self.emit_line_no(node.line_no)
 
@@ -1110,6 +1190,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         # OK: now we just jump to the function epilogue
         if not self.current_procedure_definition.epilogue_label:
             raise AssertionError("there needs to be an epilogue label set to handle Value..")
+
         self.emit_jump(self.current_procedure_definition.epilogue_label)
 
         # Restore the stack
@@ -1245,7 +1326,7 @@ class DBNEVMCompiler(DBNAstVisitor):
 
 
         if len(stack_slots) > 16:
-            raise AssertionError("we should never end up with more than 16 stack slots!")
+            raise AssertionError("we should never end up with more than 16 stack slots! %d" % len(stack_slots))
 
         self.log("stack vars: %s" % stack_vars)
         self.log("local env args: %s" % local_env_args)
@@ -1257,7 +1338,7 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     def _is_stack_eligible(self, symbol, info, nudge=None):
         if nudge is None:
-            raise ValueError("nudge must be specified")
+            raise AssertionError("nudge must be specified")
 
         # an accessed variable is eligible to be stored on the stack IF:
         # - no called procedures expect it to be set
