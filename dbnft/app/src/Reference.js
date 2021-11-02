@@ -1,17 +1,24 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useReducer, useCallback} from 'react';
 
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import { Link } from "react-router-dom";
+import classNames from 'classnames';
+
 
 import SampleCodeAndImage from './SampleCodeAndImage'
 import InteractiveCodeAndImage from './InteractiveCodeAndImage'
 import CanvasCoordinatesDemonstration from './CanvasCoordinatesDemonstration'
 
-function ReferenceSection({name, anchor, children}) {
+function ReferenceSection({name, registerRef, children}) {
+  let refCallback;
+  if (registerRef) {
+    refCallback = registerRef(name);
+  }
+
   return (
-    <div className="dbn-reference-section">
+    <div ref={refCallback} className="dbn-reference-section">
       <h3>{name}</h3>
       {children}
     </div>
@@ -24,22 +31,121 @@ function InlineCode({ children }) {
   )
 }
 
+function Index({ sectionList }) {
+  const [activeItem, setActiveItem] = useState(0)
+  const [autoscrollingTimeout, setAutoscrollingTimeout] = useState(null)
+
+  const clickHandler = function(node, i) {
+    return function() {
+      if (autoscrollingTimeout) {
+        // clear the current one and set a new one
+        clearTimeout(autoscrollingTimeout)
+      }
+      setAutoscrollingTimeout(setTimeout(() => {
+        setAutoscrollingTimeout(null)
+      }, 1000))
+
+      node.scrollIntoView();
+      
+
+      setActiveItem(i);
+    }
+  }
+
+  const scrollHandler = useCallback(function(e) {
+    // go through our sections and see which are in view...
+    if (autoscrollingTimeout) {
+      return;
+    }
+
+    for (let i = 0; i<sectionList.length; i++) {
+      let section = sectionList[i]
+      let visible = section.node.getBoundingClientRect().bottom > 101;
+      if (visible) {
+        setActiveItem(i);
+        break;
+      }
+    }
+  }, [sectionList, autoscrollingTimeout])
+
+  useEffect(() => {
+    window.addEventListener('scroll', scrollHandler)
+    return function() {
+      window.removeEventListener('scroll', scrollHandler);
+    }
+  }, [scrollHandler])
+
+  const nodes = sectionList.map(({name, node}, i) => {
+    let active = i === activeItem
+    return (
+      <div className={classNames("p-1", "dbn-reference-index-item", {'active-section': active})}>
+        <h5 onClick={clickHandler(node, i)}>
+          {name}
+        </h5>
+      </div>
+    )
+  })
+
+  return (
+    <>
+      {nodes}
+    </>
+  )
+}
+
 
 function Reference() {
+  const [sectionList, dispatch] = useReducer((initialSectionList, action) => {
+    let currentData = initialSectionList[action.index];
 
-  const editorRef = useRef()
+    if (!currentData || currentData.node !== action.node) {
+      let newSectionList = initialSectionList.slice();
+      newSectionList[action.index] = {name: action.name, node: action.node}
+      return newSectionList
+    } else {
+      return initialSectionList
+    }
+  }, [])
+
+  var sectionCount = 0;
+  const nextSectionIndex = function() {
+    let out = sectionCount;
+    sectionCount++
+    return out;
+  }
+
+  const registerSection = function() { 
+    let index = nextSectionIndex();
+
+    return function (name) {
+      return function(node) {
+        // ignore unmounts
+        if (node) {
+          dispatch({index: index, name: name, node: node})
+        }
+      }
+    }
+  }
+
+  // useEffect(() => {
+  //   setSectionList(builtUpSectionList)
+  // }, [])
+
 
   return (
     <Container>
       <Row>
-        <Col className="d-none d-md-block"  md={4}>
-          <div class="sticky-top" style={{backgroundColor: "red"}}>HI</div>
+        <Col className="d-none d-lg-block" lg={1} xl={2}></Col>
+        <Col className="d-none d-md-block dbn-reference-index"  md={4} lg={3} xl={2}>
+          <div className="sticky-top">
+            <Index sectionList={sectionList} />
+          </div>
         </Col>
 
-        <Col sm={12} md={8} lg={6}>
-          <div className="p-2" style={{backgroundColor: "#ece9f5", height:3000}}>
+        <Col sm={12} md={8} lg={6} className="dbn-reference-content">
+          <div className="p-2" >
 
-            <ReferenceSection name="Canvas">
+            <ReferenceSection registerRef={registerSection()} name="Canvas">
               <p>
                 You draw on a 101x101 pixel canvas, which starts out
                 fully white. There are 10201 points within this canvas,
@@ -51,7 +157,7 @@ function Reference() {
 
             </ReferenceSection>
 
-            <ReferenceSection name="Line">
+            <ReferenceSection registerRef={registerSection()} name="Line">
               <p>
                 <InlineCode>Line</InlineCode>, followed by four
                 values separated by a space will draw between 
@@ -69,7 +175,7 @@ function Reference() {
 
             </ReferenceSection>
 
-            <ReferenceSection name="Paper">
+            <ReferenceSection registerRef={registerSection()} name="Paper">
               <p>
                 <InlineCode>Paper</InlineCode> covers the whole image
                 with the specified color.
@@ -83,7 +189,7 @@ function Reference() {
             </ReferenceSection>
 
 
-            <ReferenceSection name="Pen">
+            <ReferenceSection registerRef={registerSection()} name="Pen">
               <p>
                 <InlineCode>Pen</InlineCode> sets the color for subsequent
                 Lines. It will stay in place until another call to Pen.
@@ -119,7 +225,7 @@ function Reference() {
               ]}/>
             </ReferenceSection>
 
-            <ReferenceSection name="Variables">
+            <ReferenceSection registerRef={registerSection()} name="Variables">
 
               <p>
                 Use the <InlineCode>Set</InlineCode> command to save a value to a variable,
@@ -139,7 +245,7 @@ function Reference() {
 
             </ReferenceSection>
 
-            <ReferenceSection name="Repeat">
+            <ReferenceSection registerRef={registerSection()} name="Repeat">
               The <InlineCode>Repeat</InlineCode> will
               run code multiple times, with a specified variable
               set to a different value each time.
@@ -163,13 +269,13 @@ function Reference() {
 
             </ReferenceSection>
 
-            <ReferenceSection name="Math"/>
-            <ReferenceSection name="Set Dot"/>
-            <ReferenceSection name="Get Dot"/>
-            <ReferenceSection name="Questions"/>
-            <ReferenceSection name="Commands"/>
-            <ReferenceSection name="Numbers"/>
-            <ReferenceSection name="Blockchain"/>
+            <ReferenceSection registerRef={registerSection()} name="Math"/>
+            <ReferenceSection registerRef={registerSection()} name="Set Dot"/>
+            <ReferenceSection registerRef={registerSection()} name="Get Dot"/>
+            <ReferenceSection registerRef={registerSection()} name="Questions"/>
+            <ReferenceSection registerRef={registerSection()} name="Commands"/>
+            <ReferenceSection registerRef={registerSection()} name="Numbers"/>
+            <ReferenceSection registerRef={registerSection()} name="Blockchain"/>
           </div>
         </Col>
       </Row>

@@ -184,6 +184,31 @@ body {
   border-bottom:  2px solid rgba(0,0,0, .3);
 }
 
+.dbn-reference-index {
+  padding-right: 0px !important;
+}
+
+.dbn-reference-index-item {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+.dbn-reference-index-item h5 {
+  margin-bottom:  0px;
+  cursor: pointer;
+}
+.dbn-reference-index-item h5:hover {
+  text-decoration: underline;
+}
+
+.dbn-reference-index-item.active-section {
+  background-color: var(--dbn-lighter-background-color);
+}
+
+.dbn-reference-content {
+  background-color: var(--dbn-lighter-background-color);
+  padding-bottom: 202px;
+}
+
 .dbn-ui-editable-code-wrapper {
   position: relative;
 }
