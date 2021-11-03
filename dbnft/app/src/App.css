@@ -114,6 +114,22 @@
   font-style: italic;
 }
 
+.dbn-image-render-status-cancel button {
+  font-size: 0.8rem;
+  padding: 3px;
+  color: var(--bs-red);
+  line-height: 0.8rem;
+}
+
+.dbn-image-render-status-cancel button:hover {
+  background-color: rgba(0,0,0,.1);
+  color: var(--bs-red);
+}
+
+.dbn-image-render-status-cancel button:focus {
+  color: var(--bs-red);
+}
+
 .code-input-codemirror-holder {
   border: 1px solid rgba(0,0,0,.5);
   overflow: hidden;

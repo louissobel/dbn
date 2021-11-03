@@ -44,6 +44,10 @@ class DBNEditor extends React.Component {
   }
 
   dbnRender(code) {
+    let cancelSignal = new Promise((resolve) => {
+      this.renderCancelTrigger = resolve;
+    })
+
     this.setState({
       renderState: 'RENDERING',
       renderError: null,
@@ -91,7 +95,7 @@ class DBNEditor extends React.Component {
         default:
           break;
       }
-    })
+    }, cancelSignal)
     .then((result) => {
       console.log(result)
       this.setState({
@@ -101,19 +105,27 @@ class DBNEditor extends React.Component {
       })
     })
     .catch((error) => {
-      switch (error.type) {
-        case 'parse':
-        case 'compile':
-          this.setState({
-            renderState: 'ERROR',
-            renderError: error,
-          })
-          break;
-        default:
-          console.error('unhandled error!', error)
-          this.setState({renderState: 'ERROR'})
+      if (error.type) {
+        this.setState({
+          renderState: 'ERROR',
+          renderError: error,
+        })
+      } else {
+        console.error('error without type!', error)
+        this.setState({renderState: 'ERROR'})
       }
     })
+  }
+
+  cancelRender() {
+    if (this.state.renderState !== 'RENDERING') {
+      console.warn('how can we cancel render if we are not in render state?')
+      return;
+    }
+    if (!this.renderCancelTrigger) {
+      throw new Error('we are rendering, but no cancel trigger present!')
+    }
+    this.renderCancelTrigger()
   }
 
   onCodeChange(e) {
@@ -180,6 +192,7 @@ class DBNEditor extends React.Component {
 
               bytecode={this.state.bytecode}
               gasUsed={this.state.gasUsed}
+              onCancel={this.cancelRender.bind(this)}
             />
           </Col>
           <Col sm={12} md={9} lg={6}>

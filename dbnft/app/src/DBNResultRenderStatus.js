@@ -2,6 +2,8 @@ import React from 'react';
 
 import NumberFormat from 'react-number-format';
 import classNames from 'classnames';
+import Button from 'react-bootstrap/Button';
+import {Icon} from '@iconify/react'
 
 import StatusDot from './StatusDot'
 
@@ -43,13 +45,15 @@ function errorMessage(renderError) {
       message += " at line " + renderError.lineNumber
     }
     return message
+  } else if (renderError.type === 'user_cancel') {
+    return 'Cancelled'
   } else {
     console.error('unhandled error type in render status', renderError)
     return 'Error (' + renderError.type + ')'
   }
 }
 
-function DBNResultRenderStatus({renderState, renderError, codeSize, gasUsed, darkmode}) {
+function DBNResultRenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, darkmode}) {
 
   var status;
   switch (renderState) {
@@ -77,6 +81,12 @@ function DBNResultRenderStatus({renderState, renderError, codeSize, gasUsed, dar
 
           {codeSize && <BytecodeStats codeSize={codeSize} />}
           {gasUsed && <GasStats gasUsed={gasUsed} />}
+
+          <div className="float-end dbn-image-render-status-cancel">
+            <Button size="sm" variant="light" onClick={onCancel}>
+              <Icon icon="oi:x" inline={true} />
+            </Button>
+          </div>
         </>
       );
       break;

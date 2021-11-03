@@ -8,7 +8,7 @@ import frontendEnvironment from './frontend_environment'
 
 // String --> bitmapBlob (or error...)
 // Emits
-const renderDBN = async function(data, onRenderStateChange) {
+const renderDBN = async function(data, onRenderStateChange, cancelSignal) {
   return new Promise((resolve, reject) => {
     const worker = new Worker();
     worker.onmessage = (m) => {
@@ -30,6 +30,17 @@ const renderDBN = async function(data, onRenderStateChange) {
     worker.onerror = (e) => {
       console.error('did not expect error from worker: ', e)
       reject(e)
+    }
+
+    if (cancelSignal) {
+      cancelSignal.then(() => {
+        console.log('Renderer cancelling')
+        worker.terminate()
+        reject({
+          type: 'user_cancel',
+          message: 'render cancelled'
+        })
+      })
     }
 
     data.frontendEnvironment = frontendEnvironment;

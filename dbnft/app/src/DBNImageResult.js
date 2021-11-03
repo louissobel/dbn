@@ -72,6 +72,7 @@ function DBNImageResult(props) {
         codeSize={props.bytecode ? (props.bytecode.length - 2)/2 : null}
         gasUsed={props.gasUsed}
         darkmode={darkmode}
+        onCancel={props.onCancel}
       />
 
     </div>
