@@ -151,6 +151,9 @@ body {
   min-height: 50px;
 }
 
+.dbn-sample-code-and-image {
+  margin-bottom: 1rem;
+}
 .dbn-sample-code-wrapper {
   border-radius: 3px;
   border: 1px solid rgba(0,0,0,.2);

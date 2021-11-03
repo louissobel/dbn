@@ -10,6 +10,7 @@ import SampleCodeAndImage from './SampleCodeAndImage'
 function About() {
 
   const [assemblyCode, setAssemblyCode] = useState(null)
+  const [bytecode, setBytecode] = useState(null)
 
   const sampleCode = 
 `Repeat X 0 100 {
@@ -20,10 +21,10 @@ function About() {
   return (
     <Container>
       <Row className="pt-2 dbn-about-body" >
-        <Col sm={12} md={9} lg={8} xl={6}>
+        <Col sm={12} md={9} lg={8} xl={7}>
           <div class="p-3 dbn-about-content">
             <h2>Design By Numbers NFT</h2>
-            <h6><em>Create on-chain NFTs by compiling DBN to native EVM bytecode</em></h6>
+            <h6><em>Create on-chain NFTs by deploying smart contracts that render images</em></h6>
 
             <p>
               Design By Numbers
@@ -39,7 +40,11 @@ function About() {
               There is basic support for variables, loops, conditionals, and user-defined-procedures.
             </p>
 
-            <SampleCodeAndImage code={sampleCode} onAssemblyPresent={setAssemblyCode} />
+            <SampleCodeAndImage
+              code={sampleCode}
+              onAssemblyPresent={setAssemblyCode}
+              onBytecodePresent={setBytecode}
+            />
 
             <h4>NFT</h4>
             <p>
@@ -57,7 +62,7 @@ function About() {
           </div>
         </Col>
 
-        <Col sm={12} md={12} lg={4} xl={6}>
+        <Col sm={12} md={12} lg={4} xl={5}>
           <Row className="p-3">
             <div className="mt-3 p-3 dbn-about-get-started text-white">
                 <h4>Start Creating:</h4>

@@ -309,7 +309,17 @@ function Reference() {
             <ReferenceSection registerRef={registerSection()} name="Questions"/>
             <ReferenceSection registerRef={registerSection()} name="Commands"/>
             <ReferenceSection registerRef={registerSection()} name="Numbers"/>
-            <ReferenceSection registerRef={registerSection()} name="Blockchain"/>
+
+            <ReferenceSection registerRef={registerSection()} name="Blockchain">
+              <ul>
+                <li><InlineCode>&lt;tokenid&gt;</InlineCode></li>
+                <li><InlineCode>&lt;address&gt;</InlineCode></li>
+                <li><InlineCode>&lt;timestamp&gt;</InlineCode></li>
+                <li><InlineCode>&lt;balance addr&gt;</InlineCode></li>
+              </ul>
+            </ReferenceSection>
+
+            <ReferenceSection registerRef={registerSection()} name="Extras"/>
           </div>
         </Col>
       </Row>

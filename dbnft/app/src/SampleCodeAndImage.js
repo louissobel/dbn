@@ -11,7 +11,7 @@ import {drawSelection} from "@codemirror/view"
 import {lineNumbers} from "@codemirror/gutter"
 import {dbnLanguage, dbnftHighlightStyle} from './lang-dbn/dbn'
 
-function SampleCodeAndImage({ className, code, noheaders, onAssemblyPresent}) {
+function SampleCodeAndImage({ className, code, noheaders, onAssemblyPresent, onBytecodePresent}) {
   //TODO: handle errors in here
 
   const [imageData, setImageData] = useState(null)
@@ -24,6 +24,11 @@ function SampleCodeAndImage({ className, code, noheaders, onAssemblyPresent}) {
       if (e === 'COMPILE_END') {
         if (onAssemblyPresent) {
           onAssemblyPresent(d.result)
+        }
+      }
+      if (e === 'ASSEMBLE_END') {
+        if (onBytecodePresent) {
+          onBytecodePresent(d.result)
         }
       }
     })
