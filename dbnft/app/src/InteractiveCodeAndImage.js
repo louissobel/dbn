@@ -133,11 +133,13 @@ function InteractiveCodeAndImage({ exampleFunc, initialSpec, noheaders }) {
   const [tooltipItemName, setTooltipItemName] = useState(null)
 
   let fn = {
+    'blank': blankExample,
     'line': lineExample,
     'paper': paperExample,
     'pen': penExample,
     'variable': variableExample,
     'repeat': repeatExample,
+    'math': mathExample,
   }[exampleFunc]
   if (!fn) {
     throw new Error('unknown exampleFunc: ' + exampleFunc)
@@ -182,6 +184,10 @@ function InteractiveCodeAndImage({ exampleFunc, initialSpec, noheaders }) {
       throw new Error('only know guides for y or x coords')
     }
 
+  }
+
+  function blankExample(ctx) {
+    initCanvas(ctx)
   }
 
   function lineExample(ctx) {
@@ -319,19 +325,50 @@ function InteractiveCodeAndImage({ exampleFunc, initialSpec, noheaders }) {
     }
   }
 
+  function mathExample(ctx) {
+    let [start, end, xshift, d, yshift, pen] = varsFromSpec([
+      'start',
+      'end',
+      'xshift',
+      'd',
+      'yshift',
+      'pen'
+    ], spec)
+
+    initCanvas(ctx)
+
+    const p = makeDBNColorPixel(ctx, pen)
+    for (let x = Math.min(start, end); x < Math.max(start, end) + 1; x++) {
+      let Xs = x - xshift;
+      let X2 = Xs * Xs;
+
+      let y;
+      if (d === 0) {
+        y = yshift // that's how divide-by-zero works in evm
+      } else {
+        y = Math.floor(X2/d) + yshift
+      }
+
+      if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+        ctx.putImageData(p, x + 10, (100-y)+10)
+      }
+    }
+  }
+
   return (
 
     <Row className="dbn-reference-code-and-image">
-      <Col xs={6}>
+      <Col xs={7}>
         {!noheaders && <h6>Input:</h6>}
         <UIEditableCodeMirror
           initialSpec={initialSpec}
           onChange={setSpec}
           onVisibleTooltipChange={setTooltipItemName}
         />
+
       </Col>
 
-      <Col xs={6}>
+      <Col xs={5}>
         {!noheaders && <h6>Output:</h6>}
         <canvas
           ref={canvasRef}

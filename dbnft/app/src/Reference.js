@@ -264,9 +264,48 @@ function Reference() {
 
             </ReferenceSection>
 
-            <ReferenceSection registerRef={registerSection()} name="Math"/>
-            <ReferenceSection registerRef={registerSection()} name="Set Dot"/>
-            <ReferenceSection registerRef={registerSection()} name="Get Dot"/>
+            <ReferenceSection registerRef={registerSection()} name="Dots"/>
+
+            <ReferenceSection registerRef={registerSection()} name="Math">
+              <p>
+                The math operators to add (<InlineCode>+</InlineCode>),
+                subtract (<InlineCode>-</InlineCode>),
+                multiply (<InlineCode>*</InlineCode>),
+                and divide (<InlineCode>/</InlineCode>) numbers and variables
+                are supported. Note that any math needs to be fully enclosed
+                within parentheses.
+              </p>
+
+
+              <InteractiveCodeAndImage exampleFunc='math' initialSpec={[
+                {value: 'Repeat X', type: 'constant'},
+                {value: '0', name: 'start', type: 'xcoord'},
+                {value: '100', name: 'end', type: 'xcoord'},
+                {value: '{', type: 'constant'},
+                {value: '\n', type: 'constant'},
+
+                {value: '  Set Xs (X -', type: 'constant'},
+                {value: '50', name: 'xshift', type: 'xcoord'},
+                {value: ')', type: 'constant', nospace: true},
+                {value: '\n', type: 'constant'},
+
+                {value: '  Set X2 (Xs * Xs)', type: 'constant'},
+                {value: '\n', type: 'constant'},
+
+                {value: '  Set Y (X2 /', type: 'constant'},
+                {value: '50', name: 'd', type: 'xcoord'},
+                {value: '+', type: 'constant'},
+                {value: '50', name: 'yshift', type: 'ycoord'},
+                {value: ')', type: 'constant', nospace: true},
+                {value: '\n', type: 'constant'},
+
+                {value: '  Set [X Y]', type: 'constant'},
+                {value: '100', type: 'color', name: 'pen'},
+                {value: '\n', type: 'constant'},
+                {value: '}', type: 'constant'},
+              ]} />
+            </ReferenceSection>
+
             <ReferenceSection registerRef={registerSection()} name="Questions"/>
             <ReferenceSection registerRef={registerSection()} name="Commands"/>
             <ReferenceSection registerRef={registerSection()} name="Numbers"/>

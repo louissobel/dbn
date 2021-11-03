@@ -6,6 +6,10 @@ import Row from 'react-bootstrap/Row';
 import renderDBN from './dbn_renderer'
 import ImageViewer from './ImageViewer'
 
+import CodeMirror from '@uiw/react-codemirror';
+import {drawSelection} from "@codemirror/view"
+import {lineNumbers} from "@codemirror/gutter"
+import {dbnLanguage, dbnftHighlightStyle} from './lang-dbn/dbn'
 
 function SampleCodeAndImage({ className, code, noheaders, onAssemblyPresent}) {
   //TODO: handle errors in here
@@ -32,9 +36,21 @@ function SampleCodeAndImage({ className, code, noheaders, onAssemblyPresent}) {
 	  <Row className="dbn-sample-code-and-image">
       <Col xs={6} >
         {!noheaders && <h6>Input:</h6>}
-        <pre class="dbn-about-sample-code">
-          {code}
-        </pre>
+
+        <div class="dbn-sample-code-wrapper">
+          <CodeMirror
+            value={code}
+            extensions={[
+              lineNumbers(),
+              dbnLanguage,
+              dbnftHighlightStyle,
+            ]}
+            autoFocus={false}
+            editable={false}
+            basicSetup={false}
+          />
+        </div>
+
       </Col>
       <Col xs={6} >
         {!noheaders && <h6>Output:</h6>}

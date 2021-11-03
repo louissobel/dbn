@@ -8,14 +8,14 @@ const configForEnvironment = {
 		coordinatorContractAddress: process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS_DEVELOPMENT,
 		ethNetwork: 'http://localhost:8545',
 		verbose: true,
-		testnetBanner: true,
 	},
 
 	localhost_rinkeby: {
 		compileEndpoint: '/evm_compile',
 		coordinatorContractAddress: process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS_RINKEBY,
 		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',
-		verbose: true, 
+		verbose: true,
+		testnetBanner: true,
 	},
 
 	// should this be testnet?

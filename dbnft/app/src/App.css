@@ -114,15 +114,10 @@
   font-style: italic;
 }
 
-.code-input {
-  font-family: monospace;
-  font-size: 0.9rem;
-}
-
 .code-input-codemirror-holder {
   border: 1px solid rgba(0,0,0,.5);
   overflow: hidden;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   border-radius: 8px;
 }
 
@@ -148,12 +143,28 @@ body {
 }
 
 .dbn-about-sample-code {
-  font-size: .7rem;
+  font-size: .8rem;
   background-color: white;
   padding: 3px;
   border-radius: 3px;
   border: 1px solid rgba(0,0,0,.2);
   min-height: 50px;
+}
+
+.dbn-sample-code-wrapper {
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,.2);
+  font-size: .9rem;
+  font-family: var(--bs-font-monospace);
+}
+
+.dbn-sample-code-wrapper .cm-editor {
+  border-radius: 3px;
+}
+
+.dbn-sample-code-wrapper .cm-gutters {
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
 }
 
 .dbn-about-get-started {
@@ -166,12 +177,8 @@ body {
   font-weight: bold;
 }
 
-.dbn-reference-section .dbn-sample-code-and-image {
-  margin-top: 1rem;
-}
-
 .dbn-reference-code-and-image {
-  font-size: .8rem;
+  font-size: .9rem;
 }
 
 .dbn-reference-code-and-image .dbn-ui-editable-code-wrapper {
@@ -181,6 +188,11 @@ body {
 
 .dbn-reference-code-and-image .cm-editor {
   border-radius: 3px;
+}
+
+.dbn-reference-code-and-image .cm-gutters {
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
 }
 
 .dbn-reference-section {

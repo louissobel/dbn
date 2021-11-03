@@ -83,7 +83,11 @@ function composeString(spec) {
         out += item.value
         startOfLine = false
       } else {
-        out += " " + item.value;
+        if (item.nospace) {
+          out += item.value
+        } else {
+          out += " " + item.value;
+        }
       }
     }
   }
@@ -110,7 +114,9 @@ function findSpecItemAndStartPosAt(spec, pos) {
       if (startOfLine) {
         startOfLine = false
       } else {
-        i += 1 // for the space
+        if (!item.nospace) {
+          i += 1 // for the space
+        }
       }
     }
 
@@ -317,9 +323,7 @@ function UIEditableCodeMirror(props) {
         }}
       >
         <CodeMirror
-          //value={code}
           ref={editorRef}
-          //height="350px"
           extensions={[
             lineNumbers(),
             drawSelection(),
