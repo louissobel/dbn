@@ -89,6 +89,11 @@ export default function CodeInput(props) {
   }, [code, onChangeCallback])
 
   function onRunKeyboardShortcut() {
+    // ignore if we're disabled
+    if (props.disabled) {
+      return;
+    }
+
     lastRunViaKeyboard.current = true;
     props.onRun(code);
     return true;

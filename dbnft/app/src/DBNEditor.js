@@ -45,6 +45,11 @@ class DBNEditor extends React.Component {
   }
 
   dbnRender(code) {
+    if (this.state.renderState === 'RENDERING') {
+      console.warn('render request while render in progress...')
+      return;
+    }
+
     let cancelSignal = new Promise((resolve) => {
       this.renderCancelTrigger = resolve;
     })

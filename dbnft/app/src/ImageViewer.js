@@ -16,8 +16,10 @@ class ImageViewer extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (prevProps.imageData !== this.props.imageData) {
-      // clear image cache
+      // clear image cache and free the URL
       this._img = null
+      URL.revokeObjectURL(this._blobUrl)
+      this._blobUrl = null;
     }
     this.drawCanvas()
   }
@@ -39,11 +41,15 @@ class ImageViewer extends React.Component {
       context.drawImage(this._img, 0, 0, this.side(), this.side())
     } else {
       const url = URL.createObjectURL(this.props.imageData)
-      this._img = new Image()
-      this._img.onload = function() {
-        context.drawImage(this._img, 0, 0, this.side(), this.side())
+
+      let img = new Image()
+      img.onload = function() {
+        context.drawImage(img, 0, 0, this.side(), this.side())
       }.bind(this)
-      this._img.src = url;
+      img.src = url;
+
+      this._img = img
+      this._blobUrl = url
     }
   }
 

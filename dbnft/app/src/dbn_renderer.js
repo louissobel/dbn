@@ -14,9 +14,11 @@ const renderDBN = async function(data, onRenderStateChange, cancelSignal) {
     worker.onmessage = (m) => {
       switch (m.data.message) {
         case 'result':
+          worker.terminate()
           resolve(m.data.value)
           break;
         case 'error':
+          worker.terminate()
           reject(m.data.value)
           break;
         case 'update':
@@ -29,6 +31,7 @@ const renderDBN = async function(data, onRenderStateChange, cancelSignal) {
 
     worker.onerror = (e) => {
       console.error('did not expect error from worker: ', e)
+      worker.terminate()
       reject(e)
     }
 
