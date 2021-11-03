@@ -1054,7 +1054,7 @@ class CodeGenerationAssembler extends Assembler {
     readonly _stack: Array<Node>;
 
     //_oldBytecode: { [ tag: string ]: string };
-    _nextBytecode: { [ tag: string ]: string };
+    _nextBytecodePieces: { [ tag: string ]: Array<string> };
     _objectCache: { [ tag: string ]: any };
 
     private _checks: Array<() => boolean>;
@@ -1088,7 +1088,7 @@ class CodeGenerationAssembler extends Assembler {
         this._changed = false;
         this._objectCache = { };
 
-        this._nextBytecode = { };
+        this._nextBytecodePieces = { };
 
         this._script = new Script(this.filename, (name: string, context: any) => {
             return this.get(name, context);
@@ -1155,7 +1155,7 @@ class CodeGenerationAssembler extends Assembler {
         this._stack.push(node);
         //this._oldBytecode[node.tag] = this.getBytecode(node);
         //this.setBytecode(node, "0x");
-        this._nextBytecode[node.tag] = "0x";
+        this._nextBytecodePieces[node.tag] = ["0x"];
     }
 
     end(node: Node): void {
@@ -1164,7 +1164,7 @@ class CodeGenerationAssembler extends Assembler {
         }
 
         const oldBytecode = this.getBytecode(node);
-        this.setBytecode(node, this._nextBytecode[node.tag]);
+        this.setBytecode(node, this._nextBytecodePieces[node.tag].join(''));
 
         if (!(node instanceof PaddingNode)) {
             this._checks.push(() => {
@@ -1216,10 +1216,8 @@ class CodeGenerationAssembler extends Assembler {
             }
 
             this._stack.forEach((node) => {
-                this._nextBytecode[node.tag] = hexConcat([
-                    this._nextBytecode[node.tag],
-                    bytecode
-                ]);
+                 // chop off the 0x and lowercase for compatability with hexConcat
+                this._nextBytecodePieces[node.tag].push(bytecode.slice(2).toLowerCase())
             });
 
             offset += ethers.utils.hexDataLength(bytecode);
@@ -1242,7 +1240,6 @@ class CodeGenerationAssembler extends Assembler {
         // offsets, length and values are reached.
         await this._assemble();
         for (let i = 0; i < this.retry; i++) {
-
             // Regenerate the code with the updated assembler values
             this.reset();
             await this._assemble();

@@ -1085,7 +1085,7 @@ var CodeGenerationAssembler = /** @class */ (function (_super) {
         var _this = this;
         this._changed = false;
         this._objectCache = {};
-        this._nextBytecode = {};
+        this._nextBytecodePieces = {};
         this._script = new Script(this.filename, function (name, context) {
             return _this.get(name, context);
         });
@@ -1149,7 +1149,7 @@ var CodeGenerationAssembler = /** @class */ (function (_super) {
         this._stack.push(node);
         //this._oldBytecode[node.tag] = this.getBytecode(node);
         //this.setBytecode(node, "0x");
-        this._nextBytecode[node.tag] = "0x";
+        this._nextBytecodePieces[node.tag] = ["0x"];
     };
     CodeGenerationAssembler.prototype.end = function (node) {
         var _this = this;
@@ -1157,7 +1157,7 @@ var CodeGenerationAssembler = /** @class */ (function (_super) {
             throwError("missing push/pop pair", node.location);
         }
         var oldBytecode = this.getBytecode(node);
-        this.setBytecode(node, this._nextBytecode[node.tag]);
+        this.setBytecode(node, this._nextBytecodePieces[node.tag].join(''));
         if (!(node instanceof PaddingNode)) {
             this._checks.push(function () {
                 return (oldBytecode === _this.getBytecode(node));
@@ -1209,10 +1209,8 @@ var CodeGenerationAssembler = /** @class */ (function (_super) {
                                     _this._checks.push(function () { return false; });
                                 }
                                 _this._stack.forEach(function (node) {
-                                    _this._nextBytecode[node.tag] = hexConcat([
-                                        _this._nextBytecode[node.tag],
-                                        bytecode
-                                    ]);
+                                    // chop off the 0x and lowercase for compatability with hexConcat
+                                    _this._nextBytecodePieces[node.tag].push(bytecode.slice(2).toLowerCase());
                                 });
                                 offset += ethers_1.ethers.utils.hexDataLength(bytecode);
                             })];
