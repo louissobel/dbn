@@ -41,7 +41,10 @@ class Storage {
 const SessionStorage = new Storage('session')
 const LocalStorage = new Storage('local')
 
+export const STORAGE_KEY_RESET_INITIAL_CODE = 'dbnft.io--reset-initial-code';
+
 export {
   SessionStorage,
   LocalStorage,
 }
+

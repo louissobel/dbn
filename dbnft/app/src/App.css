@@ -215,6 +215,11 @@ body {
   border-bottom-left-radius: 3px;
 }
 
+.dbn-reference-code-and-image-go-edit {
+  font-style: italic;
+  float: right;
+}
+
 .dbn-reference-section {
   padding-top: 1rem;
   padding-bottom: 1rem;

@@ -9,12 +9,23 @@ import renderDBN from './dbn_renderer'
 import CodeInput from './CodeInput'
 import DBNImageResult from './DBNImageResult'
 
-import {SessionStorage} from './storage'
+import {SessionStorage, STORAGE_KEY_RESET_INITIAL_CODE} from './storage'
 import {maybeExtractDescription} from './lang-dbn/dbn.js'
 
 const MAX_MAGNIFICATION = 4
 const DEFAULT_INITIAL_CODE = `//description: a line\n\nLine 0 0 100 100`
+const DBNFT_PRIMARY_CODE_SESSION_STORAGE_KEY = 'dbnft.io–primary-editor-code'
 
+
+// Work around where SessionStorage is copied even when we're
+// explicitly trying to open a new window with new code
+if (SessionStorage.enabled) {
+  let resetInitialCode = !!SessionStorage.get().getItem(STORAGE_KEY_RESET_INITIAL_CODE);
+  if (resetInitialCode) {
+    SessionStorage.get().removeItem(STORAGE_KEY_RESET_INITIAL_CODE)
+    SessionStorage.get().removeItem(DBNFT_PRIMARY_CODE_SESSION_STORAGE_KEY)
+  }
+}
 
 class DBNEditor extends React.Component {
   constructor(props) {
@@ -38,7 +49,7 @@ class DBNEditor extends React.Component {
       console.warn('sessionStorage is not enabled, cannot persist code across refreshes');
       this.codeStorageKey = null;
     } else {
-      this.codeStorageKey = 'dbnft.io–primary-editor-code';
+      this.codeStorageKey = DBNFT_PRIMARY_CODE_SESSION_STORAGE_KEY;
     }
 
     this.initialCode = this.getInitialCode()
@@ -150,15 +161,22 @@ class DBNEditor extends React.Component {
   getInitialCode() {
     if (SessionStorage.enabled) {
       let restored = SessionStorage.get().getItem(this.codeStorageKey);
+
       if (restored) {
         console.log('Restored code from sessionStorage')
         return restored;
-      } else {
-        return DEFAULT_INITIAL_CODE; 
       }
-    } else {
-      return DEFAULT_INITIAL_CODE;
     }
+
+    // Check the URL
+    let searchParams = new URLSearchParams(window.location.search);
+    let initialCode = searchParams.get('initialCode');
+    if (initialCode) {
+      return initialCode
+    }
+
+    // ok, fall back
+    return DEFAULT_INITIAL_CODE; 
   }
 
   canZoomIn() {

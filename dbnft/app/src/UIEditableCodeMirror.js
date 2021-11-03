@@ -153,7 +153,7 @@ function specReducer(currentSpec, action) {
 function UIEditableCodeMirror(props) {
   const [spec, dispatch] = useReducer(specReducer, props.initialSpec)
 
-  const {onChange, onVisibleTooltipChange} = props
+  const {onChange, onVisibleTooltipChange, onCodeChange} = props
 
   const [activeSpecItem, setActiveSpecItem] = useState(null)
   const [tooltipCoords, setTooltipCoords] = useState(null)
@@ -170,6 +170,12 @@ function UIEditableCodeMirror(props) {
       onChange(spec);
     }
   }, [spec, onChange])
+
+  useEffect(() => {
+    if (onCodeChange) {
+      onCodeChange(code)
+    }
+  }, [code, onCodeChange])
   
   useEffect(() => {
     if (!onVisibleTooltipChange) {
