@@ -148,7 +148,7 @@ function InteractiveCodeAndImage({ exampleFunc, initialSpec, noheaders }) {
     let ctx = canvas.getContext('2d')
 
     fn(ctx);
-  }, [spec, tooltipItemName])
+  }, [fn, spec, tooltipItemName])
 
 
   function getSpecItemForTooltip() {

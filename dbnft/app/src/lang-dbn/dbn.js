@@ -1,8 +1,7 @@
 import {parser} from "./dbnparser.js"
-import {foldNodeProp, foldInside, indentNodeProp, delimitedIndent} from "@codemirror/language"
+import {indentNodeProp, delimitedIndent} from "@codemirror/language"
 import {styleTags, tags as t, HighlightStyle} from "@codemirror/highlight"
 import {LRLanguage} from "@codemirror/language"
-import {LanguageSupport} from "@codemirror/language"
 
 let parserWithMetadata = parser.configure({
   props: [
@@ -45,6 +44,7 @@ export const dbnLanguage = LRLanguage.define({
 })
 
 
+// TODO: generalize this somehow?
 export const dbnftHighlightStyle = HighlightStyle.define([
   {tag: t.number, color: "#1717ab"},
   {tag: t.arithmeticOperator,  fontWeight: "bold" },

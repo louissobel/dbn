@@ -25,7 +25,7 @@ function SampleCodeAndImage({ className, code, noheaders, onAssemblyPresent}) {
     })
     .then((r) => setImageData(r.imageData))
     .catch(error => console.error('', error))
-  }, [code]);
+  }, [code, onAssemblyPresent]);
   
 
 	return (

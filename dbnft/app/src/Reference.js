@@ -1,13 +1,11 @@
-import React, {useState, useEffect, useRef, useReducer, useCallback} from 'react';
+import React, {useState, useEffect, useReducer, useCallback} from 'react';
 
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
-import { Link } from "react-router-dom";
 import classNames from 'classnames';
 
 
-import SampleCodeAndImage from './SampleCodeAndImage'
 import InteractiveCodeAndImage from './InteractiveCodeAndImage'
 import CanvasCoordinatesDemonstration from './CanvasCoordinatesDemonstration'
 
@@ -127,11 +125,6 @@ function Reference() {
     }
   }
 
-  // useEffect(() => {
-  //   setSectionList(builtUpSectionList)
-  // }, [])
-
-
   return (
     <Container>
       <Row>
@@ -246,9 +239,11 @@ function Reference() {
             </ReferenceSection>
 
             <ReferenceSection registerRef={registerSection()} name="Repeat">
-              The <InlineCode>Repeat</InlineCode> will
-              run code multiple times, with a specified variable
-              set to a different value each time.
+              <p>
+                The <InlineCode>Repeat</InlineCode> will
+                run code multiple times, with a specified variable
+                set to a different value each time.
+              </p>
 
               <InteractiveCodeAndImage exampleFunc='repeat' initialSpec={[
                 {value: 'Repeat X', type: 'constant'},

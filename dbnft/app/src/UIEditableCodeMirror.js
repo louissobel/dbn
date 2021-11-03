@@ -1,6 +1,5 @@
 
 import React, {useState, useRef, useEffect, useReducer} from 'react';
-import ReactDOM from 'react-dom'
 import classNames from 'classnames';
 
 import Slider from 'rc-slider'
@@ -9,15 +8,13 @@ import 'rc-slider/assets/index.css'
 import CodeMirror from '@uiw/react-codemirror';
 import {dbnLanguage, dbnftHighlightStyle} from './lang-dbn/dbn'
 
-import {StateField, EditorSelection} from "@codemirror/state"
+import {EditorSelection} from "@codemirror/state"
 import {drawSelection} from "@codemirror/view"
 import {lineNumbers} from "@codemirror/gutter"
-import {EditorView} from "@codemirror/view"
 
 
 // not "width" or "height" because alignmet can change
 const SLIDER_LENGTH = 101 + 10*2;
-const SLIDER_BREADTH = 20;
 
 function SpecItemSlider(props) {
   const vertical = props.alignment === 'vertical';
@@ -150,12 +147,8 @@ function specReducer(currentSpec, action) {
 function UIEditableCodeMirror(props) {
   const [spec, dispatch] = useReducer(specReducer, props.initialSpec)
 
-  useEffect(() => {
-    if (props.onChange) {
-      props.onChange(spec);
-    }
-  }, [spec])
-  
+  const {onChange, onVisibleTooltipChange} = props
+
   const [activeSpecItem, setActiveSpecItem] = useState(null)
   const [tooltipCoords, setTooltipCoords] = useState(null)
   const [containerHasFocus, setContainerHasFocus] = useState(false)
@@ -166,6 +159,24 @@ function UIEditableCodeMirror(props) {
   const editorRef = useRef()
   const containerRef = useRef()
 
+  useEffect(() => {
+    if (onChange) {
+      onChange(spec);
+    }
+  }, [spec, onChange])
+  
+  useEffect(() => {
+    if (!onVisibleTooltipChange) {
+      return
+    }
+
+    if (tooltipShowing) {
+      onVisibleTooltipChange(activeSpecItem.name)
+    } else {
+      onVisibleTooltipChange(null)
+    }
+  }, [tooltipShowing, activeSpecItem, onVisibleTooltipChange])
+
   function ensureActiveSpecItem(nextItem) {
     if (!nextItem) {
       if (activeSpecItem !== null) {
@@ -175,23 +186,9 @@ function UIEditableCodeMirror(props) {
       if (!activeSpecItem || activeSpecItem.name !== nextItem.name) {
         setTooltipCoords(null)
         setActiveSpecItem(nextItem)
-        console.log(nextItem)
       }
     }
   }
-
-  // onVisibleTooltipChange callback
-  useEffect(() => {
-    if (!props.onVisibleTooltipChange) {
-      return
-    }
-
-    if (tooltipShowing) {
-      props.onVisibleTooltipChange(activeSpecItem.name)
-    } else {
-      props.onVisibleTooltipChange(null)
-    }
-  }, [tooltipShowing, activeSpecItem])
 
   // clearing selection on focus out
   useEffect(() => {
@@ -233,7 +230,6 @@ function UIEditableCodeMirror(props) {
     const range = viewUpdate.state.selection.main;
 
     // Find whatever is under "from"
-    let line = viewUpdate.state.doc.lineAt(range.head)
     let {startPos, item} = findSpecItemAndStartPosAt(spec, range.from)
 
     var expectedSelection
@@ -286,8 +282,6 @@ function UIEditableCodeMirror(props) {
         const vertical = activeSpecItem.type === 'ycoord'
         var left, top;
         if (vertical) {
-          // Move over by 1 slider (and some room to breath)
-          // left = cursorLeft - (SLIDER_BREADTH + 3);
           left = cursorLeft;
 
           // move it down

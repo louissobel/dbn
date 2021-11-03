@@ -19,6 +19,8 @@ import Gallery from './Gallery'
 import Reference from './Reference'
 import EthereumConnect from './EthereumConnect'
 
+import frontendEnvironment from './frontend_environment'
+
 const COMPILE_PATH = '/evm_compile'
 
 function DBNFTNavbar(props) {
@@ -39,10 +41,21 @@ function DBNFTNavbar(props) {
 }
 
 function App() {
+  if (frontendEnvironment.environment === 'unknown') {
+    console.log('unsupported environment')
+    return null
+  }
+
   return (
     <BrowserRouter>
       <Web3ReactProvider getLibrary={(p) => new Web3(p)}>
-
+          {frontendEnvironment.config.testnetBanner &&
+            <div className='dbn-testnet-banner'>
+              This site is a work in progress, and
+              is currently only connected to the Rinkeby testnet,
+              not Ethereum mainnet.
+            </div>
+          }
 
           <Switch>
             <Route exact path="/create">

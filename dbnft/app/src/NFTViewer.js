@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 
 import { useParams } from 'react-router-dom'
 
-import DBNCoordinator from './contracts/DBNCoordinator'
-import Eth  from 'web3-eth';
-
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
@@ -31,7 +28,7 @@ function NFTViewer() {
 
   const {tokenId} = useParams()
 
-  useEffect(async () => {
+  const getData = async function(tokenId) {
     try {
       const tokenMetadataJSON = await dbnCoordinator
         .methods
@@ -75,7 +72,11 @@ function NFTViewer() {
       console.error('error rendering: ', error)
       setRenderState('ERROR')
     }
-  }, [])
+  }
+
+  useEffect(() => {
+    getData(tokenId)
+  }, [tokenId])
 
   function NotFound() {
     return (

@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
@@ -27,11 +27,11 @@ function About() {
 
             <p>
               Design By Numbers
-                (<a target="_blank" href="https://dbn.media.mit.edu/whatisdbn.html">DBN</a>)
+                (<a target="_blank" rel="noreferrer" href="https://dbn.media.mit.edu/whatisdbn.html">DBN</a>)
               is a programming language and environment
               developed by John Maeda in 1999 to help teach ideas about computation
               to designers and artists. It's fully documented in
-              a <a target="_blank" href="https://mitpress.mit.edu/books/design-numbers">book</a> by the same name.
+              a <a target="_blank" rel="noreferrer" href="https://mitpress.mit.edu/books/design-numbers">book</a> by the same name.
             </p>
 
             <p>
@@ -46,7 +46,7 @@ function About() {
               While there are many ways someone could create an NFT of an image, most of them
               involve storing the image itself outside of the blockchain. Here, artists
               can instead create NFTs consisting of the actual DBN code
-              (transformed into a <a target="_blank" href="https://ethervm.io/">different form</a>)
+              (transformed into a <a target="_blank" rel="noreferrer" href="https://ethervm.io/">different form</a>)
               necessary to render the final image.
             </p>
 

@@ -8,6 +8,7 @@ const configForEnvironment = {
 		coordinatorContractAddress: process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS_DEVELOPMENT,
 		ethNetwork: 'http://localhost:8545',
 		verbose: true,
+		testnetBanner: true,
 	},
 
 	localhost_rinkeby: {
@@ -23,6 +24,13 @@ const configForEnvironment = {
 		coordinatorContractAddress: "0x1B11e128180603A62f28c9D60B1DcdaD8B5D8a16",
 		ethNetwork: 'http://localhost:8545',
 		verbose: true,
+	},
+
+	testnet: {
+		compileEndpoint: 'https://1ard2p8bka.execute-api.us-east-1.amazonaws.com/evm_compile',
+		coordinatorContractAddress: "0xD0c79d43CBBFE14a71cD0d283aaA87c3802983Dd",
+		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',
+		testnetBanner: true,
 	},
 }
 

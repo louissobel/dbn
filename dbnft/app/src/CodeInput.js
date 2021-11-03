@@ -5,17 +5,16 @@ import Col from 'react-bootstrap/Col';
 import Button from 'react-bootstrap/Button';
 
 import CodeMirror from '@uiw/react-codemirror';
-import {keymap, highlightSpecialChars, drawSelection, highlightActiveLine} from "@codemirror/view"
-import {Extension, EditorState, StateField} from "@codemirror/state"
+import {keymap, highlightSpecialChars, drawSelection} from "@codemirror/view"
+import {EditorState} from "@codemirror/state"
 import {history, historyKeymap} from "@codemirror/history"
-import {foldGutter, foldKeymap} from "@codemirror/fold"
 import {RangeSet} from "@codemirror/rangeset"
 import {indentOnInput} from "@codemirror/language"
 import {lineNumbers, highlightActiveLineGutter} from "@codemirror/gutter"
 import {defaultKeymap} from "@codemirror/commands"
 import {bracketMatching} from "@codemirror/matchbrackets"
 import {closeBrackets, closeBracketsKeymap} from "@codemirror/closebrackets"
-import {searchKeymap, highlightSelectionMatches} from "@codemirror/search"
+import {highlightSelectionMatches} from "@codemirror/search"
 import {autocompletion, completionKeymap} from "@codemirror/autocomplete"
 import {commentKeymap} from "@codemirror/comment"
 import {EditorView, Decoration, ViewPlugin} from "@codemirror/view"
@@ -36,7 +35,7 @@ let disabledTheme = EditorView.theme({
 
 const gutterErrorMarker = new class extends GutterMarker {
   toDOM() { return document.createTextNode("🔺") }
-}
+}()
 
 const baseExtensions = [
   lineNumbers(),
@@ -69,10 +68,8 @@ export default function CodeInput(props) {
 
   const editor = useRef();
   const [code, setCode] = useState(initial)
-  const [usedKeyboardShortcutToRun, setUsedKeyboardShortcutToRun] = useState(false)
   const [editedAfterRun, setEditedAfterRun] = useState(false)
-
-  const textarea = useRef(null)
+  const lastRunViaKeyboard = useRef(false)
 
   function onCodeChange(code) {
     setEditedAfterRun(true)
@@ -80,19 +77,19 @@ export default function CodeInput(props) {
   }
 
   function onRunKeyboardShortcut() {
-    setUsedKeyboardShortcutToRun(true)
+    lastRunViaKeyboard.current = true;
     props.onRun(code);
     return true;
   }
 
   function onRunPress() {
+    lastRunViaKeyboard.current = false;
     props.onRun(code)
   }
 
   useEffect(() => {
     if (!props.disabled) {
-      if (usedKeyboardShortcutToRun) {
-        setUsedKeyboardShortcutToRun(false)
+      if (lastRunViaKeyboard.current) {
         if (editor.current) {
           editor.current.view.focus()
         }
@@ -118,7 +115,6 @@ export default function CodeInput(props) {
         ...closeBracketsKeymap,
         ...defaultKeymap,
         ...historyKeymap,
-        ...foldKeymap,
         ...commentKeymap,
         ...completionKeymap,
         ...lintKeymap,
@@ -157,7 +153,7 @@ export default function CodeInput(props) {
 
           this.decorations = RangeSet.of(sortedLines.flatMap((lineNumber) => {
             let line = view.state.doc.line(lineNumber);
-            if (line.from == line.to) {
+            if (line.from === line.to) {
               return [];
             } else {
               return [underlineMark.range(line.from, line.to)]

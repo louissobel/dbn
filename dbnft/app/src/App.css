@@ -28,6 +28,11 @@
   color: #61dafb;
 }
 
+.dbn-testnet-banner {
+  text-align:  center;
+  background-color: #ff4319;
+}
+
 .dbn-image-result {
   border-radius: 8px;
   background-color: var(--dbn-lighter-background-color);

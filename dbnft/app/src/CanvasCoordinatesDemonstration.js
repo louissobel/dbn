@@ -3,8 +3,6 @@ import React, {useState, useEffect, useRef} from 'react';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 
-import UIEditableCodeMirror from './UIEditableCodeMirror'
-
 
 // RGB for the "guidebar" to appear showing what's moving in Line
 const GUIDEBAR_COLOR = [0x1b, 0x1b, 0xac]
@@ -16,11 +14,6 @@ function CanvasCoordinatesDemonstration({ func, initialSpec }) {
   const [yCoord, setYCoord] = useState(50)
 
   useEffect(() => {
-    draw()
-  }, [xCoord, yCoord])
-
-
-  function draw() {
     let canvas = canvasRef.current;
     let ctx = canvas.getContext('2d')
 
@@ -41,7 +34,7 @@ function CanvasCoordinatesDemonstration({ func, initialSpec }) {
     for (let y = 0; y<121; y++) {
       ctx.putImageData(guidePixel, (xCoord + 10), y)
     }
-  }
+  }, [xCoord, yCoord])
 
   function canvasMouseOver(e) {
     const canvasX = Math.min(120, Math.max(e.nativeEvent.offsetX, 0))
