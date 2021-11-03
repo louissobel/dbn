@@ -9,8 +9,12 @@ import renderDBN from './dbn_renderer'
 import CodeInput from './CodeInput'
 import DBNImageResult from './DBNImageResult'
 
+import {SessionStorage} from './storage'
+import {maybeExtractDescription} from './lang-dbn/dbn.js'
 
 const MAX_MAGNIFICATION = 4
+const DEFAULT_INITIAL_CODE = `//description: a line\n\nLine 0 0 100 100`
+
 
 class DBNEditor extends React.Component {
   constructor(props) {
@@ -30,17 +34,14 @@ class DBNEditor extends React.Component {
       renderError: null,
     };
 
-  }
-
-  maybeExtractDescription(code) {
-    const firstLine = code.split("\n", 1)[0]
-    const descriptionExtract = /^\/\/[Dd]escription: (.+)/
-    const match = firstLine.match(descriptionExtract)
-    if (match) {
-      return match[1]
+    if (!SessionStorage.enabled) {
+      console.warn('sessionStorage is not enabled, cannot persist code across refreshes');
+      this.codeStorageKey = null;
     } else {
-      return null
+      this.codeStorageKey = 'dbnft.io–primary-editor-code';
     }
+
+    this.initialCode = this.getInitialCode()
   }
 
   dbnRender(code) {
@@ -61,7 +62,7 @@ class DBNEditor extends React.Component {
       code: code,
       owningContract: process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS,
     }
-    const description = this.maybeExtractDescription(code)
+    const description = maybeExtractDescription(code)
     if (description) {
       renderOpts.description = description
       this.setState({description: description})
@@ -128,10 +129,31 @@ class DBNEditor extends React.Component {
     this.renderCancelTrigger()
   }
 
-  onCodeChange(e) {
-    this.setState({
-      code:  e.target.value,
-    })
+  onCodeChange(code) {
+    this.saveCodeToSessionStorageIfEnabled(code)
+  }
+
+  saveCodeToSessionStorageIfEnabled(code) {
+    if (SessionStorage.enabled) {
+      SessionStorage.get().setItem(
+        this.codeStorageKey,
+        code,
+      )
+    }
+  }
+
+  getInitialCode() {
+    if (SessionStorage.enabled) {
+      let restored = SessionStorage.get().getItem(this.codeStorageKey);
+      if (restored) {
+        console.log('Restored code from sessionStorage')
+        return restored;
+      } else {
+        return DEFAULT_INITIAL_CODE; 
+      }
+    } else {
+      return DEFAULT_INITIAL_CODE;
+    }
   }
 
   canZoomIn() {
@@ -197,8 +219,10 @@ class DBNEditor extends React.Component {
           </Col>
           <Col sm={12} md={9} lg={6}>
             <CodeInput
+              initialCode={this.initialCode}
               disabled={this.state.renderState === 'RENDERING'}
               onRun={this.dbnRender.bind(this)}
+              onChange={this.onCodeChange.bind(this)}
               errorLines={this.errorLines()}
             />
           </Col>

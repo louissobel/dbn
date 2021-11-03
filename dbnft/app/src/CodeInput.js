@@ -3,6 +3,7 @@ import React, {useState, useRef, useEffect} from 'react';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Button from 'react-bootstrap/Button';
+import ButtonGroup from 'react-bootstrap/ButtonGroup';
 
 import CodeMirror from '@uiw/react-codemirror';
 import {keymap, highlightSpecialChars, drawSelection} from "@codemirror/view"
@@ -25,7 +26,7 @@ import {gutter, GutterMarker} from "@codemirror/gutter"
 
 
 
-import {dbnLanguage, dbnftHighlightStyle} from './lang-dbn/dbn'
+import {dbnLanguage, dbnftHighlightStyle, maybeExtractDescription} from './lang-dbn/dbn'
 
 let disabledTheme = EditorView.theme({
   ".cm-content": {
@@ -64,17 +65,28 @@ const disabledExtensions = baseExtensions.concat([
 ])
 
 export default function CodeInput(props) {
-  const initial = `Line 0 0 100 100`
-
   const editor = useRef();
-  const [code, setCode] = useState(initial)
+  const filePicker = useRef();
+  const [code, setCode] = useState(props.initialCode)
+  const [description, setDescription] = useState(null)
+
+  const previousBlobURL = useRef(null);
+  const [codeBlobURL, setCodeBlobURL] = useState(null)
+
   const [editedAfterRun, setEditedAfterRun] = useState(false)
   const lastRunViaKeyboard = useRef(false)
 
-  function onCodeChange(code) {
+  const onChangeCallback = props.onChange;
+  useEffect(() => {
     setEditedAfterRun(true)
-    setCode(code)
-  }
+
+    if (onChangeCallback) {
+      onChangeCallback(code)
+    }
+
+    setCodeBlobURL(getBlobURLForCode(code))
+    setDescription(maybeExtractDescription(code));
+  }, [code, onChangeCallback])
 
   function onRunKeyboardShortcut() {
     lastRunViaKeyboard.current = true;
@@ -85,6 +97,45 @@ export default function CodeInput(props) {
   function onRunPress() {
     lastRunViaKeyboard.current = false;
     props.onRun(code)
+  }
+
+  function getBlobURLForCode(code) {
+    let blob = new Blob([code])
+    return URL.createObjectURL(blob)
+  }
+
+  // Make sure we free it..
+  useEffect(() => {
+    let previous = previousBlobURL.current
+    if (previous) {
+      URL.revokeObjectURL(previous)
+    }
+    previousBlobURL.current = codeBlobURL
+
+  }, [codeBlobURL])
+
+  function onOpenPress() {
+    if (filePicker.current) {
+      filePicker.current.click()
+    }
+  }
+
+  function handleOpenFileChange(e) {
+    let fileList = e.target.files;
+    if (fileList.length !== 1) {
+      console.warn('unexpected file list length handling file selection', fileList.length)
+      return;
+    }
+
+    let file = fileList[0];
+    file.text()
+    .then((code) => {
+      setCode(code);
+      lastRunViaKeyboard.current = false;
+      props.onRun(code)
+    })
+
+    e.target.value = "";
   }
 
   useEffect(() => {
@@ -191,7 +242,7 @@ export default function CodeInput(props) {
                   height="350px"
                   extensions={codemirrorExtensions()}
                   onChange={(value, viewUpdate) => {
-                    onCodeChange(value)
+                    setCode(value)
                   }}
                   editable={!props.disabled}
                   readOnly={props.disabled}
@@ -200,7 +251,7 @@ export default function CodeInput(props) {
           </div>
         </Col>
       </Row>
-      <Row>
+      <Row className="pb-5">
         <Col sm={12} md={12} lg={8} xl={6}>
           <div className="d-grid gap-2 mt-3">
             <Button 
@@ -211,6 +262,37 @@ export default function CodeInput(props) {
             >
               Run
             </Button>
+          </div>
+        </Col>
+        <Col className="d-lg-none d-xl-block" xl={2} />
+        <Col sm={12} md={12} lg={4} xl={4}>
+          <div className="d-grid gap-2 mt-3">
+            <ButtonGroup>
+              <Button
+                size="sm"
+                variant="secondary"
+                href={codeBlobURL}
+                download={(description || "drawing") + ".dbn"}
+              >
+                Download
+              </Button>
+              
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={onOpenPress}
+                disabled={props.disabled}
+              >
+                Open
+              </Button>
+            </ButtonGroup>
+            <input
+              type="file"
+              ref={filePicker}
+              accept=".dbn,text/plain"
+              onChange={handleOpenFileChange}
+              className="d-none"
+            />
           </div>
         </Col>
       </Row>

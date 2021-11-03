@@ -82,11 +82,13 @@ function DBNResultRenderStatus({renderState, renderError, codeSize, gasUsed, onC
           {codeSize && <BytecodeStats codeSize={codeSize} />}
           {gasUsed && <GasStats gasUsed={gasUsed} />}
 
-          <div className="float-end dbn-image-render-status-cancel">
-            <Button size="sm" variant="light" onClick={onCancel}>
-              <Icon icon="oi:x" inline={true} />
-            </Button>
-          </div>
+          {onCancel &&
+            <div className="float-end dbn-image-render-status-cancel">
+              <Button size="sm" variant="light" onClick={onCancel}>
+                <Icon icon="oi:x" inline={true} />
+              </Button>
+            </div>
+          }
         </>
       );
       break;

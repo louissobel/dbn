@@ -58,3 +58,15 @@ export const dbnftHighlightStyle = HighlightStyle.define([
   {tag: t.documentMeta, color: "red", fontWeight: "bold"},
   {tag: t.comment, color: "#4896bd", fontStyle: "italic"}
 ])
+
+
+export function maybeExtractDescription(code) {
+  const firstLine = code.split("\n", 1)[0]
+  const descriptionExtract = /^\/\/[Dd]escription: (.+)/
+  const match = firstLine.match(descriptionExtract)
+  if (match) {
+    return match[1]
+  } else {
+    return null
+  }
+}

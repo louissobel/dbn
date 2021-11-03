@@ -85,7 +85,7 @@ DotGet {
 @tokens {
 	Identifier {
 		std.asciiLetter
-		(std.asciiLetter | std.digit)*
+		(std.asciiLetter | std.digit | "_")*
 	}
 
 	BuiltinCommand {
