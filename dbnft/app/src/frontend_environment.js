@@ -2,12 +2,17 @@
 
 // Uses window.hostname to determine environment
 
+const devAddress = [
+	'0x64486715303218136817354C3350f741Bb592c98',
+]
+
 const configForEnvironment = {
 	localhost: {
 		compileEndpoint: '/evm_compile',
 		coordinatorContractAddress: process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS_DEVELOPMENT,
 		ethNetwork: 'http://localhost:8545',
 		verbose: true,
+		mintWhitelist: devAddress,
 	},
 
 	localhost_rinkeby: {
@@ -16,6 +21,7 @@ const configForEnvironment = {
 		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',
 		verbose: true,
 		testnetBanner: true,
+		mintWhitelist: devAddress,
 	},
 
 	// should this be testnet?
@@ -31,6 +37,7 @@ const configForEnvironment = {
 		coordinatorContractAddress: "0xD0c79d43CBBFE14a71cD0d283aaA87c3802983Dd",
 		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',
 		testnetBanner: true,
+		mintWhitelist: devAddress,
 	},
 }
 
@@ -70,9 +77,7 @@ const config = function() {
 		environment: environment,
 		config: configForEnvironment[environment]
 	}
-	if (config.config.verbose) {
-		console.log(config)
-	}
+	console.log(config)
 	return config
 }
 

@@ -1,14 +1,14 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./Base64.sol";
 
-contract DBNCoordinator is ERC721Enumerable {
+contract DBNCoordinator is ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
     using Strings for uint256;
 
@@ -22,9 +22,10 @@ contract DBNCoordinator is ERC721Enumerable {
         _baseExternalURI = baseExternalURI;
     }
 
-    function deploy(bytes memory bytecode) public returns (address) {
-        address addr;
+    // TODO: for now, minting is locked down to just owner
+    function deploy(bytes memory bytecode) public onlyOwner returns (address) {
 
+        address addr;
         assembly {
             addr := create(0, add(bytecode, 0x20), mload(bytecode))
         }

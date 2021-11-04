@@ -26,6 +26,20 @@ function Minter(props) {
 
   const [showModal, setShowModal] = useState(false)
 
+  function showMintButton() {
+    if (!web3React.active) {
+      return false
+    }
+
+    if (frontendEnvironment.config.mintWhitelist) {
+      if (!frontendEnvironment.config.mintWhitelist.includes(web3React.account)) {
+        return false
+      }
+    }
+
+    return true
+  }
+
   async function doMint() {
     setIsMinting(true)
 
@@ -110,7 +124,7 @@ function Minter(props) {
   }
 
   var mintButton;
-  if (web3React.active) {
+  if (showMintButton()) {
     mintButton = (
       <Button variant="warning" disabled={props.disabled} onClick={handleModalShow}>Mint</Button>
     )
