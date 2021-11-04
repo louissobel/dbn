@@ -265,11 +265,14 @@ body {
   border-radius: 3px;
   width: 121px;
 
+  z-index: 9;
   position: absolute;
+  border: 1px solid #c7c7c7;
+  box-shadow: 1.5px 1.5px 3px rgba(0,0,0,.5);
 }
 
 .dbn-ui-editable-tooltip-holder.dbn-ui-editable-tooltip-holder-vertical {
-  padding-left: 3px;
+  padding-left: 2px;
   padding-right: 3px;
   padding-bottom: 10px;
   padding-top: 10px;
@@ -277,8 +280,13 @@ body {
   height: 121px;
 }
 
+
 .dbn-ui-editable-tooltip-holder .rc-slider-rail {
   background-color: #1b1bac;
+}
+
+.dbn-ui-editable-tooltip-holder .rc-slider-mark {
+  display: none;
 }
 
 .dbn-ui-editable-tooltip-holder.dbn-ui-editable-tooltip-holder-colorpicker .rc-slider-rail {

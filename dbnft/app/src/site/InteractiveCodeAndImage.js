@@ -9,7 +9,29 @@ import UIEditableCodeMirror from './UIEditableCodeMirror'
 import {SessionStorage, STORAGE_KEY_RESET_INITIAL_CODE} from '../storage'
 
 
-function InteractiveCodeAndImage({ example, noheaders }) {
+// returns the different values for variables
+function specDiff(currentSpec, newSpec) {
+  if (currentSpec.length !== newSpec.length) {
+    console.warn('can only handle value changes')
+    return []
+  }
+
+  let out = []
+  for (var i = 0; i < currentSpec.length; i++) {
+    let currentItem = currentSpec[i];
+    let newItem = newSpec[i];
+
+    if (currentItem.type !== 'constant' && newItem.value !== currentItem.value) {
+      out.push({
+        name: currentItem.name,
+        newValue: newItem.value,
+      })
+    }
+  }
+  return out
+}
+
+function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample }) {
   const canvasRef = useRef()
 
   const [spec, setSpec] = useState(example.initialSpec)
@@ -19,6 +41,24 @@ function InteractiveCodeAndImage({ example, noheaders }) {
   const [interacted, setInteracted] = useState(false)
   const history = useHistory()
 
+  const uiEditableDispatchRef = useRef(null)
+
+  if (linkageRef) {
+    linkageRef.current = {
+      receivePropagatedChange(newSpec) {
+        let actions = specDiff(spec, newSpec);
+        console.log(actions, example.name, !!uiEditableDispatchRef.current)
+
+        if (uiEditableDispatchRef.current) {
+          for (let a of actions) {
+            console.log(a)
+            uiEditableDispatchRef.current(a)
+          }
+        }
+      }
+    }
+  }
+
   useEffect(() => {
     let canvas = canvasRef.current;
     let ctx = canvas.getContext('2d')
@@ -27,6 +67,13 @@ function InteractiveCodeAndImage({ example, noheaders }) {
     example.draw(ctx, spec, tooltipItemName);
   }, [example, spec, tooltipItemName])
 
+  
+  function onChange(spec) {
+    setSpec(spec)
+    if (linkedExample && linkedExample.current) {
+      linkedExample.current.receivePropagatedChange(spec)
+    }
+  }
 
   function onCodeChange(newCode) {
     const current = code.current;
@@ -79,7 +126,8 @@ function InteractiveCodeAndImage({ example, noheaders }) {
         </div>
         <UIEditableCodeMirror
           initialSpec={example.initialSpec}
-          onChange={setSpec}
+          dispatchRef={uiEditableDispatchRef}
+          onChange={onChange}
           onCodeChange={onCodeChange}
           onVisibleTooltipChange={setTooltipItemName}
         />

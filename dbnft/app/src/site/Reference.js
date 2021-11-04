@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useReducer, useCallback} from 'react';
+import React, {useState, useEffect, useReducer, useCallback, useRef} from 'react';
 
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
@@ -127,6 +127,9 @@ function Reference() {
     }
   }
 
+  const questionSameExample = useRef()
+  const questionSmallerExample = useRef()
+
   return (
     <Container>
       <Row>
@@ -225,7 +228,7 @@ function Reference() {
 
             <ReferenceSection registerRef={registerSection()} name="Questions">
               <p>
-                Blocks of code can be run conditionally using questions.
+                Code can be run conditionally using questions.
                 A question is given two arguments and will run the subsequent block
                 of code only if the answer would be yes.
               </p>
@@ -240,8 +243,16 @@ function Reference() {
               <p>
               </p>
 
-              <InteractiveCodeAndImage example={Examples.questionSame} />
-              <InteractiveCodeAndImage example={Examples.questionSmaller} />
+              <InteractiveCodeAndImage
+                linkageRef={questionSameExample}
+                linkedExample={questionSmallerExample}
+                example={Examples.questionSame}
+              />
+              <InteractiveCodeAndImage
+                linkageRef={questionSmallerExample}
+                linkedExample={questionSameExample}
+                example={Examples.questionSmaller}
+              />
             </ReferenceSection>
 
             <ReferenceSection registerRef={registerSection()} name="Commands"/>

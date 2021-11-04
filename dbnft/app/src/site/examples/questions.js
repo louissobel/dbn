@@ -78,8 +78,6 @@ function makeDrawFunction(compareForPen1) {
       }
       ctx.putImageData(img, x+10, (100-yTop) + 10)
     }
-
-    console.log(cutoff, start, end, pen1, pen2, y0, y1)
   }
 }
 

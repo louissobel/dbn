@@ -152,6 +152,9 @@ function specReducer(currentSpec, action) {
 
 function UIEditableCodeMirror(props) {
   const [spec, dispatch] = useReducer(specReducer, props.initialSpec)
+  if (props.dispatchRef) {
+    props.dispatchRef.current = dispatch
+  }
 
   const {onChange, onVisibleTooltipChange, onCodeChange} = props
 
