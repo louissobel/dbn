@@ -8,7 +8,7 @@ export default {
 
   initialSpec: [
     {value: 'Paper', type: 'constant'},
-    {value: '100', type: 'color', name: 'v'}
+    {value: '75', type: 'color', name: 'v'}
   ],
 
   draw(ctx, spec, tooltipItemName) {

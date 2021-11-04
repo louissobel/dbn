@@ -4,6 +4,7 @@ import pen from './pen'
 import variables from './variables'
 import repeat from './repeat'
 import math from './math'
+import {questionSame, questionSmaller} from './questions'
 
 export default {
   'line': line,
@@ -12,4 +13,6 @@ export default {
   'variables': variables,
   'repeat': repeat,
   'math': math,
+  'questionSame': questionSame,
+  'questionSmaller': questionSmaller,
 }

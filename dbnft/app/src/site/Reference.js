@@ -223,7 +223,27 @@ function Reference() {
               <InteractiveCodeAndImage example={Examples.math} />
             </ReferenceSection>
 
-            <ReferenceSection registerRef={registerSection()} name="Questions"/>
+            <ReferenceSection registerRef={registerSection()} name="Questions">
+              <p>
+                Blocks of code can be run conditionally using questions.
+                A question is given two arguments and will run the subsequent block
+                of code only if the answer would be yes.
+              </p>
+
+              <ul>
+                <li><InlineCode>Same?</InlineCode>: if the two arguments are equal</li>
+                <li><InlineCode>NotSame?</InlineCode>: if the two arguments are not equal</li>
+                <li><InlineCode>Smaller?</InlineCode>: if the first argument is smaller than the second</li>
+                <li><InlineCode>NotSmaller?</InlineCode>: if the first argument is not smaller than the second</li>
+              </ul>
+
+              <p>
+              </p>
+
+              <InteractiveCodeAndImage example={Examples.questionSame} />
+              <InteractiveCodeAndImage example={Examples.questionSmaller} />
+            </ReferenceSection>
+
             <ReferenceSection registerRef={registerSection()} name="Commands"/>
             <ReferenceSection registerRef={registerSection()} name="Numbers"/>
 
