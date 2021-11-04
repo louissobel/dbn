@@ -1,15 +1,15 @@
 ; def:    setCommand
-; input:  [y|pixelDataOffset|x|color|return
+; input:  [y|x|color|return
 ; output: [|
-; state:  assumes there is a valid bitmap of dim 101x101 at pixelDataOffset
+; state:  assumes 0x20 holds the "pixel data offset"
 ; notes:  
 @setCommand:
   ; clip color to [0, 100]
   $postSetCommandClipColor
-  DUP5
+  DUP4
   JUMP($clipColor)
   @postSetCommandClipColor:
-  SWAP4
+  SWAP3
   POP()
 
   ; Line can call directly into this
@@ -17,27 +17,27 @@
   
   ; abandon if x or y too big or too small
   ; again taking advantage of unsigned comparison for negative
-  ; [y|pixelDataOffset|x|color
-  100           ; [100|y|pixelDataOffset|x|color
-  DUP1          ; [100|100|y|pixelDataOffset|x|color
-  DUP3          ; [y|100|100|y|pixelDataOffset|x|color
-  GT($$, $$)    ; [y>100|100|y|pixelDataOffset|x|color
-  SWAP1         ; [100|y>100|y|pixelDataOffset|x|color
-  DUP5          ; [x|100|y>100|y|pixelDataOffset|x|color
-  GT($$, $$)    ; [x>100|y>100|y|pixelDataOffset|x|color
-  OR($$, $$)    ; [x>100 or y>100|y|pixelDataOffset|x|color]
+  ; [y|x|color
+  100           ; [100|y|x|color
+  DUP1          ; [100|100|y|x|color
+  DUP3          ; [y|100|100|y|x|color
+  GT($$, $$)    ; [y>100|100|y|x|color
+  SWAP1         ; [100|y>100|y|x|color
+  DUP4          ; [x|100|y>100|y|x|color
+  GT($$, $$)    ; [x>100|y>100|y|x|color
+  OR($$, $$)    ; [x>100 or y>100|y|x|color
   JUMPI($setCommandOutOfBounds, $$)
   ; otherwise, draw!
-    ; [y|pixelDataOffset|x|color
-    MUL(104, $$)  ; [y*104|pixelDataOffset|x|color
-    ADD($$, $$)   ; [y*104+pixelDataOffset|x|color
-    ADD($$, $$)   ; [y*104+pixelDataOffset+x|color
+    ; [y|x|color
+    MUL(104, $$)  ; [y*104|x|color
+    ADD($$, $$)   ; [y*104+x|color
+    MLOAD(0x20)   ; [pixelDataStart|y*104+x|color
+    ADD($$, $$)   ; [pixelDataOffset+y*104+x|color
     MSTORE8($$, $$)
     JUMP($$) ; return
 
   @setCommandOutOfBounds:
-  ; [y|pixelDataOffset|x|color
-  POP()
+  ; [y|x|color
   POP()
   POP()
   POP()

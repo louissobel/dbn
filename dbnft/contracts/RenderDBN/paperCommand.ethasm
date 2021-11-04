@@ -1,7 +1,8 @@
 ; def:    paperCommand
-; input:  [color|pixelDataOffset|return
+; input:  [color|return
 ; output: [|
 ; state:  assumes there is a valid bitmap of dim 101x101 at pixelDataOffset
+;         (and the pixelDataOffset lives at 0x20)
 ; notes:  
 @paperCommand:
   ; clip color to [0, 100]
@@ -10,29 +11,42 @@
   JUMP($clipColor)
   @postPaperCommandClipColor:
 
-  ; [color|pixelDataOffset
+  ; Save color to known location for future out of bounds
+  ; dot gets to return
+  DUP1
+  MSTORE8(0x0A, $$)
+
+  ; [color
   0x0101010101010101010101010101010101010101010101010101010101010101
   MUL($$, $$)
 
   ; we need to write 101 * 104 = 10504 = 8 + 328*32 bytes
   ; so first smash it into place
   ; then set the cursor to 8 and tick up by 32
-  DUP1
-  DUP3
-  MSTORE($$, $$)
 
-  8
+  ; Initialize dst to "pixel data offset" from 0x20
+  MLOAD(0x20)     ; [dst|color
+  DUP2            ; [color|dst|color
+  DUP2            ; [dst|color|dst|color
+  MSTORE($$, $$)  ; [dst|color
+
+  ADD(8, $$)      ; [dst'|color
+  0               ; [i|dst|color
   @paperCommandWriteLoop:
-    ; [dst|color|pixelDataOffset
-    DUP2            ; [color|dst|color|pixelDataOffset
-    DUP2            ; [dst|color|dst|color|pixelDataOffset
-    DUP5            ; [pixelDataOffset|dst|color|dst|color|pixelDataOffset
-    ADD($$, $$)     ; [pixelDataOffset+dst|color|dst|color|pixelDataOffset
-    MSTORE($$, $$)  ; [dst|color|pixelDataOffset
-    ADD(32, $$)     ; [dst+32|color|pixelDataOffset
-    10504           ; [10504|dst+32|color|pixelDataOffset
-    DUP2            ; [dst+32|10504|dst+32|color|pixelDataOffset
-    LT($$, $$)      ; [dst+32<10504|dst+32|color|pixelDataOffset
+    DUP3            ; [color|i|dst|color
+    DUP3            ; [dst|color|i|dst|color
+    ADD(32, $$)     ; [dst+32|color|i|dst|color
+    SWAP3           ; [dst|color|i|dst+32|color
+    MSTORE($$, $$)  ; [i|dst+32|color
+
+    ADD(1, $$)      ; [i+1|dst+32|color
+
+    ; top of stack is now how many times we've done this
+    ; we need 328
+    328             ; [328|i+1|dst+32|color
+    DUP2            ; [i+1|328|i+1|dst+32|color
+    LT($$, $$)      ; [keeplooping|i+1|dst+32|color
+
     JUMPI($paperCommandWriteLoop, $$)
 
   POP()

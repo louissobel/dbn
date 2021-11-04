@@ -5,7 +5,7 @@ const fs = require('fs')
 const VM = require('@ethereumjs/vm').default
 const { BN } = require('ethereumjs-util')
 
-describe("Draw#initializeBitmap", function () {
+describe("Draw#lineCommand", function () {
   const cases = [
 
     /*** First, around the clock cases ***/    

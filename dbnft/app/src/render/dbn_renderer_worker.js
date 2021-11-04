@@ -66,10 +66,10 @@ const makeStepListener = function(throttleInterval) {
       // We KNOW the Bitmap lives at 0x80....
       // And that it's 10962 long...
       //
-      // We also know that 0x20 in memory is used
+      // We also know that 0x0B in memory is used
       // as flag that the "bitmap is ready"
       var wipImage = null;
-      if (step.memory[0x20]) {      
+      if (step.memory[0x0B]) {      
         wipImage = new Blob(
           [step.memory.slice(0x80, 0x80 + 10962)],
           {type: 'image/bmp'}

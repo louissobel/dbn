@@ -34,22 +34,24 @@ JUMP($unknownTEST)
   0x40
   JUMP($initializeBitmap)
   @postTestLineCommandInitializeBitmap:
-  ; hardcode pixeldataoffset
+  ; hardcode pixeldataoffset to 0x20
   ;  0x40 + 14 + 40 + 404
-  0x020a
+  MSTORE(0x20, 0x020a)
 
   $postTestLineCommandCall
   ; input is interpreted as signed 7 bit integer!
-  DUP2
-  SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(5))) ;pen
+
+  ; get pen into place
+  MSTORE(0x40, SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(5))))
+
+  SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(1))) ;x0
   SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(4))) ;y1
   SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(3))) ;x1
   SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(2))) ;y0
-  SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(1))) ;x0
+
   JUMP($lineCommand)
   @postTestLineCommandCall:
 
-  POP()
   JUMP($testStringReturn)
 
 @testPaperCommand:
@@ -63,18 +65,16 @@ JUMP($unknownTEST)
   0x40
   JUMP($initializeBitmap)
   @postTestPaperCommandInitializeBitmap:
-  ; hardcode pixeldataoffset
+  ; hardcode pixeldataoffset at 0x20
   ;  0x40 + 14 + 40 + 404
-  0x020a
+  MSTORE(0x20, 0x020a)
 
   $postTestPaperCommandCall
   ; input is interpreted as signed 7 bit integer!
-  DUP2
   SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(1))) ;color
   JUMP($paperCommand)
   @postTestPaperCommandCall:
 
-  POP()
   JUMP($testStringReturn)
 
 @testBASE64ENCODE:

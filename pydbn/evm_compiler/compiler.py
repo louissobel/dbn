@@ -18,9 +18,11 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     """
     Memory layout
-    0x0000 : right-aligned 20byte owning contract address
-    0x0020 : boolean byte indicating that the bitmap is fully initialized
-    0x0021 : []
+    0x0000 : 10 bytes free
+    0x000A : The latest (clipped) Paper value
+    0x000B : boolean byte indicating that the bitmap is fully initialized
+    0x000C : right-aligned 20byte owning contract address
+    0x0020 : pixel data offset
     0x0040 : Pen
     0x0060 : Env pointer
     0x0080 : [bitmap starts...]
@@ -29,8 +31,9 @@ class DBNEVMCompiler(DBNAstVisitor):
     """
     BITMAP_BASE = 0x80
     PIXEL_DATA_START = BITMAP_BASE + 14 + 40 + 404
-    PEN_ADDRESS = 0x40
 
+    PIXEL_DATA_START_ADDRESS = 0x20
+    PEN_ADDRESS = 0x40
     ENV_POINTER_ADDRESS = 0x60
     FIRST_ENV_ADDRESS = 0x2B60
 
@@ -45,7 +48,6 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     # other constants
     INITIAL_PEN_VALUE = 100
-    BUILTIN_COMMANDS = {'Line', 'Pen', 'Paper'}
 
     def __init__(self, verbose=False):
         self.verbose = verbose
@@ -367,6 +369,9 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         self.emit_label('dbnDraw')
 
+        self.emit_comment("store pixel data offset (%d)" % self.PIXEL_DATA_START)
+        self.emit_raw("MSTORE(%d, %d)" % (self.PIXEL_DATA_START_ADDRESS, self.PIXEL_DATA_START))
+
         self.emit_comment("initialize pen to %d" % self.INITIAL_PEN_VALUE)
         self.emit_raw("MSTORE(%d, %d)" % (self.PEN_ADDRESS, self.INITIAL_PEN_VALUE))
 
@@ -442,16 +447,12 @@ class DBNEVMCompiler(DBNAstVisitor):
 
             self.visit(node.right)      # color
             self.visit(bracket_left)    # x
-
-            self.emit_push(self.PIXEL_DATA_START)
-            self.update_stack(1, "Set command internal (pixeldata)")
-
             self.visit(bracket_right)   # y
 
             self.emit_jump('setCommand')
             self.emit_label(label)
 
-            self.update_stack(-5, 'set dot')
+            self.update_stack(-4, 'set dot')
 
         elif isinstance(left, DBNWordNode):
             # Get the value on the stack
@@ -921,27 +922,27 @@ class DBNEVMCompiler(DBNAstVisitor):
         label = self.generate_label("postLineCall")
 
         self.emit_push_label(label)
-        self.emit_push(self.PIXEL_DATA_START)
-        self.emit_raw("MLOAD(%d) ; get pen" % self.PEN_ADDRESS)
 
-        self.update_stack(3, 'Line Internals')
+        self.update_stack(1, 'Line Return')
 
-        # get the arguments on the stack in reverse order
-        for arg_node in reversed(node.args):
-            self.visit(arg_node)
+        # get the arguments on the stack in the weird order Line expects:
+        # [y0|x1|y1|x0
+        self.visit(node.args[0])
+        self.visit(node.args[3])
+        self.visit(node.args[2])
+        self.visit(node.args[1])
 
         # run the command!
         self.emit_jump('lineCommand')
         self.emit_label(label)
 
-        self.update_stack(-7, 'Line')
+        self.update_stack(-5, 'Line')
 
     def handle_builtin_paper(self, node):
         label = self.generate_label("postPaperCall")
 
         self.emit_push_label(label)
-        self.emit_push(self.PIXEL_DATA_START)
-        self.update_stack(2, 'Paper Internals')
+        self.update_stack(1, 'Paper Internal return')
 
         self.visit(node.args[0])
 
@@ -949,7 +950,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_jump('paperCommand')
         self.emit_label(label)
 
-        self.update_stack(-3, 'Paper')
+        self.update_stack(-2, 'Paper')
 
     def handle_builtin_debugger(self, node):
         self.emit_debug()
@@ -1202,21 +1203,19 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.add('LOAD_CODE', node.value)
 
     def visit_bracket_node(self, node):
-        # get the stack to be
+        label = self.generate_label("postDotGet")
+        self.emit_push_label(label)
+        self.update_stack(1, 'dot get internal (return)')
+
         # [y|x
         self.visit(node.left)
         self.visit(node.right)
 
-        # Y*104 + X is the byte
-        self.emit_raw("MUL(104, $$)")
-        self.emit_opcode(ADD)
-        self.emit_push(self.PIXEL_DATA_START)
-        self.emit_opcode(ADD)
-        self.emit_opcode(MLOAD)
-        # then move over all but the first byte
-        self.emit_raw("SHR(%d, $$)" % (8 * 31))
+        self.emit_jump('dotGet')
+        self.emit_label(label)
 
-        self.update_stack(-1, 'get dot')
+        # -2 not -3 because value stays on stack
+        self.update_stack(-2, 'get dot')
 
     def visit_binary_op_node(self, node):
         self.visit(node.right)

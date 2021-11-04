@@ -6,7 +6,8 @@ artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm : \
 	contracts/RenderDBN/setCommand.ethasm \
 	contracts/RenderDBN/paperCommand.ethasm \
 	contracts/RenderDBN/clipColor.ethasm \
-	contracts/RenderDBN/envGet.ethasm
+	contracts/RenderDBN/envGet.ethasm \
+	contracts/RenderDBN/dotGet.ethasm
 	cat $^ > $@
 
 .PRECIOUS : artifacts/drawings/%.ethasm

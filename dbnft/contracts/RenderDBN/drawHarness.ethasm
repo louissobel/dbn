@@ -36,7 +36,8 @@ REVERT(0x00, 1)
 
   ; In case anyone is looking at our memory, give indication
   ; that the bitmap is now fully initialized
-  MSTORE8(0x20, 1)
+  ; (concretely, the editor web interface uses this)
+  MSTORE8(0x0B, 1)
 
   JUMP($dbnDraw)
   @dbnDrawComplete:
