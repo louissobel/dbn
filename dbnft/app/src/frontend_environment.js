@@ -34,7 +34,7 @@ const configForEnvironment = {
 
 	testnet: {
 		compileEndpoint: 'https://1ard2p8bka.execute-api.us-east-1.amazonaws.com/evm_compile',
-		coordinatorContractAddress: "0xD0c79d43CBBFE14a71cD0d283aaA87c3802983Dd",
+		coordinatorContractAddress: "0xC6730c7cDd99e8c38B0bc73Da99C188985DF0b39",
 		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',
 		testnetBanner: true,
 		mintWhitelist: devAddress,
@@ -51,6 +51,8 @@ const environmentFromHostname = function (hostname) {
 		return 'localhost'
 	} else if (hostname.match(/.+?.dbnft.pages.dev/)) {
 		return 'cloudflareStaging'
+	} else if (hostname === 'testnet.dbnft.io') {
+		return 'testnet'
 	} else {
 		return null
 	}

@@ -31,6 +31,7 @@ function Minter(props) {
       return false
     }
 
+    // !! of course, this needs to be enforced at contract-level too
     if (frontendEnvironment.config.mintWhitelist) {
       if (!frontendEnvironment.config.mintWhitelist.includes(web3React.account)) {
         return false
