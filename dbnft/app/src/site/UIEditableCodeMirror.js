@@ -121,6 +121,9 @@ function findSpecItemAndStartPosAt(spec, pos) {
     }
 
     let end = i + item.value.length;
+    if (item.nudgeEndIn) {
+      end--;
+    }
     if (pos >= i && pos <= end) {
       return {
         startPos: i,
@@ -141,6 +144,8 @@ function specReducer(currentSpec, action) {
         name: item.name,
         type: item.type,
         value: action.newValue.toString(),
+        nospace: item.nospace,
+        nudgeEndIn: item.nudgeEndIn,
       })
     } else {
       newSpec.push(item)

@@ -5,6 +5,7 @@ import variables from './variables'
 import repeat from './repeat'
 import math from './math'
 import {questionSame, questionSmaller} from './questions'
+import dots from './dots'
 
 export default {
   'line': line,
@@ -15,4 +16,5 @@ export default {
   'math': math,
   'questionSame': questionSame,
   'questionSmaller': questionSmaller,
+  'dots': dots,
 }

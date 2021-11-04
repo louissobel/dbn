@@ -146,7 +146,7 @@ function Reference() {
             <ReferenceSection registerRef={registerSection()} name="Canvas">
               <p>
                 You draw on a 101x101 pixel canvas, which starts out
-                fully white. There are 10201 points within this canvas,
+                fully white. There are 10,201 points within this canvas,
                 each of which is described by
                 two numbers, <InlineCode>x</InlineCode> and <InlineCode>y</InlineCode>.
               </p>
@@ -210,7 +210,16 @@ function Reference() {
 
             </ReferenceSection>
 
-            <ReferenceSection registerRef={registerSection()} name="Dots"/>
+            <ReferenceSection registerRef={registerSection()} name="Dots">
+              <p>
+                The 10,201 raw "dots"—pixels—of the canvas can be set and
+                read directly by specifying a point wrapped in
+                brackets, like <InlineCode>[x  y]</InlineCode>.
+              </p>
+
+              <InteractiveCodeAndImage example={Examples.dots} />
+
+            </ReferenceSection>
 
             <ReferenceSection registerRef={registerSection()} name="Math">
               <p>
@@ -239,9 +248,6 @@ function Reference() {
                 <li><InlineCode>Smaller?</InlineCode>: if the first argument is smaller than the second</li>
                 <li><InlineCode>NotSmaller?</InlineCode>: if the first argument is not smaller than the second</li>
               </ul>
-
-              <p>
-              </p>
 
               <InteractiveCodeAndImage
                 linkageRef={questionSameExample}
