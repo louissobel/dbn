@@ -8,6 +8,8 @@ import classNames from 'classnames';
 
 import InteractiveCodeAndImage from './InteractiveCodeAndImage'
 import CanvasCoordinatesDemonstration from './CanvasCoordinatesDemonstration'
+import Examples from './examples'
+
 
 function ReferenceSection({name, registerRef, children}) {
   let refCallback;
@@ -157,13 +159,7 @@ function Reference() {
                 the two points specified.
               </p>
 
-              <InteractiveCodeAndImage exampleFunc='line' initialSpec={[
-                {value: "Line", type: 'constant'},
-                {value: '0', name: 'x0', type: 'xcoord'},
-                {value: '0', name: 'y0', type: 'ycoord'},
-                {value: '100', name: 'x1', type: 'xcoord'},
-                {value: '100', name: 'y1', type: 'ycoord'},
-              ]}/>
+              <InteractiveCodeAndImage example={Examples.line} />
 
 
             </ReferenceSection>
@@ -174,10 +170,7 @@ function Reference() {
                 with the specified color.
               </p>
 
-              <InteractiveCodeAndImage exampleFunc='paper' initialSpec={[
-                {value: 'Paper', type: 'constant'},
-                {value: '100', type: 'color', name: 'v'}
-              ]}/>
+              <InteractiveCodeAndImage example={Examples.paper} />
 
             </ReferenceSection>
 
@@ -188,34 +181,8 @@ function Reference() {
                 Lines. It will stay in place until another call to Pen.
               </p>
 
-              <InteractiveCodeAndImage exampleFunc='pen' initialSpec={[
-                {value: "Paper", type: 'constant'},
-                {value: '65', type: 'color', name: 'paper'},
-                {value: '\n', type: 'constant'},
-                {value: "Pen", type: 'constant'},
-                {value: '10', type: 'color', name: 'pen1'},
-                {value: '\n', type: 'constant'},
-                {value: "Line", type: 'constant'},
-                {value: '10', name: 'x01', type: 'xcoord'},
-                {value: '10', name: 'y01', type: 'ycoord'},
-                {value: '90', name: 'x11', type: 'xcoord'},
-                {value: '90', name: 'y11', type: 'ycoord'},
-                {value: '\n', type: 'constant'},
-                {value: "Line", type: 'constant'},
-                {value: '20', name: 'x02', type: 'xcoord'},
-                {value: '10', name: 'y02', type: 'ycoord'},
-                {value: '90', name: 'x12', type: 'xcoord'},
-                {value: '80', name: 'y12', type: 'ycoord'},
-                {value: '\n', type: 'constant'},
-                {value: "Pen", type: 'constant'},
-                {value: '90', type: 'color', name: 'pen2'},
-                {value: '\n', type: 'constant'},
-                {value: "Line", type: 'constant'},
-                {value: '0', name: 'x03', type: 'xcoord'},
-                {value: '100', name: 'y03', type: 'ycoord'},
-                {value: '100', name: 'x13', type: 'xcoord'},
-                {value: '0', name: 'y13', type: 'ycoord'},
-              ]}/>
+              <InteractiveCodeAndImage example={Examples.pen}/>
+
             </ReferenceSection>
 
             <ReferenceSection registerRef={registerSection()} name="Variables">
@@ -225,16 +192,7 @@ function Reference() {
                 which can then be used later wherever you'd use a number.
               </p>
 
-              <InteractiveCodeAndImage exampleFunc='variable' initialSpec={[
-                {value: "Set X", type: 'constant'},
-                {value: "50", type: 'xcoord', name: 'xval'},
-                {value: '\n', type: 'constant'},
-                {value: "Line", type: 'constant'},
-                {value: 'X', type: 'constant'},
-                {value: '0', name: 'y0', type: 'ycoord'},
-                {value: 'X', type: 'constant'},
-                {value: '100', name: 'y1', type: 'ycoord'},
-              ]}/>
+              <InteractiveCodeAndImage example={Examples.variables} />
 
             </ReferenceSection>
 
@@ -245,22 +203,7 @@ function Reference() {
                 set to a different value each time.
               </p>
 
-              <InteractiveCodeAndImage exampleFunc='repeat' initialSpec={[
-                {value: 'Repeat X', type: 'constant'},
-                {value: '25', name: 'start', type: 'xcoord'},
-                {value: '75', name: 'end', type: 'xcoord'},
-                {value: '{', type: 'constant'},
-                {value: '\n', type: 'constant'},
-                {value: '  Pen X', type: 'constant'},
-                {value: '\n', type: 'constant'},
-                {value: "  Line", type: 'constant'},
-                {value: 'X', type: 'constant'},
-                {value: '0', name: 'y0', type: 'ycoord'},
-                {value: 'X', type: 'constant'},
-                {value: '100', name: 'y1', type: 'ycoord'},
-                {value: '\n', type: 'constant'},
-                {value: '}', type: 'constant'},
-              ]} />
+              <InteractiveCodeAndImage example={Examples.repeat} />
 
             </ReferenceSection>
 
@@ -277,33 +220,7 @@ function Reference() {
               </p>
 
 
-              <InteractiveCodeAndImage exampleFunc='math' initialSpec={[
-                {value: 'Repeat X', type: 'constant'},
-                {value: '0', name: 'start', type: 'xcoord'},
-                {value: '100', name: 'end', type: 'xcoord'},
-                {value: '{', type: 'constant'},
-                {value: '\n', type: 'constant'},
-
-                {value: '  Set Xs (X -', type: 'constant'},
-                {value: '50', name: 'xshift', type: 'xcoord'},
-                {value: ')', type: 'constant', nospace: true},
-                {value: '\n', type: 'constant'},
-
-                {value: '  Set X2 (Xs * Xs)', type: 'constant'},
-                {value: '\n', type: 'constant'},
-
-                {value: '  Set Y (X2 /', type: 'constant'},
-                {value: '50', name: 'd', type: 'xcoord'},
-                {value: '+', type: 'constant'},
-                {value: '50', name: 'yshift', type: 'ycoord'},
-                {value: ')', type: 'constant', nospace: true},
-                {value: '\n', type: 'constant'},
-
-                {value: '  Set [X Y]', type: 'constant'},
-                {value: '100', type: 'color', name: 'pen'},
-                {value: '\n', type: 'constant'},
-                {value: '}', type: 'constant'},
-              ]} />
+              <InteractiveCodeAndImage example={Examples.math} />
             </ReferenceSection>
 
             <ReferenceSection registerRef={registerSection()} name="Questions"/>
