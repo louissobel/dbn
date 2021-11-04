@@ -12,16 +12,13 @@ import Navbar from 'react-bootstrap/Navbar';
 import Nav from 'react-bootstrap/Nav';
 import Container from 'react-bootstrap/Container';
 
-import About from './About'
-import DBNEditor from './DBNEditor'
-import NFTViewer from './NFTViewer'
-import Gallery from './Gallery'
-import Reference from './Reference'
-import EthereumConnect from './EthereumConnect'
-
 import frontendEnvironment from './frontend_environment'
-
-const COMPILE_PATH = '/evm_compile'
+import About from './site/About'
+import Editor from './editor/Editor'
+import Viewer from './gallery/Viewer'
+import Gallery from './gallery/Gallery'
+import Reference from './site/Reference'
+import EthereumConnect from './EthereumConnect'
 
 function DBNFTNavbar(props) {
   return (
@@ -60,7 +57,7 @@ function App() {
           <Switch>
             <Route exact path="/create">
               <DBNFTNavbar active="create"/>
-              <DBNEditor compilePath={COMPILE_PATH}/>
+              <Editor />
             </Route>
 
             <Route exact path="/">
@@ -75,7 +72,7 @@ function App() {
 
             <Route path='/dbnft/:tokenId'>
               <DBNFTNavbar active="gallery" />
-              <NFTViewer />
+              <Viewer />
             </Route>
 
             <Route path='/reference'>

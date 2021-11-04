@@ -24,9 +24,7 @@ import {defaultHighlightStyle} from "@codemirror/highlight"
 import {lintKeymap} from "@codemirror/lint"
 import {gutter, GutterMarker} from "@codemirror/gutter"
 
-
-
-import {dbnLanguage, dbnftHighlightStyle, maybeExtractDescription} from './lang-dbn/dbn'
+import {dbnLanguage, dbnftHighlightStyle, maybeExtractDescription} from '../lang-dbn/dbn'
 
 let disabledTheme = EditorView.theme({
   ".cm-content": {

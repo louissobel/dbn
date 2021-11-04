@@ -5,11 +5,10 @@ import { Icon } from '@iconify/react'
 import { AutoSizer, List, WindowScroller } from 'react-virtualized'
 
 
-import renderDBN from './dbn_renderer'
-import LoadingText from './LoadingText'
-import ImageViewer from './ImageViewer'
-
-import {dbnCoordinator} from './eth_tools'
+import renderDBN from '../render'
+import {dbnCoordinator} from '../eth_tools'
+import LoadingText from '../shared/LoadingText'
+import ImageViewer from '../shared/ImageViewer'
 
 const renderJobCache = {}
 

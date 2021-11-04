@@ -5,7 +5,7 @@ import { InjectedConnector } from '@web3-react/injected-connector'
 
 import Button from 'react-bootstrap/Button';
 
-import StatusDot from './StatusDot'
+import StatusDot from './shared/StatusDot'
 
 // TODO: set the chain IDs?
 const connector = new InjectedConnector()

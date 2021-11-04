@@ -6,7 +6,7 @@ import Row from 'react-bootstrap/Row';
 import { Icon } from '@iconify/react';
 
 import UIEditableCodeMirror from './UIEditableCodeMirror'
-import {SessionStorage, STORAGE_KEY_RESET_INITIAL_CODE} from './storage'
+import {SessionStorage, STORAGE_KEY_RESET_INITIAL_CODE} from '../storage'
 
 
 // RGB for the "guidebar" to appear showing what's moving in Line

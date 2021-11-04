@@ -4,7 +4,7 @@ import Worker from 'worker-loader!./dbn_renderer_worker.js'
 
 // TODO: terminate the worker??
 
-import frontendEnvironment from './frontend_environment'
+import frontendEnvironment from '../frontend_environment'
 
 // String --> bitmapBlob (or error...)
 // Emits

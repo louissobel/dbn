@@ -6,11 +6,11 @@ import Slider from 'rc-slider'
 import 'rc-slider/assets/index.css'
 
 import CodeMirror from '@uiw/react-codemirror';
-import {dbnLanguage, dbnftHighlightStyle} from './lang-dbn/dbn'
-
 import {EditorSelection} from "@codemirror/state"
 import {drawSelection} from "@codemirror/view"
 import {lineNumbers} from "@codemirror/gutter"
+
+import {dbnLanguage, dbnftHighlightStyle} from '../lang-dbn/dbn'
 
 
 // not "width" or "height" because alignmet can change

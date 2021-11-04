@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import Button from 'react-bootstrap/Button';
 import {Icon} from '@iconify/react'
 
-import StatusDot from './StatusDot'
+import StatusDot from '../shared/StatusDot'
 
 function GasStats({gasUsed}) {
   return (
@@ -53,7 +53,7 @@ function errorMessage(renderError) {
   }
 }
 
-function DBNResultRenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, darkmode}) {
+function RenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, darkmode}) {
 
   var status;
   switch (renderState) {
@@ -134,4 +134,4 @@ function DBNResultRenderStatus({renderState, renderError, codeSize, gasUsed, onC
 }
 
 
-export default DBNResultRenderStatus
+export default RenderStatus

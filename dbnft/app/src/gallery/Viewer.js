@@ -7,14 +7,13 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Alert from 'react-bootstrap/Alert';
 
-import renderDBN from './dbn_renderer'
-import TokenMetadataTable from './TokenMetadataTable'
-import DBNImageResult from './DBNImageResult'
-import LoadingText from './LoadingText'
+import renderDBN from '../render'
+import {eth, dbnCoordinator} from '../eth_tools'
+import ImageResult from '../image_result/ImageResult'
+import TokenMetadataTable from '../shared/TokenMetadataTable'
+import LoadingText from '../shared/LoadingText'
 
-import {eth, dbnCoordinator} from './eth_tools'
-
-function NFTViewer() {
+function Viewer() {
 
   const [tokenMetadata, setTokenMetadata] = useState(null);
   const [metadataLoading, setMetadataLoading] = useState(true);
@@ -112,7 +111,7 @@ function NFTViewer() {
             {metadataLoading && <LoadingText />}
             {tokenMetadata &&
               <>
-                <DBNImageResult
+                <ImageResult
                   description={tokenMetadata.description}
 
                   renderState={renderState}
@@ -137,4 +136,4 @@ function NFTViewer() {
   )
 }
 
-export default NFTViewer;
+export default Viewer;

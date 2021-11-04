@@ -8,14 +8,15 @@ import Modal from 'react-bootstrap/Modal';
 import { Icon } from '@iconify/react';
 
 
-import ImageViewer from './ImageViewer'
-import DBNCoordinator from './contracts/DBNCoordinator'
-import {prependDeployHeader} from './eth_tools'
-import TokenMetadataTable from './TokenMetadataTable'
+import frontendEnvironment from '../frontend_environment'
+import ImageViewer from '../shared/ImageViewer'
+import TokenMetadataTable from '../shared/TokenMetadataTable'
+import DBNCoordinator from '../contracts/DBNCoordinator'
 
-import frontendEnvironment from './frontend_environment'
+import {prependDeployHeader} from '../eth_tools'
 
-function DBNFTMinter(props) {
+
+function Minter(props) {
   const web3React = useWeb3React()
 
   const [isMinting, setIsMinting] = useState(false)
@@ -173,6 +174,6 @@ function DBNFTMinter(props) {
   );
 }
 
-export default DBNFTMinter;
+export default Minter;
 
 

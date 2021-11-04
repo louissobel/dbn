@@ -5,12 +5,13 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
 
-import renderDBN from './dbn_renderer'
+import ImageResult from '../image_result/ImageResult'
+import renderDBN from '../render'
+import {SessionStorage, STORAGE_KEY_RESET_INITIAL_CODE} from '../storage'
+import {maybeExtractDescription} from '../lang-dbn/dbn.js'
 import CodeInput from './CodeInput'
-import DBNImageResult from './DBNImageResult'
 
-import {SessionStorage, STORAGE_KEY_RESET_INITIAL_CODE} from './storage'
-import {maybeExtractDescription} from './lang-dbn/dbn.js'
+
 
 const MAX_MAGNIFICATION = 4
 const DEFAULT_INITIAL_CODE = `//description: a line\n\nLine 0 0 100 100`
@@ -27,7 +28,7 @@ if (SessionStorage.enabled) {
   }
 }
 
-class DBNEditor extends React.Component {
+class Editor extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -226,7 +227,7 @@ class DBNEditor extends React.Component {
       <Container>
         <Row className="pt-5">
           <Col sm={12} md={9} lg={6}>
-            <DBNImageResult
+            <ImageResult
               renderState={this.state.renderState}
               renderError={this.state.renderError}
               imageData={this.state.imageData}
@@ -255,4 +256,4 @@ class DBNEditor extends React.Component {
   }
 }
 
-export default DBNEditor;
+export default Editor;

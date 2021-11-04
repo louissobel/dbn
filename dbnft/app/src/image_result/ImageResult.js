@@ -2,14 +2,15 @@ import React, {useState} from 'react';
 
 import classNames from 'classnames';
 
-import DBNImageControlBar from './DBNImageControlBar'
-import ImageViewer from './ImageViewer'
-import DBNFTMinter from './DBNFTMinter'
-import DBNResultRenderStatus from './DBNResultRenderStatus'
+import Minter from '../minter/Minter'
+import ImageViewer from '../shared/ImageViewer'
+import ControlBar from './ControlBar'
+import RenderStatus from './RenderStatus'
+
 
 const MAX_MAGNIFICATION = 4
 
-function DBNImageResult(props) {
+function ImageResult(props) {
   const [magnfication, setMagnification] = useState(props.initialMagnification || 2)
   const [hoveringOverPixel, setHoveringOverPixel] = useState(null)
   const [darkmode, setDarkmode] = useState(false)
@@ -24,7 +25,7 @@ function DBNImageResult(props) {
 
   return(
     <div className={classNames('dbn-image-result', {'darkmode': darkmode})}>
-      <DBNImageControlBar
+      <ControlBar
         canZoomIn={magnfication < MAX_MAGNIFICATION}
         onZoomIn={() => zoomUpdate(1)}
         canZoomOut={magnfication > 1}
@@ -57,7 +58,7 @@ function DBNImageResult(props) {
 
       {props.showMinter &&
         <div className="mx-auto dbn-image-mint-controls">
-          <DBNFTMinter
+          <Minter
             disabled={!props.minterEnabled}
             bytecode={props.bytecode}
             description={props.description}
@@ -66,7 +67,7 @@ function DBNImageResult(props) {
         </div>
       }
 
-      <DBNResultRenderStatus
+      <RenderStatus
         renderState={props.renderState}
         renderError={props.renderError}
         codeSize={props.bytecode ? (props.bytecode.length - 2)/2 : null}
@@ -79,4 +80,4 @@ function DBNImageResult(props) {
   )
 }
 
-export default DBNImageResult;
+export default ImageResult;

@@ -19,7 +19,7 @@ function FixedPill({label, value, maxWidth}) {
   )
 }
 
-function DBNImageControlBar({
+function ControlBar({
     canZoomIn,
     canZoomOut,
     onZoomIn,
@@ -67,4 +67,4 @@ function DBNImageControlBar({
 }
 
 
-export default DBNImageControlBar
+export default ControlBar

@@ -2,7 +2,7 @@ import {assemble, parse} from "@ethersproject/asm";
 import VM from '@ethereumjs/vm'
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
-import harness from '!!raw-loader!./contracts/drawHarness.ethasm'
+import harness from '!!raw-loader!../contracts/drawHarness.ethasm'
 
 var evmAssemble = async function(data) {
 	const full = harness + "\n\n\n" + ";".repeat(50) + data;

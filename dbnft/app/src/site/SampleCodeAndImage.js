@@ -3,13 +3,13 @@ import React, {useState, useEffect} from 'react';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 
-import renderDBN from './dbn_renderer'
-import ImageViewer from './ImageViewer'
+import renderDBN from '../render'
+import ImageViewer from '../shared/ImageViewer'
 
 import CodeMirror from '@uiw/react-codemirror';
 import {drawSelection} from "@codemirror/view"
 import {lineNumbers} from "@codemirror/gutter"
-import {dbnLanguage, dbnftHighlightStyle} from './lang-dbn/dbn'
+import {dbnLanguage, dbnftHighlightStyle} from '../lang-dbn/dbn'
 
 function SampleCodeAndImage({ className, code, noheaders, onAssemblyPresent, onBytecodePresent}) {
   //TODO: handle errors in here
