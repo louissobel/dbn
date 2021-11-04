@@ -4,16 +4,16 @@
 ; state:  assumes 0x20 holds the "pixel data offset"
 ; notes:  
 @setCommand:
-  ; clip color to [0, 100]
-  $postSetCommandClipColor
+  ; clamp color to [0, 100]
+  $postSetCommandClampColor
   DUP4
-  JUMP($clipColor)
-  @postSetCommandClipColor:
+  JUMP($clampValue)
+  @postSetCommandClampColor:
   SWAP3
   POP()
 
   ; Line can call directly into this
-@setCommandPenAlreadyClipped:
+@setCommandPenAlreadyClamped:
   
   ; abandon if x or y too big or too small
   ; again taking advantage of unsigned comparison for negative

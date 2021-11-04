@@ -5,16 +5,11 @@
 ;         (and the pixelDataOffset lives at 0x20)
 ; notes:  
 @paperCommand:
-  ; clip color to [0, 100]
-  $postPaperCommandClipColor
+  ; clamp color to [0, 100]
+  $postPaperCommandClampColor
   SWAP1
-  JUMP($clipColor)
-  @postPaperCommandClipColor:
-
-  ; Save color to known location for future out of bounds
-  ; dot gets to return
-  DUP1
-  MSTORE8(0x0A, $$)
+  JUMP($clampValue)
+  @postPaperCommandClampColor:
 
   ; [color
   0x0101010101010101010101010101010101010101010101010101010101010101

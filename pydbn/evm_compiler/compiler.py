@@ -18,8 +18,7 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     """
     Memory layout
-    0x0000 : 10 bytes free
-    0x000A : The latest (clipped) Paper value
+    0x0000 : 11 bytes free
     0x000B : boolean byte indicating that the bitmap is fully initialized
     0x000C : right-aligned 20byte owning contract address
     0x0020 : pixel data offset
@@ -1207,9 +1206,9 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_push_label(label)
         self.update_stack(1, 'dot get internal (return)')
 
-        # [y|x
-        self.visit(node.left)
+        # [x|y
         self.visit(node.right)
+        self.visit(node.left)
 
         self.emit_jump('dotGet')
         self.emit_label(label)

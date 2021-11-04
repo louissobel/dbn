@@ -5,7 +5,7 @@ artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm : \
 	contracts/RenderDBN/lineCommand.ethasm \
 	contracts/RenderDBN/setCommand.ethasm \
 	contracts/RenderDBN/paperCommand.ethasm \
-	contracts/RenderDBN/clipColor.ethasm \
+	contracts/RenderDBN/clampValue.ethasm \
 	contracts/RenderDBN/envGet.ethasm \
 	contracts/RenderDBN/dotGet.ethasm
 	cat $^ > $@
@@ -48,7 +48,7 @@ artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm : \
 	contracts/RenderDBN/setCommand.ethasm \
 	contracts/RenderDBN/lineCommand.ethasm \
 	contracts/RenderDBN/paperCommand.ethasm \
-	contracts/RenderDBN/clipColor.ethasm
+	contracts/RenderDBN/clampValue.ethasm
 	cat $^ > artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm
 
 artifacts/contracts/RenderDBNTestArtifact.eth : artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm

@@ -1,3 +1,7 @@
-Paper 50
+Paper 25
+Pen 50
+Line 100 0 100 100
+
+// This should clip both to 100
 Set X [150 150]
 Line X 0 X 100

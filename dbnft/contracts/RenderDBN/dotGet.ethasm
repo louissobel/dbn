@@ -1,39 +1,27 @@
 ; def:    dotGet
-; input:  [y|x|return
+; input:  [x|y|return
 ; output: [value|
 ; state:  assumes 0x20 holds the "pixel data offset"
 ; notes:  
 @dotGet:
-  ; abandon if x or y too big or too small
-  ; taking advantage of unsigned comparison for negative
-  ; [y|x
-  100           ; [100|y|x
-  DUP1          ; [100|100|y|x
-  DUP3          ; [y|100|100|y|x
-  GT($$, $$)    ; [y>100|100|y|x
-  SWAP1         ; [100|y>100|y|x
-  DUP4          ; [x|100|y>100|y|x
-  GT($$, $$)    ; [x>100|y>100|y|x
-  OR($$, $$)    ; [x>100 or y>100|y|x
-  JUMPI($dotGetOutOfBounds, $$)
-    ; otherwise, get pixel
-    ; [y|x
-    MUL(104, $$)  ; [y*104|x
-    ADD($$, $$)   ; [y*104+x
-    MLOAD(0x20)   ; [pixelDataStart|y*104+x
-    ADD($$, $$)   ; [pixelDataOffset+y*104+x
-    MLOAD($$)     ; [fulldata
-    SHR(248, $$)  ; [byte|return
-    SWAP1         ; [return|byte
-    JUMP($$)
-
-  @dotGetOutOfBounds:
-  ; [y|x
-  POP()
-  POP()
-  ; If the dot get is out of bounds, we return whatever the latest
-  ; _paper_ value was, which is known to be at 0xA
-  MLOAD(0x0A)
-  SHR(248, $$)
+  ; clamp x
+  $postDotGetClampX
   SWAP1
+  JUMP($clampValue)
+  @postDotGetClampX:
+
+  SWAP1
+  ; clamp y
+  $postDotGetClampY
+  SWAP1
+  JUMP($clampValue)
+  @postDotGetClampY:
+
+  MUL(104, $$)  ; [y*104|x
+  ADD($$, $$)   ; [y*104+x
+  MLOAD(0x20)   ; [pixelDataStart|y*104+x
+  ADD($$, $$)   ; [pixelDataOffset+y*104+x
+  MLOAD($$)     ; [fulldata
+  SHR(248, $$)  ; [byte|return
+  SWAP1         ; [return|byte
   JUMP($$)

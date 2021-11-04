@@ -122,12 +122,11 @@ REVERT(0x00, 1)
 ;         assumes pen color at 0x40
 ; notes:  the weird argument layout is so we can easily swap pen to bottom of stack
 @lineCommand:
-  ; get pen, then clip it
-  ; clip pen to [0, 100]
-  $postLineCommandClipColor
+  ; get pen, then clamp it to [0, 100]
+  $postLineCommandClampColor
   MLOAD(0x40)
-  JUMP($clipColor)
-  @postLineCommandClipColor:
+  JUMP($clampValue)
+  @postLineCommandClampColor:
 
   ; [pen|y0|x1|y1|x0|ret
   SWAP4
@@ -168,7 +167,7 @@ REVERT(0x00, 1)
     DUP11                   ; [pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
     DUP8                    ; [x0|pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
     DUP10                   ; [y0|x0|pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    JUMP($setCommandPenAlreadyClipped)       
+    JUMP($setCommandPenAlreadyClamped)       
     @lineCommandPostSetCall:
     ; [err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
   
@@ -270,16 +269,16 @@ REVERT(0x00, 1)
 ; state:  assumes 0x20 holds the "pixel data offset"
 ; notes:  
 @setCommand:
-  ; clip color to [0, 100]
-  $postSetCommandClipColor
+  ; clamp color to [0, 100]
+  $postSetCommandClampColor
   DUP4
-  JUMP($clipColor)
-  @postSetCommandClipColor:
+  JUMP($clampValue)
+  @postSetCommandClampColor:
   SWAP3
   POP()
 
   ; Line can call directly into this
-@setCommandPenAlreadyClipped:
+@setCommandPenAlreadyClamped:
   
   ; abandon if x or y too big or too small
   ; again taking advantage of unsigned comparison for negative
@@ -315,16 +314,11 @@ REVERT(0x00, 1)
 ;         (and the pixelDataOffset lives at 0x20)
 ; notes:  
 @paperCommand:
-  ; clip color to [0, 100]
-  $postPaperCommandClipColor
+  ; clamp color to [0, 100]
+  $postPaperCommandClampColor
   SWAP1
-  JUMP($clipColor)
-  @postPaperCommandClipColor:
-
-  ; Save color to known location for future out of bounds
-  ; dot gets to return
-  DUP1
-  MSTORE8(0x0A, $$)
+  JUMP($clampValue)
+  @postPaperCommandClampColor:
 
   ; [color
   0x0101010101010101010101010101010101010101010101010101010101010101
@@ -364,36 +358,35 @@ REVERT(0x00, 1)
   POP()
   JUMP($$)
 
-  ; def:    clipColor
-; input:  [color|return
-; output: [color|
-; notes:  clips the color to [0, 100]
-@clipColor:
-  ; [color
-  0           ; [0|color
-  DUP1        ; [0|0|color
-  DUP3        ; [color|0|0|color
-  SGT($$, $$) ; [color>0|0|color
-  JUMPI($clipColorGreaterThanZero, $$)
+  ; def:    clampValue
+; input:  [value|return
+; output: [value|
+; notes:  clips the value to [0, 100]
+@clampValue:
+  ; [value
+  0           ; [0|value
+  DUP1        ; [0|0|value
+  DUP3        ; [value|0|0|value
+  SGT($$, $$) ; [value>0|0|value
+  JUMPI($clampValueGreaterThanZero, $$)
     ; otherwise, replace it with a zero
     SWAP1
-  @clipColorGreaterThanZero:
+  @clampValueGreaterThanZero:
   POP()
 
-  ; [color
-  100         ; [100|color
-  DUP1        ; [100|100|color
-  DUP3        ; [color|100|100|color
-  SLT($$, $$) ; [color<100|100|color
-  JUMPI($clipColorLessThan100, $$)
+  ; [value
+  100         ; [100|value
+  DUP1        ; [100|100|value
+  DUP3        ; [value|100|100|value
+  SLT($$, $$) ; [value<100|100|value
+  JUMPI($clampValueLessThan100, $$)
     ; otherwise, replace it with the 100
     SWAP1
-  @clipColorLessThan100:
+  @clampValueLessThan100:
   POP()
 
   SWAP1
   JUMP($$)
-
 ; def:    envGet
 ; input:  [env_base|bit|wordoffset|ret
 ; output: [value
@@ -424,41 +417,29 @@ REVERT(0x00, 1)
   SWAP1        ; [ret|value
   JUMP($$)
 ; def:    dotGet
-; input:  [y|x|return
+; input:  [x|y|return
 ; output: [value|
 ; state:  assumes 0x20 holds the "pixel data offset"
 ; notes:  
 @dotGet:
-  ; abandon if x or y too big or too small
-  ; taking advantage of unsigned comparison for negative
-  ; [y|x
-  100           ; [100|y|x
-  DUP1          ; [100|100|y|x
-  DUP3          ; [y|100|100|y|x
-  GT($$, $$)    ; [y>100|100|y|x
-  SWAP1         ; [100|y>100|y|x
-  DUP4          ; [x|100|y>100|y|x
-  GT($$, $$)    ; [x>100|y>100|y|x
-  OR($$, $$)    ; [x>100 or y>100|y|x
-  JUMPI($dotGetOutOfBounds, $$)
-    ; otherwise, get pixel
-    ; [y|x
-    MUL(104, $$)  ; [y*104|x
-    ADD($$, $$)   ; [y*104+x
-    MLOAD(0x20)   ; [pixelDataStart|y*104+x
-    ADD($$, $$)   ; [pixelDataOffset+y*104+x
-    MLOAD($$)     ; [fulldata
-    SHR(248, $$)  ; [byte|return
-    SWAP1         ; [return|byte
-    JUMP($$)
-
-  @dotGetOutOfBounds:
-  ; [y|x
-  POP()
-  POP()
-  ; If the dot get is out of bounds, we return whatever the latest
-  ; _paper_ value was, which is known to be at 0xA
-  MLOAD(0x0A)
-  SHR(248, $$)
+  ; clamp x
+  $postDotGetClampX
   SWAP1
+  JUMP($clampValue)
+  @postDotGetClampX:
+
+  SWAP1
+  ; clamp y
+  $postDotGetClampY
+  SWAP1
+  JUMP($clampValue)
+  @postDotGetClampY:
+
+  MUL(104, $$)  ; [y*104|x
+  ADD($$, $$)   ; [y*104+x
+  MLOAD(0x20)   ; [pixelDataStart|y*104+x
+  ADD($$, $$)   ; [pixelDataOffset+y*104+x
+  MLOAD($$)     ; [fulldata
+  SHR(248, $$)  ; [byte|return
+  SWAP1         ; [return|byte
   JUMP($$)

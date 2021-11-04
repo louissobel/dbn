@@ -1,0 +1,29 @@
+; def:    clampValue
+; input:  [value|return
+; output: [value|
+; notes:  clips the value to [0, 100]
+@clampValue:
+  ; [value
+  0           ; [0|value
+  DUP1        ; [0|0|value
+  DUP3        ; [value|0|0|value
+  SGT($$, $$) ; [value>0|0|value
+  JUMPI($clampValueGreaterThanZero, $$)
+    ; otherwise, replace it with a zero
+    SWAP1
+  @clampValueGreaterThanZero:
+  POP()
+
+  ; [value
+  100         ; [100|value
+  DUP1        ; [100|100|value
+  DUP3        ; [value|100|100|value
+  SLT($$, $$) ; [value<100|100|value
+  JUMPI($clampValueLessThan100, $$)
+    ; otherwise, replace it with the 100
+    SWAP1
+  @clampValueLessThan100:
+  POP()
+
+  SWAP1
+  JUMP($$)

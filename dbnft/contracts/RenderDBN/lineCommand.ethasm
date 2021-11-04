@@ -5,12 +5,11 @@
 ;         assumes pen color at 0x40
 ; notes:  the weird argument layout is so we can easily swap pen to bottom of stack
 @lineCommand:
-  ; get pen, then clip it
-  ; clip pen to [0, 100]
-  $postLineCommandClipColor
+  ; get pen, then clamp it to [0, 100]
+  $postLineCommandClampColor
   MLOAD(0x40)
-  JUMP($clipColor)
-  @postLineCommandClipColor:
+  JUMP($clampValue)
+  @postLineCommandClampColor:
 
   ; [pen|y0|x1|y1|x0|ret
   SWAP4
@@ -51,7 +50,7 @@
     DUP11                   ; [pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
     DUP8                    ; [x0|pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
     DUP10                   ; [y0|x0|pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    JUMP($setCommandPenAlreadyClipped)       
+    JUMP($setCommandPenAlreadyClamped)       
     @lineCommandPostSetCall:
     ; [err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
   
