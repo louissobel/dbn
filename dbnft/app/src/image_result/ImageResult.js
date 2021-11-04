@@ -8,7 +8,7 @@ import ControlBar from './ControlBar'
 import RenderStatus from './RenderStatus'
 
 
-const MAX_MAGNIFICATION = 4
+const MAX_MAGNIFICATION = 3
 
 function ImageResult(props) {
   const [magnfication, setMagnification] = useState(props.initialMagnification || 2)

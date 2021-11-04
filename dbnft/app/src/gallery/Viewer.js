@@ -103,7 +103,7 @@ function Viewer() {
     <Container>
       <Row className="pt-3 justify-content-md-center">
         <Col sm={12} md={9} lg={8} xl={6}>
-          <div class="p-3 dbn-nft-viewer">
+          <div class="dbn-nft-viewer">
             <h1>DBNFT #{tokenId.toString()}</h1>
 
             {notFound && <NotFound />}

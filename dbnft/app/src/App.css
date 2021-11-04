@@ -357,10 +357,13 @@ body {
   background-color:  green;
 }
 
+.ethereum-connect-navbar .dbnft-status-dot {
+  margin-right: 5px;
+}
+
 .ethereum-connect-connect-message {
   display: inline-block;
   margin-right: 5px;
-  margin-left: 5px;
   font-style: italic;
 }
 

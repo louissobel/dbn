@@ -21,6 +21,11 @@ function ConnectorFunction(web3React) {
   }
 }
 
+function truncateAccount(account) {
+  return account.slice(0, 5) + '...' + account.slice(38)
+}
+
+
 function EthereumConnect() {
   const web3React = useWeb3React()
 
@@ -32,9 +37,13 @@ function EthereumConnect() {
   if (window.ethereum === undefined) {
     inner = (<>
         <StatusDot error />
-        <div className = "ethereum-connect-connect-message">
+        <div className = "d-none d-lg-inline-block ethereum-connect-connect-message">
           you need to install MetaMask to connect to Ethereum
         </div>
+        <div className = "d-none d-md-inline-block d-lg-none ethereum-connect-connect-message">
+          MetaMask not installed
+        </div>
+
 
         <Button size="sm" variant="warning" href="https://metamask.io/download">
           Go to MetaMask
@@ -45,8 +54,11 @@ function EthereumConnect() {
     inner = (
       <>
         <StatusDot ok />
-        <div className = "ethereum-connect-connect-message">
+        <div className = "d-none d-lg-inline-block ethereum-connect-connect-message">
           connected to <span style={{fontFamily: "monospace"}}>{web3React.account}</span>
+        </div>
+        <div className = "d-none d-md-inline-block d-lg-none ethereum-connect-connect-message">
+          connected to <span style={{fontFamily: "monospace"}}>{truncateAccount(web3React.account)}</span>
         </div>
 
         <Button size="sm" variant="secondary" onClick={disconnect}>
@@ -58,18 +70,18 @@ function EthereumConnect() {
     inner = (
       <>
         <StatusDot pending />
-        <div className="ethereum-connect-connect-message">
-          no connected wallet
+        <div className="d-none d-md-inline-block ethereum-connect-connect-message">
+          not connected to ethereum
         </div>
         <Button size="sm" variant="primary" onClick={ConnectorFunction(web3React)}>
-          Connect to Ethereum
+          Connect
         </Button>
       </>
     )
   }
 
   return (
-    <div className="ethereum-connect-navbar" style={{color: "white"}}>
+    <div className="d-none d-sm-inline-block ethereum-connect-navbar" style={{color: "white"}}>
       {inner}
     </div>
   );

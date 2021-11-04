@@ -49,7 +49,7 @@ const environmentFromHostname = function (hostname) {
 			return 'localhost_rinkeby'
 		}
 		return 'localhost'
-	} else if (hostname.match(/.+?.dbnft.pages.dev/)) {
+	} else if (hostname.match(/.+?\.dbnft\.pages\.dev/)) {
 		return 'cloudflareStaging'
 	} else if (hostname === 'testnet.dbnft.io') {
 		return 'testnet'
