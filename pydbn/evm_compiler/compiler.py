@@ -1280,6 +1280,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         stack_slots = []
 
         stack_vars = set()
+        unused_args = set()
 
         all_gets = scope_dependencies.variable_gets
         self.log("---> Gets:")
@@ -1310,15 +1311,23 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         self.log("---> Variables (%s)" % stack_prioritized_variables)
         for s in stack_prioritized_variables:
-            eligible = self._is_stack_eligible(s, symbol_info[s], nudge=len(stack_slots))
+            info = symbol_info[s]
+            eligible = self._is_stack_eligible(s, info, nudge=len(stack_slots))
+            unused = self._is_unused(info)
             if s in arg_set:
                 if eligible:
-                    stack_vars.add(s)
-                    stack_slots.append(structures.ProcedureDefinition.StackSlot(True, s))
+                    if unused:
+                        unused_args.add(s)
+                    else:
+                        stack_vars.add(s)
+                        stack_slots.append(structures.ProcedureDefinition.StackSlot(True, s))
                 else:
                     local_env_args.append(s)
             else:
                 if eligible:
+                    if unused:
+                        raise AssertionError("how could a non-Arg be unused?")
+
                     stack_vars.add(s)
                     stack_slots.append(structures.ProcedureDefinition.StackSlot(False, s))
 
@@ -1328,6 +1337,8 @@ class DBNEVMCompiler(DBNAstVisitor):
         for s in all_symbols:
             if s in stack_vars:
                 self.log("   • %s: stack var, doesn't need env" % s)
+            elif s in unused_args:
+                self.log("   • %s: unused (by this or any child) arg, doesn't need env" % s)
             else:
                 # there's one exception. if the symbol:
                 # - is not written to (and is not an arg, which have implicit writes)
@@ -1345,10 +1356,20 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.log("--> Need Env to serve %s" % vars_needing_env)
 
 
+        # This is an invariant needed by the epilogue of a number,
+        # which, before popping off all the stackslots, needs to tuck
+        # the return Value right above the return address.
+        #
+        # It holds because—with the exception of unused variables—any variable
+        # will initially have a deepest_access of at least 1. Then, as we
+        # allocate stack slots, the nudged deepest access will continue to increase,
+        # and by the time we've allocated 16 stack slots that nudged access will be 17,
+        # and so no more variables will be eligible for the stack.
         if len(stack_slots) > 16:
             raise AssertionError("we should never end up with more than 16 stack slots! %d" % len(stack_slots))
 
         self.log("stack vars: %s" % stack_vars)
+        self.log("unused args: %s" % unused_args)
         self.log("local env args: %s" % local_env_args)
         self.log("stack slots: %s" % stack_slots)
         self.log("env needed: %s" % bool(vars_needing_env))
@@ -1390,11 +1411,25 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         return always_reachable and semantically_eligible
 
+    def _is_unused(self, info):
+        """
+        symbol is unused if read count is zero, write count is zero
+        _and_ it is not expected to be a global by any subcalls
+        """
+        return (
+            info['read_count'] == 0 and
+            info['write_count'] == 0 and
+            (not info['expected_global'])
+        )
+
     def _get_symbol_access_info(self, symbol, expected_globals, all_gets, all_sets):
         gets = [a for a in all_gets if a.symbol == symbol]
         sets = [a for a in all_sets if a.symbol == symbol]
 
         get_distances = [
+            # We add 1 here to represent that this is how far away
+            # any variable living on the stack would be. stack_size
+            # is how much _other_ stuff there is.
             (access.stack_size) + 1
             for access in gets
         ]
