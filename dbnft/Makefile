@@ -7,7 +7,8 @@ artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm : \
 	contracts/RenderDBN/paperCommand.ethasm \
 	contracts/RenderDBN/clampValue.ethasm \
 	contracts/RenderDBN/envGet.ethasm \
-	contracts/RenderDBN/dotGet.ethasm
+	contracts/RenderDBN/dotGet.ethasm \
+	contracts/RenderDBN/timeNumber.ethasm
 	cat $^ > $@
 
 .PRECIOUS : artifacts/drawings/%.ethasm
@@ -80,7 +81,7 @@ unitTest : testbase64 testInitializeBitmap testLineCommand testPaperCommand
 
 # Drawing Tests
 test/drawings/%/actual.bmp: artifacts/drawings/test/%.ethasm
-	hh assemble-and-run --file $< --output-file $@
+	hh assemble-and-run --file $< --output-file $@ --fixed-timestamp 1636140613
 
 artifacts/intermediate_ethasm/drawings/test/%.ethasm : test/drawings/%/input.dbn $(wildcard ../pydbn/**/*)
 	python ../pydbn/dbn.py $< --evm > $@

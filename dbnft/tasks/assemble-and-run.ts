@@ -4,6 +4,7 @@ const asm = require("@ethersproject/asm");
 import { BN } from 'ethereumjs-util'
 const ethers = require('ethers')
 import VM from '@ethereumjs/vm'
+import { Block } from '@ethereumjs/block'
 import InteractiveDebugger from './interactive_debugger'
 
 import { task } from "hardhat/config";
@@ -20,6 +21,10 @@ task("assemble-and-run", "Assembles given file and evals with debugger attached"
   .addOptionalParam(
     "outputFile",
     "write bytes",
+  )
+  .addOptionalParam(
+    "fixedTimestamp",
+    "use a fixed timestamp rather than Date.now"
   )
   .addFlag(
     "resultAsString",
@@ -54,8 +59,22 @@ task("assemble-and-run", "Assembles given file and evals with debugger attached"
 
     var codeBuffer = Buffer.from(assembled.slice(2), 'hex')
 
+    let timestamp;
+    if (params.fixedTimestamp) {
+      timestamp = parseInt(params.fixedTimestamp)
+    } else {
+      timestamp = Math.floor(Date.now() / 1000)
+    }
+
+    const block = Block.fromBlockData({
+      header: {
+        timestamp: timestamp,
+      }
+    })
+
     const runOpts = {
       code: codeBuffer,
+      block: block,
       gasLimit: new BN(0xffffffff),
       data: params.calldata ? Buffer.from(params.calldata.slice(2), 'hex') : undefined,
     }

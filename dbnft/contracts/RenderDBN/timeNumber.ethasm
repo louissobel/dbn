@@ -1,0 +1,46 @@
+; def:    timeNumber
+; input:  [d|return
+; output: [t|
+; state:  none
+; notes:  d=1 --> [0,23] hours, d=2 --> [0,59] minutes, d=3 --> [0,59] seconds else 0
+@timeNumber:
+  86400       ; [86400|d|return
+  TIMESTAMP   ; [now|86400|d|return
+  MOD($$, $$) ; [relevant|d|return
+
+  SWAP1
+  JUMPI($timeNumberHours, EQ(1, DUP1))
+  JUMPI($timeNumberMinutes, EQ(2, DUP1))
+  JUMPI($timeNumberSeconds, EQ(3, DUP1))
+  POP()
+  POP()
+  0
+  SWAP1
+  JUMP($$)
+
+  @timeNumberHours:
+    POP()   ; [relevant|ret
+    3600    ; [3600|relevant|ret
+    SWAP1   ; [relevant|3600|ret
+    DIV($$, $$)
+    SWAP1
+    JUMP($$)
+
+  @timeNumberMinutes:
+    POP()   ; [relevant|ret
+    3600    ; [3600|relevant|ret
+    SWAP1   ; [relevant|3600|ret
+    MOD($$, $$) ; [relevant%3600|ret
+    60
+    SWAP1
+    DIV($$, $$)
+    SWAP1
+    JUMP($$)
+
+  @timeNumberSeconds:
+    POP()
+    60
+    SWAP1
+    MOD($$, $$)
+    SWAP1
+    JUMP($$)

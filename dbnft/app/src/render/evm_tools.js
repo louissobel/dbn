@@ -1,5 +1,6 @@
 import {assemble, parse} from "@ethersproject/asm";
 import VM from '@ethereumjs/vm'
+import { Block } from '@ethereumjs/block'
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import harness from '!!raw-loader!../contracts/drawHarness.ethasm'
@@ -17,9 +18,16 @@ var evmInterpret = async function(bytecode, opts, onStep) {
     vm.on('step', onStep)
   }
 
+  const block = Block.fromBlockData({
+    header: {
+      // TODO: make this user-configurable in the header?
+      timestamp: Math.floor(Date.now() / 1000),
+    }
+  })
 
 	const runOpts = {
     code: Buffer.from(bytecode.slice(2), 'hex'),
+    block: block,
     gasLimit: opts.gasLimit,
     // no call data right now
     data: opts.data,

@@ -1,0 +1,18 @@
+//description: basic clock
+
+Command Bar X H {
+  Repeat X X (X+19) {
+    Line X 0 X H
+  }
+}
+
+Pen 50
+Line 0 15 100 15
+Line 0 30 100 30
+Line 0 45 100 45
+Line 0 60 100 60
+
+Pen 100
+Bar 5 <Time 1>
+Bar 30 <Time 2>
+Bar 55 <Time 3>
