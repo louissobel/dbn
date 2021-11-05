@@ -101,6 +101,8 @@ class DBNEVMCompiler(DBNAstVisitor):
         }
         self.log('Procedures: %s' % self.procedure_definitions_by_name)
 
+        self._ensure_no_procedures_clash_with_builtins()
+
         # Optimize
         self._allocate_stack_variables(node)
 
@@ -159,8 +161,24 @@ class DBNEVMCompiler(DBNAstVisitor):
             'Line': line,
             'Paper': paper,
             'Pen': pen,
+            'line': line,
+            'paper': paper,
+            'pen': pen,
             'DEBUGGER': debugger,
         }
+
+    def _ensure_no_procedures_clash_with_builtins(self):
+        for dfn in self.procedure_definitions:
+            builtin = self.builtin_procedures.get(dfn.name)
+            if builtin:
+                raise CompileError(
+                    "Custom %s %s clashes with builtin %s – name it something different" % (
+                        'number' if dfn.is_number else 'command',
+                        dfn.name,
+                        builtin.procedure_type,
+                    ),
+                    dfn.node.line_no,
+                )
 
     @contextlib.contextmanager
     def new_symbol_directory(self, new_directory, why='unknown'):
@@ -724,21 +742,25 @@ class DBNEVMCompiler(DBNAstVisitor):
         questions = {
             # Same --> jump around if not same
             'Same': (EQ, True),
+            'same': (EQ, True),
 
             # NotSame --> jump around if same
             'NotSame': (EQ, False),
+            'notsame': (EQ, False),
 
             # Smaller --> jump around if not smaller
             'Smaller': (SLT, True),
+            'smaller': (SLT, True),
 
             # Smaller --> jump around if smaller
             'NotSmaller': (SLT, False),
+            'notsmaller': (SLT, False),
         }
 
         compare_op, should_flip = questions[node.value]
         self.emit_opcode(compare_op)
         if should_flip:
-            self.emit_raw("XOR(1, $$)")
+            self.emit_opcode(ISZERO)
 
         after_body_label = self.generate_label('questionAfterBody')
         self.emit_jumpi(after_body_label)

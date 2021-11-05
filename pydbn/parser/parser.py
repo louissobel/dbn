@@ -468,13 +468,13 @@ def parse_arg(tokens):
         )
     elif first_token.type in ('OPENBRACE', 'CLOSEBRACE'):
         raise ParseError(
-            "Blocks (\"{\" or \"}\") aren't supported within a number",
+            "Blocks (\"{\" or \"}\") can't be used where a number or variable is expected. Did you possibly misspell a Repeat or Question at the start of the line?",
             first_token.line_no,
             first_token.char_no,
         )
     else:
         raise ParseError(
-            "Cannot use command \"%s\" as a number" % (
+            "Cannot use command \"%s\" where a number or variable is expected" % (
                 first_token.value,
             ),
             first_token.line_no,

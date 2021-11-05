@@ -1,0 +1,28 @@
+
+paper 75
+set c 20
+pen c
+set a 50
+line 0 0 a a
+
+repeat x 0 5 {
+  set [a (a + x)] c
+}
+
+repeat y 0 100 {
+  same? y (a + 2) {
+    pen 100
+    line 0 y 100 y
+  }
+  notsame? y (a + 2) {
+    pen c
+    smaller? y a {
+      line 100 y (a+2) y
+    }
+    notsmaller? y (a + 6) {
+      line 0 y (a - 2) y
+    }
+  }
+}
+
+

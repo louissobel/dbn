@@ -45,13 +45,13 @@ class DBNTokenizer:
         self.register('CLOSEANGLEBRACKET', r'(>)')
 
         # then keywords
-        self.register('SET',               r'(Set)\b')
-        self.register('REPEAT',            r'(Repeat)\b')
-        self.register('QUESTION',          r'(Same|NotSame|Smaller|NotSmaller)\?'),
-        self.register('COMMAND',           r'(Command)\b'),
-        self.register('NUMBERDEF',         r'(Number)\b'),
-        self.register('LOAD',              r'(Load)\b'),
-        self.register('VALUE',             r'(Value)\b'),
+        self.register('SET',               r'([sS]et)\b')
+        self.register('REPEAT',            r'([rR]epeat)\b')
+        self.register('QUESTION',          r'([sS]ame|NotSame|notsame|[sS]maller|NotSmaller|notsmaller)\?'),
+        self.register('COMMAND',           r'([cC]ommand)\b'),
+        self.register('NUMBERDEF',         r'([nN]umber)\b'),
+        self.register('LOAD',              r'([lL]oad)\b'),
+        self.register('VALUE',             r'([vV]alue)\b'),
 
         # then literals
         self.register('WORD',              r'([^\d\W]\w*)')
@@ -96,6 +96,9 @@ class DBNTokenizer:
                 return (type_, value)
 
         # Message ends up user-facing
+        if string[pos] == '?':
+            raise ValueError('Invalid Input: \"?\" — did you possibly misspell a Question')
+
         raise ValueError("Invalid input: \"%s\"" % (string[pos:].split("\n",1)[0]))
 
     def token_re(self):

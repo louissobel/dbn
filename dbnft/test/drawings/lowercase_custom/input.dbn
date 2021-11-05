@@ -1,0 +1,9 @@
+number double x {
+  value (x * 2)
+}
+
+command stretch p {
+  line p p <double p> <double p>
+}
+
+stretch 50
