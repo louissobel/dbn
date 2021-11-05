@@ -47,7 +47,7 @@ class DBNTokenizer:
         # then keywords
         self.register('SET',               r'([sS]et)\b')
         self.register('REPEAT',            r'([rR]epeat)\b')
-        self.register('QUESTION',          r'([sS]ame|NotSame|notsame|[sS]maller|NotSmaller|notsmaller)\?'),
+        self.register('QUESTION',          r'([sS]ame|NotSame|notsame|[sS]maller|NotSmaller|notsmaller)\? '),
         self.register('COMMAND',           r'([cC]ommand)\b'),
         self.register('NUMBERDEF',         r'([nN]umber)\b'),
         self.register('LOAD',              r'([lL]oad)\b'),
@@ -55,7 +55,7 @@ class DBNTokenizer:
 
         # then literals
         self.register('WORD',              r'([^\d\W]\w*)')
-        self.register('NUMBER',            r'(\d+)')
+        self.register('NUMBER',            r'(\d+)\b')
 
         # then newline (command seperator)
         self.register('NEWLINE',           r'(\n)')
@@ -97,7 +97,17 @@ class DBNTokenizer:
 
         # Message ends up user-facing
         if string[pos] == '?':
-            raise ValueError('Invalid Input: \"?\" — did you possibly misspell a Question')
+            next_char = None
+            try:
+                next_char = string[pos + 1]
+            except IndexError:
+                pass
+            if next_char is None or next_char != ' ':
+                raise ValueError("Invalid input: \"%s\" — did you possibly miss a space after a Question" % string[pos:].split(" ", 1)[0])
+            else:
+                raise ValueError('Invalid input: \"?\" — did you possibly misspell a Question')
+        elif re.compile(r"\d").match(string[pos]):
+            raise ValueError('Invalid input: \"%s\" — did you possibly miss a space after a number' % string[pos:].split(" ",1)[0])
 
         raise ValueError("Invalid input: \"%s\"" % (string[pos:].split("\n",1)[0]))
 
