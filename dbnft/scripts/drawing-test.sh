@@ -8,7 +8,7 @@ for actual in $@
 do
 	folder=$(dirname $actual)
 	compareOutput=$(compare -metric AE \
-		$folder/actual.bmp \
+		$actual \
 		$folder/expected.bmp \
 		$folder/diff.png 2>&1
 	)

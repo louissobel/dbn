@@ -1,7 +1,22 @@
 
 artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm : \
 	contracts/RenderDBN/drawHarness.ethasm \
-	contracts/RenderDBN/initializeBitmap.ethasm \
+	artifacts/intermediate_ethasm/inlinedHelpers.ethasm \
+	artifacts/intermediate_ethasm/alwaysInlined.ethasm
+	cat $^ > $@
+
+artifacts/intermediate_ethasm/helpersDrawHarness.ethasm : \
+	contracts/RenderDBN/drawHarness.ethasm \
+	contracts/RenderDBN/helpers/remoteClient.ethasm \
+	artifacts/intermediate_ethasm/alwaysInlined.ethasm
+	cat $^ > $@
+
+artifacts/intermediate_ethasm/inlinedHelpers.ethasm : \
+	contracts/RenderDBN/helpers/inlineClient.ethasm \
+	contracts/RenderDBN/helpers/initializeBitmap.ethasm
+	cat $^ > $@
+
+artifacts/intermediate_ethasm/alwaysInlined.ethasm : \
 	contracts/RenderDBN/lineCommand.ethasm \
 	contracts/RenderDBN/setCommand.ethasm \
 	contracts/RenderDBN/paperCommand.ethasm \
@@ -11,12 +26,26 @@ artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm : \
 	contracts/RenderDBN/timeNumber.ethasm
 	cat $^ > $@
 
+
+artifacts/intermediate_ethasm/helpers.ethasm : \
+	contracts/RenderDBN/helpers/helpersHarness.ethasm \
+	contracts/RenderDBN/helpers/initializeBitmap.ethasm
+	cat $^ > $@
+
+artifacts/contracts/helpers.eth : artifacts/intermediate_ethasm/helpers.ethasm
+	hh assemble --file $^ --output $@
+
+.PRECIOUS : artifacts/drawings/%.helpers.ethasm
+artifacts/drawings/%.helpers.ethasm: \
+	artifacts/intermediate_ethasm/helpersDrawHarness.ethasm \
+	artifacts/intermediate_ethasm/drawings/%.helpers.ethasm
+	cat $^ > $@
+
 .PRECIOUS : artifacts/drawings/%.ethasm
 artifacts/drawings/%.ethasm : \
 	artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm \
 	artifacts/intermediate_ethasm/drawings/%.ethasm
 	cat $^ > $@
-
 
 app/src/contracts/drawHarness.ethasm : artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm
 	cp $^ $@
@@ -44,7 +73,7 @@ artifacts/intermediate_ethasm/drawings/scratch_drawings/%.ethasm : scratch_drawi
 
 artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm : \
 	contracts/RenderDBN/testHarness.ethasm \
-	contracts/RenderDBN/initializeBitmap.ethasm \
+	contracts/RenderDBN/helpers/initializeBitmap.ethasm \
 	contracts/RenderDBN/base64encode.ethasm \
 	contracts/RenderDBN/setCommand.ethasm \
 	contracts/RenderDBN/lineCommand.ethasm \
@@ -83,13 +112,29 @@ unitTest : testbase64 testInitializeBitmap testLineCommand testPaperCommand
 test/drawings/%/actual.bmp: artifacts/drawings/test/%.ethasm
 	hh assemble-and-run --file $< --output-file $@ --fixed-timestamp 1636140613
 
+test/drawings/%/actual.helpers.bmp: \
+	artifacts/drawings/test/%.helpers.ethasm \
+	artifacts/contracts/helpers.eth
+	hh assemble-and-run --file $< --output-file $@ --fixed-timestamp 1636140613\
+		--load-contract 0xAABBCCDDEEFFAABBCCDDEEFFAABBCCDDEEFF1234:artifacts/contracts/helpers.eth
+
 artifacts/intermediate_ethasm/drawings/test/%.ethasm : test/drawings/%/input.dbn $(wildcard ../pydbn/**/*)
 	python ../pydbn/dbn.py $< --evm > $@
 
+artifacts/intermediate_ethasm/drawings/test/%.helpers.ethasm : test/drawings/%/input.dbn $(wildcard ../pydbn/**/*)
+	python ../pydbn/dbn.py $< --evm --evm-owning-contract 0xAABBCCDDEEFFAABBCCDDEEFFAABBCCDDEEFF1234 > $@
+
 TEST ?= *
-.PHONY : drawingTest
-drawingTest : $(foreach f, $(wildcard test/drawings/${TEST}), $f/actual.bmp)
+.PHONY : drawingTestInline
+drawingTestInline : $(foreach f, $(wildcard test/drawings/${TEST}), $f/actual.bmp)
 	./scripts/drawing-test.sh $^
+
+.PHONY : drawingTestHelpers
+drawingTestHelpers : $(foreach f, $(wildcard test/drawings/${TEST}), $f/actual.helpers.bmp)
+	./scripts/drawing-test.sh $^
+
+.PHONY : drawingTest
+drawingTest: drawingTestInline drawingTestHelpers
 
 .PHONY : test
 test : drawingTest unitTest

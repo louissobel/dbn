@@ -42,6 +42,5 @@ REVERT(0x00, 1)
   JUMP($dbnDraw)
   @dbnDrawComplete:
 
-    ; return the blob at 0x80
-    ; assumes length is still on top of the stack...
-    RETURN(0x80, $$)
+    ; return the blob at 0x80, 10962 long (bitmap)
+    RETURN(0x80, 10962)

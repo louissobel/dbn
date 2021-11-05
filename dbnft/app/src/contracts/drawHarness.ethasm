@@ -42,9 +42,16 @@ REVERT(0x00, 1)
   JUMP($dbnDraw)
   @dbnDrawComplete:
 
-    ; return the blob at 0x80
-    ; assumes length is still on top of the stack...
-    RETURN(0x80, $$)
+    ; return the blob at 0x80, 10962 long (bitmap)
+    RETURN(0x80, 10962)
+
+
+; "inlined" client for helpers, just a jump table
+
+@initializeBitmap:
+	JUMP($initializeBitmapImpl)
+
+
 ; def:    intializeBitmap
 ; input:  [dst|return
 ; output: [length
@@ -53,7 +60,7 @@ REVERT(0x00, 1)
 ;         does not initialize the pixel data itself; if this is called
 ;         at the end of touched memory that's fine (all zeros)
 ;         but otherwise could be problematic
-@initializeBitmap:
+@initializeBitmapImpl:
   ; image size is:
   ; header1 + header2 + palette + data
   ; 14 + 40 + 404 + 104*101
@@ -82,6 +89,7 @@ REVERT(0x00, 1)
   ADD(24, DUP1)
   SWAP1
   POP()
+
 
   ; Fill in the color table...
   ; 101 entries
@@ -112,8 +120,6 @@ REVERT(0x00, 1)
     POP()
 
   POP()  ; remove dst
-  10962  ; [len|ret
-  SWAP1  ; [ret|len
   JUMP($$)
 ; def:    lineCommand
 ; input:  [y0|x1|y1|x0|ret

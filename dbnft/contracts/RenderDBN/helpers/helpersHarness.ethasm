@@ -1,0 +1,40 @@
+;; Harness / entrypoint for the helpers harness itself
+
+
+ISZERO(CALLDATASIZE)
+JUMPI($errorNoCallData, $$)
+
+ISZERO(CALLVALUE)
+ISZERO($$) 
+JUMPI($errorNotPayable, $$) ; if _that_ is false, meaning there is value...
+
+
+SHR(0xF8, CALLDATALOAD(0))
+
+;; Jump Table
+JUMPI($initializeBitmap, EQ(0xB1, DUP1))
+
+; invalid opcode...
+MSTORE(0x00, 0x40)
+REVERT(0x00, 1)
+
+@errorNoCallData:
+  MSTORE8(0x00, 0x44)
+  REVERT(0x00, 1)
+
+@errorNotPayable:
+  MSTORE8(0x00, 0x45)
+  REVERT(0x00, 1)
+
+
+@initializeBitmap:
+  $postInitializeBitmapCall
+  0 ; initialize the bitmap at zero
+  JUMP($initializeBitmapImpl)
+  @postInitializeBitmapCall:
+
+  ; we only need to pass back the header, which is
+  ; 14 + 40 + 404
+  RETURN(0, 458)
+
+

@@ -1,0 +1,8 @@
+
+
+; "inlined" client for helpers, just a jump table
+
+@initializeBitmap:
+	JUMP($initializeBitmapImpl)
+
+

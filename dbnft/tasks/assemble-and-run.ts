@@ -1,7 +1,7 @@
 const fs = require('fs')
 const asm = require("@ethersproject/asm");
 
-import { BN } from 'ethereumjs-util'
+import { Account, Address, BN } from 'ethereumjs-util'
 const ethers = require('ethers')
 import VM from '@ethereumjs/vm'
 import { Block } from '@ethereumjs/block'
@@ -25,6 +25,10 @@ task("assemble-and-run", "Assembles given file and evals with debugger attached"
   .addOptionalParam(
     "fixedTimestamp",
     "use a fixed timestamp rather than Date.now"
+  )
+  .addOptionalParam(
+    "loadContract",
+    "a address:file pair to load as code"
   )
   .addFlag(
     "resultAsString",
@@ -56,6 +60,18 @@ task("assemble-and-run", "Assembles given file and evals with debugger attached"
       }
     }
     const vm = new VM(vmOpts)
+
+    if (params.loadContract) {
+      const [addressString, path] = params.loadContract.split(':')
+      const code = fs.readFileSync(path)
+      const address = new Address(Buffer.from(addressString.slice(2), 'hex'))
+      const account = Account.fromAccountData({ nonce: 0, balance: 0 })
+
+      await vm.stateManager.checkpoint()
+      await vm.stateManager.putAccount(address, account)
+      await vm.stateManager.putContractCode(address, code)
+      await vm.stateManager.commit()
+    }
 
     var codeBuffer = Buffer.from(assembled.slice(2), 'hex')
 

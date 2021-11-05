@@ -1,0 +1,23 @@
+
+
+; client to call helper contract
+
+; ASSUMES:
+; - helper address is at 0xC
+
+; input:  [dst|return
+; output: [
+@initializeBitmap:
+  MSTORE8(0, 0xB1) ; code for "Initialize Bitmap"
+
+  10962 ; ret length
+  SWAP1 ; ret offset (dst from arg)
+  1     ; arg length
+  0     ; arg offset
+  MLOAD(0) ; address ( from 0xC)
+  GAS   ; forward whatever's left
+  STATICCALL($$, $$, $$, $$, $$, $$)
+
+  ; assume success...
+  POP()
+  JUMP($$)

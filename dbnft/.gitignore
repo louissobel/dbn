@@ -8,5 +8,6 @@ truffle-artifacts
 migrations
 
 test/drawings/*/actual.bmp
+test/drawings/*/actual.helpers.bmp
 test/drawings/*/diff.png
 scratch_drawings/

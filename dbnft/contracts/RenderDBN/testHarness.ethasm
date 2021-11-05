@@ -17,10 +17,12 @@ JUMP($unknownTEST)
 
   $postTestInitializeBitmapCall
   0x40
-  JUMP($initializeBitmap)
+  JUMP($initializeBitmapImpl)
 
   @postTestInitializeBitmapCall:
 
+  ; get length on stack
+  10962
   JUMP($testStringReturn)
 
 @testLineCommand:
@@ -32,7 +34,7 @@ JUMP($unknownTEST)
 
   $postTestLineCommandInitializeBitmap
   0x40
-  JUMP($initializeBitmap)
+  JUMP($initializeBitmapImpl)
   @postTestLineCommandInitializeBitmap:
   ; hardcode pixeldataoffset to 0x20
   ;  0x40 + 14 + 40 + 404
@@ -52,6 +54,7 @@ JUMP($unknownTEST)
   JUMP($lineCommand)
   @postTestLineCommandCall:
 
+  10962 ; bitmap length
   JUMP($testStringReturn)
 
 @testPaperCommand:
@@ -63,7 +66,7 @@ JUMP($unknownTEST)
 
   $postTestPaperCommandInitializeBitmap
   0x40
-  JUMP($initializeBitmap)
+  JUMP($initializeBitmapImpl)
   @postTestPaperCommandInitializeBitmap:
   ; hardcode pixeldataoffset at 0x20
   ;  0x40 + 14 + 40 + 404
@@ -75,6 +78,7 @@ JUMP($unknownTEST)
   JUMP($paperCommand)
   @postTestPaperCommandCall:
 
+  10962 ; bitmap length
   JUMP($testStringReturn)
 
 @testBASE64ENCODE:
