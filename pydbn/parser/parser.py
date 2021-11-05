@@ -211,6 +211,9 @@ def parse_block_statement(tokens):
     elif first_token.type == 'VALUE':
         return parse_value(tokens)
 
+    elif first_token.type == 'OPENBRACE':
+        return parse_block(tokens, block_owning_token=first_token)
+
     elif first_token.type == 'NEWLINE':
         # then it is just an extra newline (noop)
         return parse_newline(tokens)
