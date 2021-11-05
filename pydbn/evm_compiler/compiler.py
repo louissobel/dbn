@@ -180,6 +180,29 @@ class DBNEVMCompiler(DBNAstVisitor):
                     dfn.node.line_no,
                 )
 
+    def _validate_side_effect(self, type_):
+        in_number = False
+        if self.current_procedure_definition:
+            if self.current_procedure_definition.is_number:
+                in_number = True
+
+        if in_number:
+            if type_ == 'set_dot':
+                action = 'Set a dot'
+            elif type_ == 'command_call':
+                action = 'call a command'
+            else:
+                raise AssertionError("unknown side effect type: %s" % type_)
+
+            raise CompileError(
+                "Cannot %s while inside a number definition (at line %d). Use a custom Command instead if you want side-effects." % (
+                    action,
+                    self.line_no,
+                ),
+                self.line_no,
+                line_number_in_message=True,
+            )
+
     @contextlib.contextmanager
     def new_symbol_directory(self, new_directory, why='unknown'):
         old_directory = self.symbol_directory
@@ -455,6 +478,8 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         # If left is a bracket, we're setting a single dot
         if   isinstance(left, DBNBracketNode):
+            self._validate_side_effect('set_dot')
+
             # Peer inside the bracket
             bracket_left, bracket_right = left.children
 
@@ -770,10 +795,12 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_label(after_body_label)
 
     def visit_procedure_call_node(self, node):
+        procedure_name = node.procedure_name.value
+
         if node.procedure_type == 'command':
             self.emit_line_no(node.line_no)
 
-        procedure_name = node.procedure_name.value
+            self._validate_side_effect('command_call')
 
         builtin = self.builtin_procedures.get(procedure_name)
         if builtin is not None:
