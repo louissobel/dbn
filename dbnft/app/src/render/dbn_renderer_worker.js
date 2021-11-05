@@ -63,7 +63,7 @@ const makeStepListener = function(throttleInterval) {
     if (now - lastCalled > throttleInterval) {
       lastCalled = now;
 
-      // We KNOW the Bitmap lives at 0x80....
+      // We KNOW the Bitmap lives at 0x0180....
       // And that it's 10962 long...
       //
       // We also know that 0x0B in memory is used
@@ -71,7 +71,7 @@ const makeStepListener = function(throttleInterval) {
       var wipImage = null;
       if (step.memory[0x0B]) {      
         wipImage = new Blob(
-          [step.memory.slice(0x80, 0x80 + 10962)],
+          [step.memory.slice(0x0180, 0x0180 + 10962)],
           {type: 'image/bmp'}
         )
       }

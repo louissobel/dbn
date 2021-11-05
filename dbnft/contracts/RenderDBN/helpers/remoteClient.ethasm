@@ -4,16 +4,17 @@
 
 ; ASSUMES:
 ; - helper address is at 0xC
+; - I have 8 words of memory: 0x80–0x0160
 
 ; input:  [dst|return
 ; output: [
 @initializeBitmap:
-  MSTORE8(0, 0xB1) ; code for "Initialize Bitmap"
+  MSTORE8(0x80, 0xB1) ; code for "Initialize Bitmap"
 
-  10962 ; ret length
+  458 ; ret length
   SWAP1 ; ret offset (dst from arg)
   1     ; arg length
-  0     ; arg offset
+  0x80     ; arg offset
   MLOAD(0) ; address ( from 0xC)
   GAS   ; forward whatever's left
   STATICCALL($$, $$, $$, $$, $$, $$)
@@ -21,3 +22,25 @@
   ; assume success...
   POP()
   JUMP($$)
+
+
+; input [d|return
+; output [t
+@timeNumber:
+  MSTORE(0x81, $$)
+  MSTORE8(0x80, 0xCC)
+
+  0x20 ; ret length — we're going to use the return buffer
+  0x80 ; ret offsert
+  0x21 ; arg length
+  0x80 ; arg offset
+  MLOAD(0) ; address
+  GAS ; forward whatever's left
+  STATICCALL($$, $$, $$, $$, $$, $$)
+
+  POP() ; assume success
+
+  MLOAD(0x80)
+  SWAP1
+  JUMP($$)
+

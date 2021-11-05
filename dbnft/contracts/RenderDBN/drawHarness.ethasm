@@ -28,9 +28,9 @@ REVERT(0x00, 1)
   RETURN(0x00, #metadataDescription)
 
 @render:
-  ; Initialize the bitmap @ 0x80
+  ; Initialize the bitmap @ 0x0180
   $postDrawHarnessInitializeBitmap
-  0x80
+  0x0180
   JUMP($initializeBitmap)
   @postDrawHarnessInitializeBitmap:
 
@@ -42,5 +42,5 @@ REVERT(0x00, 1)
   JUMP($dbnDraw)
   @dbnDrawComplete:
 
-    ; return the blob at 0x80, 10962 long (bitmap)
-    RETURN(0x80, 10962)
+    ; return the blob at 0x0180, 10962 long (bitmap)
+    RETURN(0x0180, 10962)

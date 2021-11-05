@@ -5,4 +5,7 @@
 @initializeBitmap:
 	JUMP($initializeBitmapImpl)
 
+@timeNumber:
+	JUMP($timeNumberImpl)
+
 

@@ -3,7 +3,7 @@
 ; output: [t|
 ; state:  none
 ; notes:  d=1 --> [0,23] hours, d=2 --> [0,59] minutes, d=3 --> [0,59] seconds else 0
-@timeNumber:
+@timeNumberImpl:
   86400       ; [86400|d|return
   TIMESTAMP   ; [now|86400|d|return
   MOD($$, $$) ; [relevant|d|return

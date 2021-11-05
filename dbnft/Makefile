@@ -13,7 +13,8 @@ artifacts/intermediate_ethasm/helpersDrawHarness.ethasm : \
 
 artifacts/intermediate_ethasm/inlinedHelpers.ethasm : \
 	contracts/RenderDBN/helpers/inlineClient.ethasm \
-	contracts/RenderDBN/helpers/initializeBitmap.ethasm
+	contracts/RenderDBN/helpers/initializeBitmap.ethasm \
+	contracts/RenderDBN/helpers/timeNumber.ethasm
 	cat $^ > $@
 
 artifacts/intermediate_ethasm/alwaysInlined.ethasm : \
@@ -22,14 +23,14 @@ artifacts/intermediate_ethasm/alwaysInlined.ethasm : \
 	contracts/RenderDBN/paperCommand.ethasm \
 	contracts/RenderDBN/clampValue.ethasm \
 	contracts/RenderDBN/envGet.ethasm \
-	contracts/RenderDBN/dotGet.ethasm \
-	contracts/RenderDBN/timeNumber.ethasm
+	contracts/RenderDBN/dotGet.ethasm
 	cat $^ > $@
 
 
 artifacts/intermediate_ethasm/helpers.ethasm : \
 	contracts/RenderDBN/helpers/helpersHarness.ethasm \
-	contracts/RenderDBN/helpers/initializeBitmap.ethasm
+	contracts/RenderDBN/helpers/initializeBitmap.ethasm \
+	contracts/RenderDBN/helpers/timeNumber.ethasm
 	cat $^ > $@
 
 artifacts/contracts/helpers.eth : artifacts/intermediate_ethasm/helpers.ethasm
