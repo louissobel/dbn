@@ -1,13 +1,25 @@
 import {assemble, parse} from "@ethersproject/asm";
 import VM from '@ethereumjs/vm'
+import { Account, Address } from 'ethereumjs-util'
 import { Block } from '@ethereumjs/block'
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
-import harness from '!!raw-loader!../contracts/drawHarness.ethasm'
+import inlineHarness from '!!raw-loader!../contracts/drawHarness.ethasm'
 
-var evmAssemble = async function(data) {
-	const full = harness + "\n\n\n" + ";".repeat(50) + data;
-	const ast = parse(full)
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import helperHarness from '!!raw-loader!../contracts/helpersDrawHarness.ethasm'
+
+
+var linkCode = function (assemblyCode, opts) {
+  if (opts.useHelpers) {
+    return helperHarness + "\n\n\n" + assemblyCode
+  } else {
+    return inlineHarness + "\n\n\n" + assemblyCode
+  }
+}
+
+var evmAssemble = async function(assembly) {
+	const ast = parse(assembly)
 	return await assemble(ast, {})
 }
 
@@ -16,6 +28,17 @@ var evmInterpret = async function(bytecode, opts, onStep) {
 
   if (onStep) {
     vm.on('step', onStep)
+  }
+
+  if (opts.helper) {
+    const helperAddress = new Address(Buffer.from(opts.helper.address, 'hex'))
+    const helperCode = Buffer.from(opts.helper.code, 'hex')
+    const helperAccount = Account.fromAccountData({ nonce: 0, balance: 0 })
+
+    await vm.stateManager.checkpoint()
+    await vm.stateManager.putAccount(helperAddress, helperAccount)
+    await vm.stateManager.putContractCode(helperAddress, helperCode)
+    await vm.stateManager.commit()
   }
 
   const block = Block.fromBlockData({
@@ -45,4 +68,5 @@ var evmInterpret = async function(bytecode, opts, onStep) {
 export {
 	evmAssemble,
 	evmInterpret,
+  linkCode,
 }

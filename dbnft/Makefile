@@ -55,6 +55,9 @@ artifacts/drawings/%.ethasm : \
 app/src/contracts/drawHarness.ethasm : artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm
 	cp $^ $@
 
+app/src/contracts/helpersDrawHarness.ethasm : artifacts/intermediate_ethasm/helpersDrawHarness.ethasm
+	cp $^ $@
+
 app/src/contracts/DBNCoordinator.json : artifacts/contracts/DBNCoordinator.sol/DBNCoordinator.json
 	cp $^ $@
 
@@ -66,11 +69,11 @@ FORCE:
 .PHONY : frontend
 frontend: \
 	app/src/contracts/drawHarness.ethasm \
+	app/src/contracts/helpersDrawHarness.ethasm \
 	app/src/contracts/DBNCoordinator.json
 
 artifacts/intermediate_ethasm/drawings/scratch_drawings/%.ethasm : scratch_drawings/%.dbn $(wildcard ../pydbn/**/*)
 	python ../pydbn/dbn.py $< --evm \
-		--evm-owning-contract 0xAABBCCDDEEFFAABBCCDDEEFFAABBCCDDEEFF1234 \
 		--evm-description 0x736372617463685f64726177696e67 \
 		> $@
 
@@ -128,7 +131,7 @@ artifacts/intermediate_ethasm/drawings/test/%.ethasm : test/drawings/%/input.dbn
 	python ../pydbn/dbn.py $< --evm > $@
 
 artifacts/intermediate_ethasm/drawings/test/%.helpers.ethasm : test/drawings/%/input.dbn $(wildcard ../pydbn/**/*)
-	python ../pydbn/dbn.py $< --evm --evm-owning-contract 0xAABBCCDDEEFFAABBCCDDEEFFAABBCCDDEEFF1234 > $@
+	python ../pydbn/dbn.py $< --evm --evm-helper-address 0xAABBCCDDEEFFAABBCCDDEEFFAABBCCDDEEFF1234 > $@
 
 TEST ?= *
 .PHONY : drawingTestInline

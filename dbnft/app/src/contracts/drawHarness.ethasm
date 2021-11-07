@@ -1,9 +1,9 @@
 ; Header / entry point for actually drawing
 
-; Load our "owning contract id" from code to 0x0C
+; Load our "helper contract address" from code to 0x0C
 ; (that right-aligns it at the word 0x00)
 ; if it's not present (length zero) this is noop
-CODECOPY(0x0C, $metadataOwningContract, #metadataOwningContract)
+CODECOPY(0x0C, $metadataHelperAddress, #metadataHelperAddress)
 
 
 ; ABI:
@@ -13,19 +13,29 @@ CODECOPY(0x0C, $metadataOwningContract, #metadataOwningContract)
 ISZERO(CALLDATASIZE)
 JUMPI($render, $$)
 
+; TODO: check for Value (this is not a payable contract :)
+
 SHR(0xF8, CALLDATALOAD(0))
 ;; Jump table for non-render functions:
 ;;  0xDE: get description data
 JUMPI($loadDescription, EQ(0xDE, DUP1))
+JUMPI($helperAddress, EQ(0x33, DUP1))
 
 ; revert!
 MSTORE8(0x00, 0x40) ; invalid opcode
 REVERT(0x00, 1)
 
-; load metadata returns
+; loadDescription returns embedded utf8 description string
 @loadDescription:
   CODECOPY(0x00, $metadataDescription, #metadataDescription)
   RETURN(0x00, #metadataDescription)
+
+; helperAddress returns the helper address we have stored 
+@helperAddress:
+  ; it's already loaded into memory (use compile-time length
+  ; so that we return an empty value if it's not set)
+  RETURN(0x0C, #metadataHelperAddress)
+
 
 @render:
   ; Initialize the bitmap @ 0x0180
@@ -46,15 +56,20 @@ REVERT(0x00, 1)
     RETURN(0x0180, 10962)
 
 
-; "inlined" client for helpers, just a jump table
+; "inlined" client for helpers, ~just a jump table
 
 @initializeBitmap:
 	JUMP($initializeBitmapImpl)
 
+@paperCommand:
+	MLOAD(0x20) ; get the dst in place (pixeldataoffset)
+	JUMP($paperCommandImpl)
+
+@linePixels:
+	JUMP($linePixelsImpl)
+
 @timeNumber:
 	JUMP($timeNumberImpl)
-
-
 ; def:    intializeBitmap
 ; input:  [dst|return
 ; output: [length
@@ -124,7 +139,328 @@ REVERT(0x00, 1)
 
   POP()  ; remove dst
   JUMP($$)
-; def:    timeNumber
+; def:    paperCommand
+; input:  [dst|color|return
+; output: [|
+; state: 
+; notes:  
+@paperCommandImpl:
+  SWAP1
+
+  ; clamp color to [0, 100]
+  $postPaperCommandClampColor
+  SWAP1
+  JUMP($clampValue)
+  @postPaperCommandClampColor:
+
+  ; [color|dst
+  0x0101010101010101010101010101010101010101010101010101010101010101
+  MUL($$, $$)
+
+  ; we need to write 101 * 104 = 10504 = 8 + 328*32 bytes
+  ; so first smash it into place
+  ; then set the cursor to 8 and tick up by 32
+
+  SWAP1           ; [dst|color
+  DUP2            ; [color|dst|color
+  DUP2            ; [dst|color|dst|color
+  MSTORE($$, $$)  ; [dst|color
+
+  ADD(8, $$)      ; [dst'|color
+  0               ; [i|dst|color
+  @paperCommandWriteLoop:
+    DUP3            ; [color|i|dst|color
+    DUP3            ; [dst|color|i|dst|color
+    ADD(32, $$)     ; [dst+32|color|i|dst|color
+    SWAP3           ; [dst|color|i|dst+32|color
+    MSTORE($$, $$)  ; [i|dst+32|color
+
+    ADD(1, $$)      ; [i+1|dst+32|color
+
+    ; top of stack is now how many times we've done this
+    ; we need 328
+    328             ; [328|i+1|dst+32|color
+    DUP2            ; [i+1|328|i+1|dst+32|color
+    LT($$, $$)      ; [keeplooping|i+1|dst+32|color
+
+    JUMPI($paperCommandWriteLoop, $$)
+
+  POP()
+  POP()
+  POP()
+  JUMP($$)
+
+  ; def:    linePixels
+; input:  [x0|y0|x1|y1|dst|pixelDataBase|ret
+; output: [|
+; notes:  writes up to 101 pairs of (x, y) bytes to dst+1 (number of pairs at dst)
+
+@linePixelsImpl:
+
+  ; increment dst by 1 to leave room for the eventual counter
+  DUP5
+  ADD(1, $$)
+  SWAP5
+  POP()
+
+  ; steep = abs(y1 - y0) > abs(x1 - x0)
+    ; abs(x1 - x0)
+      DUP1
+      DUP4
+      SUB($$, $$)
+      SAR(0xFF, DUP1)
+      DUP2
+      DUP2
+      ADD($$, $$)
+      XOR($$, $$)
+      SWAP1
+      POP()
+    ; abs(y1 - y0)
+      DUP3
+      DUP6
+      SUB($$, $$)
+      SAR(0xFF, DUP1)
+      DUP2
+      DUP2
+      ADD($$, $$)
+      XOR($$, $$)
+      SWAP1
+      POP()
+    GT($$, $$)
+
+  ; if steep:
+  JUMPI($linePixelsNoSteepSwap,   XOR(1, DUP1))
+    ; x0, y0 = y0, x0
+      DUP2
+      SWAP3
+      SWAP2
+      POP()
+
+    ; x1, y1 = y1, x1
+      DUP4
+      SWAP5
+      SWAP4
+      POP()
+
+  @linePixelsNoSteepSwap:
+  ; [steep|x0|y0|x1|y1|dst|pixelDataBase|ret
+
+  ; if x0 > x1: (skip if x0 < x1)
+  DUP4
+  DUP3
+  SLT($$, $$)
+  JUMPI($linePixelsNoXSwap, $$)
+    ; x0, x1 = x1, x0
+      DUP2 
+      SWAP4
+      SWAP2
+      POP()
+    ; y0, y1 = y1, y0
+      DUP3
+      SWAP5
+      SWAP3
+      POP()
+
+  @linePixelsNoXSwap:
+  ; [steep|x0|y0|x1|y1|dst|pixelDataBase|ret
+
+  ; if y0 < y1:
+  ;   ystep = 1
+  ; else:
+  ;   ystep = -1
+    DUP5
+    DUP4
+    SLT($$, $$)
+    DUP1
+    JUMPI($linePixelsYStepFound, $$)
+    NOT($$)
+
+  @linePixelsYStepFound:
+  ; [ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
+  
+  ; deltax = x1 - x0
+    DUP3
+    DUP6
+    SUB($$, $$)
+  ; [deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
+
+
+  ; deltay = abs(y1 - y0)
+    DUP5
+    DUP8
+    SUB($$, $$)
+    SAR(0xFF, DUP1)
+    DUP2
+    DUP2
+    ADD($$, $$)
+    XOR($$, $$)
+    SWAP1
+    POP()
+  ; [deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
+
+  ; error = -deltax / 2
+    SAR(1, DUP2) ; divide by 2 first
+    ADD(1, NOT($$)) ; negative
+  ; [error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
+
+
+  ; counter of how many pixels emitted
+  0
+
+  ; y = y0
+  ; for x in range(x0, x1 + 1):
+  ;     if steep:
+  ;         yield (y,x)
+  ;     else:
+  ;         yield (x,y)
+  ;   
+  ;     error = error + deltay
+  ;     if error > 0:
+  ;         y = y + ystep
+  ;         error = error - deltax
+  DUP8
+  DUP8
+
+  @linePixelsLoop:
+  ; [x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
+
+  ;;; skip the emit if (y < 0 or y > 100 or x < 0 or x > 100)
+  ;;;   --> we can actually simplify this to x > 100 | y > 100 if we used unsigned comparisons
+    100
+    DUP2
+    GT($$, $$)
+    100
+    DUP4
+    GT($$, $$)
+    JUMPI($linePixelsSkipEmit, OR($$, $$))
+
+  DUP2
+  DUP2
+  ; it's _actually_ [x, y at the head,
+  ; but steep means we skip the flip code, so flip here first
+  ; [yO|xO|x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
+  DUP10
+  JUMPI($linePixelsPostPotentialSteepOutputFlip, $$)
+  ; if we're "steep", we _skip_ this code, which is why
+  ; the initial yO / xO seem backwards...
+  SWAP1
+
+  @linePixelsPostPotentialSteepOutputFlip:
+  ; write actual data
+
+    ; [y|x
+    MUL(104, $$)
+    ADD($$, $$)
+    DUP15
+    ADD($$, $$)    ; [v|x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
+
+    DUP14 ; [dst|v|x|y|counter
+    DUP5  ; [counter|dst|v|x|y|counter
+    ADD($$, $$) ; [loc|v|x|y|counter
+
+    ; loc gets v & 0xFF00
+    ; loc+1 gets v & 0x00FF
+    DUP2              ; [v|loc|v|x|y|counter
+    AND(0xFF00, $$)   ; [v&0xFF00|loc|v|x|y|counter
+    SHR(8, $$)        ; [v&0xFF00>>8|loc|v|x|y|counter
+    DUP2              ; [loc|v&0xFF00|loc|v|x|y|counter
+    MSTORE8($$, $$)   ; [loc|v|x|y|counter
+    SWAP1             ; [v|loc|x|y|counter
+    AND(0xFF, $$)     ; [v&0xFF|loc|x|y|counter
+    SWAP1             ; [loc|v&0xFF|x|y|counter
+    ADD(1, $$)        ; [loc+1|v&0xFF|x|y|counter
+    MSTORE8($$, $$)
+
+    ; increment counter
+    DUP3
+    ADD(2, $$)
+    SWAP3
+    POP()
+
+
+  @linePixelsSkipEmit:
+
+
+  ; [x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
+
+  ;     error = error + deltay
+  ;     if error > 0: # skip block if !(error > 0)
+  ;         y = y + ystep
+  ;         error = error - deltax
+  DUP4
+  DUP6
+  ADD($$, $$)
+  0
+  DUP2
+  SGT($$, $$)
+  JUMPI($linePixelsPostErrorUpdate, XOR(1, $$))
+    ; [error'|x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
+    DUP3
+    DUP9
+    ADD($$, $$)
+    SWAP3
+    POP()
+
+    DUP7
+    SWAP1()
+    SUB($$, $$)
+
+  @linePixelsPostErrorUpdate:
+    ; error still top of stack, save it
+    SWAP4()
+    POP()
+
+
+  ; loop if x < (x1 + 1)
+  ADD(1, $$)
+  DUP1
+  ADD(1, DUP12)
+  SGT($$, $$)
+  JUMPI($linePixelsLoop, $$)
+
+  ;[x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
+
+
+  ; *(dst - 1) = counter/2
+  1
+  DUP14      ; [dst|1|x|y|counter
+  SUB($$, $$)
+  DUP4       ; [counter|dst|x|y
+  SHR(1, $$) ; [counter/2
+  SWAP1      
+  MSTORE8($$, $$)
+
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  JUMP($$)
+
+
+  ;    y = y0
+  ;    for x in range(x0, x1 + 1):
+  ;        if steep:
+  ;            yield (y,x)
+  ;        else:
+  ;            yield (x,y)
+  ;
+  ;        error = error + deltay
+  ;        if error > 0:
+  ;            y = y + ystep
+  ;            error = error - deltax
+
+  STOP
+  ; def:    timeNumber
 ; input:  [d|return
 ; output: [t|
 ; state:  none
@@ -171,152 +507,64 @@ REVERT(0x00, 1)
     SWAP1
     JUMP($$)
 ; def:    lineCommand
-; input:  [y0|x1|y1|x0|ret
+; input:  [y1|x1|y0|x0ret
 ; output: [|
 ; state:  assumes pixelDataOffset is at 0x20 (delegated assumption from Set)
 ;         assumes pen color at 0x40
-; notes:  the weird argument layout is so we can easily swap pen to bottom of stack
+;         assumes 8 words of scratch memory at 0x80
+; notes:  the weird argument layout is so we can easily swap a word to bottom of stack
 @lineCommand:
-  ; get pen, then clamp it to [0, 100]
+  ; [y1|x1|y0|x0
+  0x80                  ; [pixelListDst|y1|x1|y0|x0
+  SWAP2                 ; [x1|y1|pixelListDst|y0|x0
+  MLOAD(0x20)           ; [pixelDataBase|x1|y1|pixelListDst|y0|x0
+  SWAP4                 ; [y0|x1|y1|pixelListDst|pixelDataBase|x0
+  $postLinePixelsCall   ; [ret|y0|x1|y1|pixelListDst|pixelDataBase|x0
+  SWAP6                 ; [x0|y0|x1|y1|pixelListDst|pixelDataBase|ret
+  JUMP($linePixels)
+  @postLinePixelsCall:
+
+  ; get and clamp pen
   $postLineCommandClampColor
   MLOAD(0x40)
   JUMP($clampValue)
   @postLineCommandClampColor:
 
-  ; [pen|y0|x1|y1|x0|ret
-  SWAP4
+  ; [pen
 
-  ; [x0|y0|x1|y1|pen|ret
+  ; @debug [0xdd]
+  ; now copy in from the pixellist to the bitmap
+  SHR(0xf8, MLOAD(0x80)) ; [pixelCount|pen
+  0x81                   ; [listBase|pixelCount|pen
+  0                      ; [i|listBase|pixelCount|pen
+  JUMP($lineCommandPixelCopyTest)
 
-  ;   int dx =  abs(x1-x0), sx = x0<x1 ? 1 : -1;
-  ;   int dy = -abs(y1-y0), sy = y0<y1 ? 1 : -1;
+  @lineCommandPixelCopyLoop:
+    ; [i (guranteed < pixelcount)|listBase|pixelCount|pen
+    DUP1       ; [i|i|listBase|pixelCount|pen
+    SHL(1, $$) ; [i * 2|i|listBase|pixelCount|pen
+    DUP3       ; [listBase|i * 2|i|listBase|PixelCount|pen
+    ADD($$, $$); [thisPixel|i|listBase|pixelCount|pen
+    SHR(0xF0, MLOAD($$)) ; [loc|i|listBase|pixelCount|pen
+    DUP5
+    SWAP1
+    MSTORE8($$, $$)
 
-  $lineCommandPostYAbsAndSign ; [ret|x0|y0|x1|y1|pen|ret
-  DUP3        ; [y0|ret|x0|y0|x1|y1|pen|ret
-  DUP6        ; [y1|y0|ret|x0|y0|x1|y1|pen|ret
-  JUMP($lineCommandAbsAndSign)
-  @lineCommandPostYAbsAndSign:
-  ; [signY|abs(y1-y0)|x0|y0|x1|y1|pen|ret
+    ADD(1, $$) ; increment i
+
+  @lineCommandPixelCopyTest:
+    ; [i|listBase|pixelCount
+    DUP3
+    DUP2
+    LT($$, $$)
+    JUMPI($lineCommandPixelCopyLoop, $$)
 
 
-  $lineCommandPostXAbsAndSign ; [ret|signY|abs(y1-y0)|x0|y0|x1|y1|pen|ret
-  DUP4        ; [x0|ret|signY|abs(y1-y0)|x0|y0|x1|y1|pen|ret
-  DUP7        ; [x1|x0|ret|signY|abs(y1-y0)|x0|y0|x1|y1|pen|ret
-  JUMP($lineCommandAbsAndSign)
-  @lineCommandPostXAbsAndSign:
-
-  ; [signX|dx|signY|abs(y1-y0)|x0|y0|x1|y1|pen|ret
-  SWAP3     ; [abs(y1-y0)|dx|signY|signX|x0|y0|x1|y1|pen|ret
-  SUB(0, $$); [dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-
-  ;   int err = dx+dy;
-  DUP2        ; [dx|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-  DUP2        ; [dy|dx|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-  ADD($$, $$) ; [err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-
-  @lineCommandLoop:
-    ; [err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-
-    ; call into set to do the actual (optional) set...
-    $lineCommandPostSetCall ; [ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    DUP11                   ; [pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    DUP8                    ; [x0|pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    DUP10                   ; [y0|x0|pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    JUMP($setCommandPenAlreadyClamped)       
-    @lineCommandPostSetCall:
-    ; [err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-  
-    ; if (x0==x1 && y0==y1) break;
-      DUP8        ; [x1|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP7        ; [x0|x1|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      EQ($$, $$)  ; [x0=x1|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP10       ; [y1|x0=x1|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP9        ; [y0|y1|x0=x1|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      EQ($$, $$)  ; [y0=y1|x0=x1|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      JUMPI($lineCommandDone, AND($$, $$))
-
-  ;     e2 = 2*err;
-    ; [err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    DUP1         ; [err|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    MUL(2, $$)   ; [e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-
-  ;     if !(e2 < dy) { err += dy; x0 += sx; } /* e_xy+e_x > 0 */
-    DUP3         ; [dy|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    DUP2         ; [e2|dy|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    SLT($$, $$)  ; [e2<dy|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    JUMPI($lineCommandLoopNoXIncrement, $$)
-      ; [e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      SWAP1       ; [err|e2|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP3        ; [dy|err|e2|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      ADD($$, $$) ; [err'|e2|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      SWAP1       ; [e2|err'|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-
-      DUP7        ; [x0|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP7        ; [signX|x0|e2|err'|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      ADD($$, $$) ; [x0'|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      SWAP7       ; [x0|e2|err|dy|dx|signY|signX|x0'|y0|x1|y1|pen|ret
-      POP()       ; [e2|err|dy|dx|signY|signX|x0'|y0|x1|y1|pen|ret
-    @lineCommandLoopNoXIncrement:
-
-  ;     if !(e2 > dx) { err += dx; y0 += sy; } /* e_xy+e_y < 0 */
-    DUP4          ; [dx|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    DUP2          ; [e2|dx|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    SGT($$, $$)   ; [e2<dx|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    JUMPI($lineCommandLoopNoYIncrement, $$)
-      ; [e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      SWAP1       ; [err|e2|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP4        ; [dx|err|e2|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      ADD($$, $$) ; [err'|e2|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      SWAP1       ; [e2|err'|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-
-      DUP8        ; [y0|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP6        ; [signY|x0|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      ADD($$, $$) ; [y0'|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      SWAP8       ; [y0|e2|err|dy|dx|signY|signX|x0|y0'|x1|y1|pen|ret
-      POP()       ; [e2|err|dy|dx|signY|signX|x0|y0'|x1|y1|pen|ret
-
-    @lineCommandLoopNoYIncrement:
-      ; [e2|err|dy|dx|signY|signX|x0'|y0|x1|y1|pen|ret
-      POP() ; [err|dy|dx|signY|signX|x0'|y0|x1|y1|pen|ret
-      JUMP($lineCommandLoop)
-
-  @lineCommandDone:
-    ; [err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    POP()
-    POP()
-    POP()
-    POP()
-    POP()
-    POP()
     POP()
     POP()
     POP()
     POP()
     JUMP($$)
-
-  ; helper
-  ; input:  [c1|c0|ret
-  ; output: [signC|abs(c1-c0)
-  ; note:   "signC" is 1 if c1>0, -1 else
-  @lineCommandAbsAndSign:
-    SUB($$, $$) ; [c1-c0
-    1           ; [1|c1-c0
-    0           ; [0|1|c1-c0
-    DUP3        ; [c1-c0|0|1|c1-c0
-    SGT($$, $$) ; [c1-c0>0|1|c1-c0
-    JUMPI($lineCommandAbsAndSignNotNegative, $$)
-      ; [1|c1-c0
-      SUB(0, $$)
-    @lineCommandAbsAndSignNotNegative:
-      ; [signC|c1-c0
-      ; multiply $1 by $2
-      SWAP1       ; [c1-c0|signC
-      DUP2        ; [signC|c1-c0|signC
-      MUL($$, $$) ; [abs(c1-x0)|signC|ret
-      SWAP2       ; [ret|signC|abs(C1-x0)
-      JUMP($$)
-
-
 
 ; def:    setCommand
 ; input:  [y|x|color|return
@@ -362,58 +610,7 @@ REVERT(0x00, 1)
   POP()
   POP()
   JUMP($$)
-; def:    paperCommand
-; input:  [color|return
-; output: [|
-; state:  assumes there is a valid bitmap of dim 101x101 at pixelDataOffset
-;         (and the pixelDataOffset lives at 0x20)
-; notes:  
-@paperCommand:
-  ; clamp color to [0, 100]
-  $postPaperCommandClampColor
-  SWAP1
-  JUMP($clampValue)
-  @postPaperCommandClampColor:
-
-  ; [color
-  0x0101010101010101010101010101010101010101010101010101010101010101
-  MUL($$, $$)
-
-  ; we need to write 101 * 104 = 10504 = 8 + 328*32 bytes
-  ; so first smash it into place
-  ; then set the cursor to 8 and tick up by 32
-
-  ; Initialize dst to "pixel data offset" from 0x20
-  MLOAD(0x20)     ; [dst|color
-  DUP2            ; [color|dst|color
-  DUP2            ; [dst|color|dst|color
-  MSTORE($$, $$)  ; [dst|color
-
-  ADD(8, $$)      ; [dst'|color
-  0               ; [i|dst|color
-  @paperCommandWriteLoop:
-    DUP3            ; [color|i|dst|color
-    DUP3            ; [dst|color|i|dst|color
-    ADD(32, $$)     ; [dst+32|color|i|dst|color
-    SWAP3           ; [dst|color|i|dst+32|color
-    MSTORE($$, $$)  ; [i|dst+32|color
-
-    ADD(1, $$)      ; [i+1|dst+32|color
-
-    ; top of stack is now how many times we've done this
-    ; we need 328
-    328             ; [328|i+1|dst+32|color
-    DUP2            ; [i+1|328|i+1|dst+32|color
-    LT($$, $$)      ; [keeplooping|i+1|dst+32|color
-
-    JUMPI($paperCommandWriteLoop, $$)
-
-  POP()
-  POP()
-  POP()
-  JUMP($$)
-
-  ; def:    clampValue
+; def:    clampValue
 ; input:  [value|return
 ; output: [value|
 ; notes:  clips the value to [0, 100]

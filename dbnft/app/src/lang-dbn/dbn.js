@@ -70,3 +70,24 @@ export function maybeExtractDescription(code) {
     return null
   }
 }
+
+export function maybeExtractConfig(code) {
+  const lines = code.split("\n", 2)
+  let configLine = null;
+  if (lines[0] && lines[0].startsWith("//config: ")) {
+    configLine = lines[0]
+  } else if (lines[1] && lines[1].startsWith("//config: ")) {
+    configLine = lines[1]
+  } else {
+    return {}
+  }
+
+  // throw away the //config: at the start
+  const parts = configLine.split(' ').slice(1)
+  const config = {}
+  for (let part of parts) {
+    const kv = part.split('=')
+    config[kv[0]] = JSON.parse(kv[1])
+  }
+  return config
+}

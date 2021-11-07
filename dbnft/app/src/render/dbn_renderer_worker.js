@@ -1,6 +1,8 @@
 import './dbn_renderer_worker_etherjs_workaround'
-import {evmAssemble, evmInterpret} from './evm_tools'
+import {evmAssemble, evmInterpret, linkCode} from './evm_tools'
+import helperContractCodeByAddress from './helper_contracts'
 import { BN } from 'ethereumjs-util'
+import immediate from 'immediate'
 
 const GAS_LIMIT = new BN(0xffffffff)
 
@@ -17,6 +19,13 @@ onmessage = ({ data }) => {
   const opts = {
     compileEndpoint: data.frontendEnvironment.config.compileEndpoint,
     verbose: data.frontendEnvironment.config.verbose,
+
+    useHelpers: data.useHelpers,
+    helperAddress: data.helperAddress,
+  }
+
+  if (opts.useHelpers && !opts.helperAddress) {
+    throw new Error("useHelpers set but no helperAddress provided")
   }
 
   try {
@@ -61,7 +70,6 @@ const makeStepListener = function(throttleInterval) {
   return function(step) {
     const now = Date.now();
     if (now - lastCalled > throttleInterval) {
-      lastCalled = now;
 
       // We KNOW the Bitmap lives at 0x0180....
       // And that it's 10962 long...
@@ -69,23 +77,25 @@ const makeStepListener = function(throttleInterval) {
       // We also know that 0x0B in memory is used
       // as flag that the "bitmap is ready"
       var wipImage = null;
-      if (step.memory[0x0B]) {      
+      if (step.memory[0x0B]) {
         wipImage = new Blob(
           [step.memory.slice(0x0180, 0x0180 + 10962)],
           {type: 'image/bmp'}
         )
-      }
 
-      postMessage({
-        message: 'update',
-        value: {
-          update: 'INTERPRET_PROGRESS',
-          data: {
-            imageData: wipImage,
-            gasUsed: (GAS_LIMIT - step.gasLeft).toString()
+        postMessage({
+          message: 'update',
+          value: {
+            update: 'INTERPRET_PROGRESS',
+            data: {
+              imageData: wipImage,
+              gasUsed: (GAS_LIMIT - step.gasLeft).toString()
+            }
           }
-        }
-      })
+        })
+
+        lastCalled = now;
+      }
     }
   }
 }
@@ -94,8 +104,8 @@ const renderDBN = async function(data, opts, onRenderStateChange) {
   onRenderStateChange('COMPILE_START', {})
 
   const metadata = {};
-  if (data.owningContract) {
-    metadata['owning_contract'] = data.owningContract
+  if (opts.helperAddress) {
+    metadata['helper_address'] = opts.helperAddress
   }
   if (data.description) {
     metadata['description'] = "0x" + Buffer.from(data.description, 'utf-8').toString('hex')
@@ -136,7 +146,11 @@ const renderDBN = async function(data, opts, onRenderStateChange) {
 
 
   onRenderStateChange('ASSEMBLE_START', {})
-  const bytecode = await evmAssemble(assemblyCode)
+  const linkedAssembly = linkCode(assemblyCode, {
+    useHelpers: opts.useHelpers,
+  })
+
+  const bytecode = await evmAssemble(linkedAssembly)
   if (opts.verbose) {
     console.log(bytecode)
   }
@@ -175,9 +189,41 @@ const renderDBN = async function(data, opts, onRenderStateChange) {
 const renderDBNFromBytecode = async function(data, opts, onRenderStateChange) {
   onRenderStateChange('INTERPRET_START', {})
 
+  // First, attempt to get a "helper address" to load in
+  const helperAddressResult = await evmInterpret(
+    data.bytecode,
+    {gasLimit: GAS_LIMIT, data: Buffer.from([0x33])}
+  )
+  let helperAddress = Buffer.from(helperAddressResult.returnValue).toString('hex');
+  if (helperAddressResult.exceptionError) {
+    if (helperAddressResult.exceptionError.error === 'revert') {
+      console.warn('revert getting helperaddress: ' + helperAddress)
+      helperAddress = ""
+    } else {
+      throw new Error('error getting helper address: ' + helperAddress.exceptionError.error)
+    }
+  }
+
+  let helper = null;
+  if (helperAddress) {
+    if (opts.verbose) {
+      console.log("using helpers from address " + helperAddress)
+    }
+    const helperCode = helperContractCodeByAddress[helperAddress]
+    if (!helperCode) {
+      throw new Error('no helper code configured for address ' + helperAddress)
+    }
+
+    helper = {
+      address: helperAddress,
+      code: helperCode,
+    }
+  }
+
+
   const result = await evmInterpret(
     data.bytecode,
-    {gasLimit: GAS_LIMIT},
+    {gasLimit: GAS_LIMIT, helper},
     makeStepListener(100),
   )
 

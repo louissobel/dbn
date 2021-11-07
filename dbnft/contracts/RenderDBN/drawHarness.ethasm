@@ -1,9 +1,9 @@
 ; Header / entry point for actually drawing
 
-; Load our "owning contract id" from code to 0x0C
+; Load our "helper contract address" from code to 0x0C
 ; (that right-aligns it at the word 0x00)
 ; if it's not present (length zero) this is noop
-CODECOPY(0x0C, $metadataOwningContract, #metadataOwningContract)
+CODECOPY(0x0C, $metadataHelperAddress, #metadataHelperAddress)
 
 
 ; ABI:
@@ -13,19 +13,29 @@ CODECOPY(0x0C, $metadataOwningContract, #metadataOwningContract)
 ISZERO(CALLDATASIZE)
 JUMPI($render, $$)
 
+; TODO: check for Value (this is not a payable contract :)
+
 SHR(0xF8, CALLDATALOAD(0))
 ;; Jump table for non-render functions:
 ;;  0xDE: get description data
 JUMPI($loadDescription, EQ(0xDE, DUP1))
+JUMPI($helperAddress, EQ(0x33, DUP1))
 
 ; revert!
 MSTORE8(0x00, 0x40) ; invalid opcode
 REVERT(0x00, 1)
 
-; load metadata returns
+; loadDescription returns embedded utf8 description string
 @loadDescription:
   CODECOPY(0x00, $metadataDescription, #metadataDescription)
   RETURN(0x00, #metadataDescription)
+
+; helperAddress returns the helper address we have stored 
+@helperAddress:
+  ; it's already loaded into memory (use compile-time length
+  ; so that we return an empty value if it's not set)
+  RETURN(0x0C, #metadataHelperAddress)
+
 
 @render:
   ; Initialize the bitmap @ 0x0180

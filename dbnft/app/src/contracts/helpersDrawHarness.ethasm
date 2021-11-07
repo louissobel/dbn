@@ -1,0 +1,332 @@
+; Header / entry point for actually drawing
+
+; Load our "helper contract address" from code to 0x0C
+; (that right-aligns it at the word 0x00)
+; if it's not present (length zero) this is noop
+CODECOPY(0x0C, $metadataHelperAddress, #metadataHelperAddress)
+
+
+; ABI:
+; - if calldata is empty, then we render
+; - otherwise, first byte of calldata determines operation
+; - TODO: we should also have a single payable (if value>0) check
+ISZERO(CALLDATASIZE)
+JUMPI($render, $$)
+
+; TODO: check for Value (this is not a payable contract :)
+
+SHR(0xF8, CALLDATALOAD(0))
+;; Jump table for non-render functions:
+;;  0xDE: get description data
+JUMPI($loadDescription, EQ(0xDE, DUP1))
+JUMPI($helperAddress, EQ(0x33, DUP1))
+
+; revert!
+MSTORE8(0x00, 0x40) ; invalid opcode
+REVERT(0x00, 1)
+
+; loadDescription returns embedded utf8 description string
+@loadDescription:
+  CODECOPY(0x00, $metadataDescription, #metadataDescription)
+  RETURN(0x00, #metadataDescription)
+
+; helperAddress returns the helper address we have stored 
+@helperAddress:
+  ; it's already loaded into memory (use compile-time length
+  ; so that we return an empty value if it's not set)
+  RETURN(0x0C, #metadataHelperAddress)
+
+
+@render:
+  ; Initialize the bitmap @ 0x0180
+  $postDrawHarnessInitializeBitmap
+  0x0180
+  JUMP($initializeBitmap)
+  @postDrawHarnessInitializeBitmap:
+
+  ; In case anyone is looking at our memory, give indication
+  ; that the bitmap is now fully initialized
+  ; (concretely, the editor web interface uses this)
+  MSTORE8(0x0B, 1)
+
+  JUMP($dbnDraw)
+  @dbnDrawComplete:
+
+    ; return the blob at 0x0180, 10962 long (bitmap)
+    RETURN(0x0180, 10962)
+
+
+; client to call helper contract
+
+; ASSUMES:
+; - helper address is at 0xC
+; - I have 8 words of memory: 0x80–0x0160
+
+
+; input: [opcode|arglength|returndst|returnlength|ret
+; notes: arglength needs to include the opcode
+@callHelper:
+  MSTORE8(0x80, $$)
+  0x80
+  MLOAD(0)
+  GAS
+  STATICCALL($$, $$, $$, $$, $$, $$)
+
+  ; assume success...
+  POP()
+  JUMP($$)
+
+; input:  [dst|return
+; output: [
+@initializeBitmap:
+  458 ; ret length
+  SWAP1 ; ret offset (dst from arg)
+  1     ; arg length
+  0xB1  ; opcode
+
+  ; and we tailcall into the call
+  JUMP($callHelper)
+
+
+; input [color|return
+@paperCommand:
+  MSTORE(0x81, $$)
+
+  10504 ; ret length
+  MLOAD(0x20) ; (return data straight to the bitmap)
+  0x21  ; arg length
+  0xAE  ; opcode
+
+  ; and tailcall into the helper
+  JUMP($callHelper)
+
+
+; input [x0|y0|x1|y1|dst|pixelDataBase|return
+; output [t
+@linePixels:
+  MSTORE(0x81, $$) ; x0
+  MSTORE(0xA1, $$) ; y0
+  MSTORE(0xC1, $$) ; x1
+  MSTORE(0xE1, $$) ; y1
+  POP() ; we ignore "dst" for the remote client case (always will be 0x80)
+  MSTORE(0x0101, $$) ; pixelDataBase
+
+  0x0100 ; allow the whole scratch space for return
+  0x80  ; return dst
+  0xA1  ; arg length
+  0x1E ; opcode
+
+  ; tailcall straight into the helper
+  JUMP($callHelper)
+
+
+; input [d|return
+; output [t
+@timeNumber:
+  MSTORE(0x81, $$)
+
+  $postTimeNumberHelperCall
+
+
+  0x20 ; ret length
+  0x80 ; ret offsert
+  0x21 ; arg length
+  0xCC ; opcode
+
+  JUMP($callHelper)
+
+  @postTimeNumberHelperCall:
+
+  MLOAD(0x80)
+  SWAP1
+  JUMP($$)
+
+; def:    lineCommand
+; input:  [y1|x1|y0|x0ret
+; output: [|
+; state:  assumes pixelDataOffset is at 0x20 (delegated assumption from Set)
+;         assumes pen color at 0x40
+;         assumes 8 words of scratch memory at 0x80
+; notes:  the weird argument layout is so we can easily swap a word to bottom of stack
+@lineCommand:
+  ; [y1|x1|y0|x0
+  0x80                  ; [pixelListDst|y1|x1|y0|x0
+  SWAP2                 ; [x1|y1|pixelListDst|y0|x0
+  MLOAD(0x20)           ; [pixelDataBase|x1|y1|pixelListDst|y0|x0
+  SWAP4                 ; [y0|x1|y1|pixelListDst|pixelDataBase|x0
+  $postLinePixelsCall   ; [ret|y0|x1|y1|pixelListDst|pixelDataBase|x0
+  SWAP6                 ; [x0|y0|x1|y1|pixelListDst|pixelDataBase|ret
+  JUMP($linePixels)
+  @postLinePixelsCall:
+
+  ; get and clamp pen
+  $postLineCommandClampColor
+  MLOAD(0x40)
+  JUMP($clampValue)
+  @postLineCommandClampColor:
+
+  ; [pen
+
+  ; @debug [0xdd]
+  ; now copy in from the pixellist to the bitmap
+  SHR(0xf8, MLOAD(0x80)) ; [pixelCount|pen
+  0x81                   ; [listBase|pixelCount|pen
+  0                      ; [i|listBase|pixelCount|pen
+  JUMP($lineCommandPixelCopyTest)
+
+  @lineCommandPixelCopyLoop:
+    ; [i (guranteed < pixelcount)|listBase|pixelCount|pen
+    DUP1       ; [i|i|listBase|pixelCount|pen
+    SHL(1, $$) ; [i * 2|i|listBase|pixelCount|pen
+    DUP3       ; [listBase|i * 2|i|listBase|PixelCount|pen
+    ADD($$, $$); [thisPixel|i|listBase|pixelCount|pen
+    SHR(0xF0, MLOAD($$)) ; [loc|i|listBase|pixelCount|pen
+    DUP5
+    SWAP1
+    MSTORE8($$, $$)
+
+    ADD(1, $$) ; increment i
+
+  @lineCommandPixelCopyTest:
+    ; [i|listBase|pixelCount
+    DUP3
+    DUP2
+    LT($$, $$)
+    JUMPI($lineCommandPixelCopyLoop, $$)
+
+
+    POP()
+    POP()
+    POP()
+    POP()
+    JUMP($$)
+
+; def:    setCommand
+; input:  [y|x|color|return
+; output: [|
+; state:  assumes 0x20 holds the "pixel data offset"
+; notes:  
+@setCommand:
+  ; clamp color to [0, 100]
+  $postSetCommandClampColor
+  DUP4
+  JUMP($clampValue)
+  @postSetCommandClampColor:
+  SWAP3
+  POP()
+
+  ; Line can call directly into this
+@setCommandPenAlreadyClamped:
+  
+  ; abandon if x or y too big or too small
+  ; again taking advantage of unsigned comparison for negative
+  ; [y|x|color
+  100           ; [100|y|x|color
+  DUP1          ; [100|100|y|x|color
+  DUP3          ; [y|100|100|y|x|color
+  GT($$, $$)    ; [y>100|100|y|x|color
+  SWAP1         ; [100|y>100|y|x|color
+  DUP4          ; [x|100|y>100|y|x|color
+  GT($$, $$)    ; [x>100|y>100|y|x|color
+  OR($$, $$)    ; [x>100 or y>100|y|x|color
+  JUMPI($setCommandOutOfBounds, $$)
+  ; otherwise, draw!
+    ; [y|x|color
+    MUL(104, $$)  ; [y*104|x|color
+    ADD($$, $$)   ; [y*104+x|color
+    MLOAD(0x20)   ; [pixelDataStart|y*104+x|color
+    ADD($$, $$)   ; [pixelDataOffset+y*104+x|color
+    MSTORE8($$, $$)
+    JUMP($$) ; return
+
+  @setCommandOutOfBounds:
+  ; [y|x|color
+  POP()
+  POP()
+  POP()
+  JUMP($$)
+; def:    clampValue
+; input:  [value|return
+; output: [value|
+; notes:  clips the value to [0, 100]
+@clampValue:
+  ; [value
+  0           ; [0|value
+  DUP1        ; [0|0|value
+  DUP3        ; [value|0|0|value
+  SGT($$, $$) ; [value>0|0|value
+  JUMPI($clampValueGreaterThanZero, $$)
+    ; otherwise, replace it with a zero
+    SWAP1
+  @clampValueGreaterThanZero:
+  POP()
+
+  ; [value
+  100         ; [100|value
+  DUP1        ; [100|100|value
+  DUP3        ; [value|100|100|value
+  SLT($$, $$) ; [value<100|100|value
+  JUMPI($clampValueLessThan100, $$)
+    ; otherwise, replace it with the 100
+    SWAP1
+  @clampValueLessThan100:
+  POP()
+
+  SWAP1
+  JUMP($$)
+; def:    envGet
+; input:  [env_base|bit|wordoffset|ret
+; output: [value
+; state:  <none>
+; notes:  climbs environment looking for the variable given by combination
+;         of "bit" and wordoffset, remembering the structure of an env:
+;         {bitmap|parent_env|vars...}
+;         Assumes that eventually, some base env will always have a result!
+@envGet:
+  ; load the bitmap
+  DUP1        ; [env_base|env_base|bit|wordoffset
+  MLOAD($$)   ; [bitmap|env_base|bit|wordoffset
+  DUP3        ; [bit|bitmap|env_base|bit|wordoffset
+  AND($$, $$) ; [found|env_base|bit|wordoffset
+  JUMPI($envGetFound, $$)
+  ; otherwise, loop
+  ; [env_base|bit|wordoffset
+  ADD(0x20, $$) ; [env_base+32|bit|wordoffset
+  MLOAD($$)     ; [parent_env_base|bit|wordoffset
+  JUMP($envGet)
+
+@envGetFound:
+  ; [env_base|bit|wordoffset|ret
+  SWAP1        ; [bit|env_base|wordoffset|ret
+  POP()        ; [env_base|wordoffset|ret
+  ADD($$, $$)  ; [value_addr|ret
+  MLOAD($$)    ; [value|ret
+  SWAP1        ; [ret|value
+  JUMP($$)
+; def:    dotGet
+; input:  [x|y|return
+; output: [value|
+; state:  assumes 0x20 holds the "pixel data offset"
+; notes:  
+@dotGet:
+  ; clamp x
+  $postDotGetClampX
+  SWAP1
+  JUMP($clampValue)
+  @postDotGetClampX:
+
+  SWAP1
+  ; clamp y
+  $postDotGetClampY
+  SWAP1
+  JUMP($clampValue)
+  @postDotGetClampY:
+
+  MUL(104, $$)  ; [y*104|x
+  ADD($$, $$)   ; [y*104+x
+  MLOAD(0x20)   ; [pixelDataStart|y*104+x
+  ADD($$, $$)   ; [pixelDataOffset+y*104+x
+  MLOAD($$)     ; [fulldata
+  SHR(248, $$)  ; [byte|return
+  SWAP1         ; [return|byte
+  JUMP($$)

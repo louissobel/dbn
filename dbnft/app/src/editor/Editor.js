@@ -8,7 +8,7 @@ import Col from 'react-bootstrap/Col';
 import ImageResult from '../image_result/ImageResult'
 import renderDBN from '../render'
 import {SessionStorage, STORAGE_KEY_RESET_INITIAL_CODE} from '../storage'
-import {maybeExtractDescription} from '../lang-dbn/dbn.js'
+import {maybeExtractDescription, maybeExtractConfig} from '../lang-dbn/dbn.js'
 import CodeInput from './CodeInput'
 
 
@@ -75,9 +75,13 @@ class Editor extends React.Component {
       gasUsed: null,
     })
 
+    const codeConfig = maybeExtractConfig(code)
+    console.log(codeConfig)
+
     const renderOpts = {
       code: code,
-      owningContract: process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS,
+      useHelpers: !codeConfig.nohelpers,
+      helperAddress: '0xAABBCCDDEEFFAABBCCDDEEFFAABBCCDDEEFF1234',
     }
     const description = maybeExtractDescription(code)
     if (description) {
