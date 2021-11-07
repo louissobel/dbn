@@ -1,148 +1,70 @@
 ; def:    lineCommand
-; input:  [y0|x1|y1|x0|ret
+; input:  [x1|y1|y0|x0|ret
 ; output: [|
 ; state:  assumes pixelDataOffset is at 0x20 (delegated assumption from Set)
 ;         assumes pen color at 0x40
-; notes:  the weird argument layout is so we can easily swap pen to bottom of stack
+;         assumes 8 words of scratch memory at 0x80
+; notes:  the weird argument layout is so we can easily swap a word to bottom of stack
 @lineCommand:
-  ; get pen, then clamp it to [0, 100]
+  0x80   ; [pixelListDst|x1|y1|y0|x0
+  SWAP3  ; [y0|x1|y1|pixelListDst|x0
+  $postLinePixelsCall ; [ret|y0|x1|y1|pixelListDst|x0
+  SWAP5               ; [x0|y0|x1|y1|pixelListDst|ret
+  JUMP($linePixels)
+  @postLinePixelsCall:
+
+  ; load pixel data base
+  MLOAD(0x20)
+
+
+  ; get and clamp pen
   $postLineCommandClampColor
   MLOAD(0x40)
   JUMP($clampValue)
   @postLineCommandClampColor:
 
-  ; [pen|y0|x1|y1|x0|ret
-  SWAP4
+  ; [pen|pixelDataBase
 
-  ; [x0|y0|x1|y1|pen|ret
-
-  ;   int dx =  abs(x1-x0), sx = x0<x1 ? 1 : -1;
-  ;   int dy = -abs(y1-y0), sy = y0<y1 ? 1 : -1;
-
-  $lineCommandPostYAbsAndSign ; [ret|x0|y0|x1|y1|pen|ret
-  DUP3        ; [y0|ret|x0|y0|x1|y1|pen|ret
-  DUP6        ; [y1|y0|ret|x0|y0|x1|y1|pen|ret
-  JUMP($lineCommandAbsAndSign)
-  @lineCommandPostYAbsAndSign:
-  ; [signY|abs(y1-y0)|x0|y0|x1|y1|pen|ret
+  ; now copy in from the pixellist to the bitmap
+  SHR(0xf8, MLOAD(0x80)) ; [pixelCount|pen|pixelDataBase
+  0x81                   ; [listBase|pixelCount|pen|pixelDataBase
+  0                      ; [i|listBase|pixelCount|pen|pixelDataBase
+  JUMP($lineCommandPixelCopyTest)
 
 
-  $lineCommandPostXAbsAndSign ; [ret|signY|abs(y1-y0)|x0|y0|x1|y1|pen|ret
-  DUP4        ; [x0|ret|signY|abs(y1-y0)|x0|y0|x1|y1|pen|ret
-  DUP7        ; [x1|x0|ret|signY|abs(y1-y0)|x0|y0|x1|y1|pen|ret
-  JUMP($lineCommandAbsAndSign)
-  @lineCommandPostXAbsAndSign:
+  @lineCommandPixelCopyLoop:
+    ; [i (guranteed < pixelcount)|listBase|pixelCount|pen|pixelDataBase
+    DUP1       ; [i|i|listBase|pixelCount|pen|pixelDataBase
+    SHL(1, $$) ; [i * 2|i|listBase|pixelCount|pen|pixelDataBase
+    DUP3       ; [listBase|i * 2|i|listBase|PixelCount|pen|pixelDataBase
+    ADD($$, $$); [thisPixel|i|listBase|pixelCount|pen|pixelDataBase
+    SHR(0xF0, MLOAD($$)) ; [yx|i|listBase|pixelCount|pen|pixelDataBase
+    DUP1          ; [yx|yx|i|listBase|pixelCount|pen|pixelDataBase
+    AND(0xFF, $$) ; [x|yx|i|listBase|pixelCount|pen|pixelDataBase
+    SWAP1         ; [yx|x|i|listBase|pixelCount|pen|pixelDataBase
+    SHR(8, $$)    ; [y|x|i|listBase|pixelCount|pen|pixelDataBase
+    MUL(104, $$)  ; [y*104|x|i|listBase|pixelCount|pen|pixelDataBase
+    ADD($$, $$)   ; [y*104+x|i|listBase|pixelCount|pen|pixelDataBase
+    DUP6          ; [pixelDataBase|y*104+x|i|listBase|pixelCount|pen|pixelDataBase
+    ADD($$, $$)   ; [loc|i|listBase|pixelCount|pen|pixelDataBase
+    DUP5          ; [pen|loc|i|listBase|pixelCount|pen|pixelDataBase
+    SWAP1
+    MSTORE8($$, $$)
 
-  ; [signX|dx|signY|abs(y1-y0)|x0|y0|x1|y1|pen|ret
-  SWAP3     ; [abs(y1-y0)|dx|signY|signX|x0|y0|x1|y1|pen|ret
-  SUB(0, $$); [dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
+    ADD(1, $$) ; increment i
 
-  ;   int err = dx+dy;
-  DUP2        ; [dx|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-  DUP2        ; [dy|dx|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-  ADD($$, $$) ; [err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
+  @lineCommandPixelCopyTest:
+    ; [i|listBase|pixelCount
+    DUP3
+    DUP2
+    LT($$, $$)
+    JUMPI($lineCommandPixelCopyLoop, $$)
 
-  @lineCommandLoop:
-    ; [err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
 
-    ; call into set to do the actual (optional) set...
-    $lineCommandPostSetCall ; [ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    DUP11                   ; [pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    DUP8                    ; [x0|pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    DUP10                   ; [y0|x0|pen|ret|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    JUMP($setCommandPenAlreadyClamped)       
-    @lineCommandPostSetCall:
-    ; [err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-  
-    ; if (x0==x1 && y0==y1) break;
-      DUP8        ; [x1|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP7        ; [x0|x1|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      EQ($$, $$)  ; [x0=x1|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP10       ; [y1|x0=x1|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP9        ; [y0|y1|x0=x1|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      EQ($$, $$)  ; [y0=y1|x0=x1|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      JUMPI($lineCommandDone, AND($$, $$))
-
-  ;     e2 = 2*err;
-    ; [err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    DUP1         ; [err|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    MUL(2, $$)   ; [e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-
-  ;     if !(e2 < dy) { err += dy; x0 += sx; } /* e_xy+e_x > 0 */
-    DUP3         ; [dy|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    DUP2         ; [e2|dy|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    SLT($$, $$)  ; [e2<dy|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    JUMPI($lineCommandLoopNoXIncrement, $$)
-      ; [e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      SWAP1       ; [err|e2|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP3        ; [dy|err|e2|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      ADD($$, $$) ; [err'|e2|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      SWAP1       ; [e2|err'|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-
-      DUP7        ; [x0|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP7        ; [signX|x0|e2|err'|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      ADD($$, $$) ; [x0'|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      SWAP7       ; [x0|e2|err|dy|dx|signY|signX|x0'|y0|x1|y1|pen|ret
-      POP()       ; [e2|err|dy|dx|signY|signX|x0'|y0|x1|y1|pen|ret
-    @lineCommandLoopNoXIncrement:
-
-  ;     if !(e2 > dx) { err += dx; y0 += sy; } /* e_xy+e_y < 0 */
-    DUP4          ; [dx|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    DUP2          ; [e2|dx|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    SGT($$, $$)   ; [e2<dx|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    JUMPI($lineCommandLoopNoYIncrement, $$)
-      ; [e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      SWAP1       ; [err|e2|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP4        ; [dx|err|e2|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      ADD($$, $$) ; [err'|e2|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      SWAP1       ; [e2|err'|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-
-      DUP8        ; [y0|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      DUP6        ; [signY|x0|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      ADD($$, $$) ; [y0'|e2|err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-      SWAP8       ; [y0|e2|err|dy|dx|signY|signX|x0|y0'|x1|y1|pen|ret
-      POP()       ; [e2|err|dy|dx|signY|signX|x0|y0'|x1|y1|pen|ret
-
-    @lineCommandLoopNoYIncrement:
-      ; [e2|err|dy|dx|signY|signX|x0'|y0|x1|y1|pen|ret
-      POP() ; [err|dy|dx|signY|signX|x0'|y0|x1|y1|pen|ret
-      JUMP($lineCommandLoop)
-
-  @lineCommandDone:
-    ; [err|dy|dx|signY|signX|x0|y0|x1|y1|pen|ret
-    POP()
-    POP()
-    POP()
-    POP()
-    POP()
     POP()
     POP()
     POP()
     POP()
     POP()
     JUMP($$)
-
-  ; helper
-  ; input:  [c1|c0|ret
-  ; output: [signC|abs(c1-c0)
-  ; note:   "signC" is 1 if c1>0, -1 else
-  @lineCommandAbsAndSign:
-    SUB($$, $$) ; [c1-c0
-    1           ; [1|c1-c0
-    0           ; [0|1|c1-c0
-    DUP3        ; [c1-c0|0|1|c1-c0
-    SGT($$, $$) ; [c1-c0>0|1|c1-c0
-    JUMPI($lineCommandAbsAndSignNotNegative, $$)
-      ; [1|c1-c0
-      SUB(0, $$)
-    @lineCommandAbsAndSignNotNegative:
-      ; [signC|c1-c0
-      ; multiply $1 by $2
-      SWAP1       ; [c1-c0|signC
-      DUP2        ; [signC|c1-c0|signC
-      MUL($$, $$) ; [abs(c1-x0)|signC|ret
-      SWAP2       ; [ret|signC|abs(C1-x0)
-      JUMP($$)
-
-
 

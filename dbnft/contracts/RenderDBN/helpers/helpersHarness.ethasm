@@ -13,6 +13,7 @@ SHR(0xF8, CALLDATALOAD(0))
 
 ;; Jump Table
 JUMPI($initializeBitmap, EQ(0xB1, DUP1))
+JUMPI($linePixels, EQ(0x1E, DUP1))
 JUMPI($timeNumber, EQ(0xCC, DUP1))
 
 
@@ -29,16 +30,32 @@ REVERT(0x00, 1)
   REVERT(0x00, 1)
 
 
+; note: methods should leave 0x00 --> 0x20 alone!
+; (this is primarly so frontend that checks 0x0B doesnt get confused)
+
 @initializeBitmap:
   $postInitializeBitmapCall
-  0 ; initialize the bitmap at zero
+  0x20 ; initialize the bitmap at 0x20
   JUMP($initializeBitmapImpl)
   @postInitializeBitmapCall:
 
   ; we only need to pass back the header, which is
   ; 14 + 40 + 404
-  RETURN(0, 458)
+  RETURN(0x20, 458)
 
+@linePixels:
+  $postLinePixelsCall
+  0x20
+  CALLDATALOAD(0x61) ; y1
+  CALLDATALOAD(0x41) ; x1
+  CALLDATALOAD(0x21) ; y0
+  CALLDATALOAD(0x01) ; x0
+
+  JUMP($linePixelsImpl)
+  @postLinePixelsCall:
+
+  ; the most data we'll need to pass is 1 byte length + 101 pixel-[pairs]
+  RETURN(0x20, 203) 
 
 @timeNumber:
   $postTimeNumber
@@ -48,6 +65,6 @@ REVERT(0x00, 1)
   JUMP($timeNumberImpl)
   @postTimeNumber:
 
-  MSTORE(0x00, $$)
-  RETURN(0, 0x20)
+  MSTORE(0x20, $$)
+  RETURN(0x20, 0x20)
 

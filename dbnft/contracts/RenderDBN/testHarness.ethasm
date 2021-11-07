@@ -16,7 +16,7 @@ JUMP($unknownTEST)
   POP() ; clear the test opcode
 
   $postTestInitializeBitmapCall
-  0x40
+  0x0180
   JUMP($initializeBitmapImpl)
 
   @postTestInitializeBitmapCall:
@@ -33,12 +33,12 @@ JUMP($unknownTEST)
   ; OK, let's create a bitmap first
 
   $postTestLineCommandInitializeBitmap
-  0x40
+  0x0180
   JUMP($initializeBitmapImpl)
   @postTestLineCommandInitializeBitmap:
   ; hardcode pixeldataoffset to 0x20
-  ;  0x40 + 14 + 40 + 404
-  MSTORE(0x20, 0x020a)
+  ;  0x0180 + 14 + 40 + 404
+  MSTORE(0x20, 0x034a)
 
   $postTestLineCommandCall
   ; input is interpreted as signed 7 bit integer!
@@ -47,15 +47,19 @@ JUMP($unknownTEST)
   MSTORE(0x40, SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(5))))
 
   SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(1))) ;x0
+  SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(2))) ;y0
   SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(4))) ;y1
   SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(3))) ;x1
-  SIGNEXTEND(0, SHR(0xF8, CALLDATALOAD(2))) ;y0
 
   JUMP($lineCommand)
   @postTestLineCommandCall:
 
+
   10962 ; bitmap length
   JUMP($testStringReturn)
+
+@linePixels:
+  JUMP($linePixelsImpl)
 
 @testPaperCommand:
   POP() ; Clear the test opcode
@@ -65,12 +69,12 @@ JUMP($unknownTEST)
   ; OK, let's create a bitmap first
 
   $postTestPaperCommandInitializeBitmap
-  0x40
+  0x0180
   JUMP($initializeBitmapImpl)
   @postTestPaperCommandInitializeBitmap:
   ; hardcode pixeldataoffset at 0x20
-  ;  0x40 + 14 + 40 + 404
-  MSTORE(0x20, 0x020a)
+  ;  0x0180 + 14 + 40 + 404
+  MSTORE(0x20, 0x034a)
 
   $postTestPaperCommandCall
   ; input is interpreted as signed 7 bit integer!
@@ -87,22 +91,22 @@ JUMP($unknownTEST)
 
   SUB(CALLDATASIZE, 0x01)
   DUP1
-  CALLDATACOPY(0x0100, 0x01, $$)
+  CALLDATACOPY(0x0300, 0x01, $$)
 
   $testStringReturn
   SWAP1
-  0x40
+  0x0180
   SWAP1
-  0x0100
+  0x0300
   JUMP($BASE64ENCODE)
 
 @testStringReturn:
-  ; assumes return string at 0x40
+  ; assumes return string at 0x0180
   ; string length on top of stack
   ; sets up the ABI string return
   DUP1
-  MSTORE(0x20, $$)
-  MSTORE(0x00, 0x20)
+  MSTORE(0x0160, $$)
+  MSTORE(0x0140, 0x20)
 
   0x5F ; two bytes prefix, one more for rounding, then -1
   ADD($$, $$)
@@ -110,7 +114,7 @@ JUMP($unknownTEST)
   ; "divide" by 32, then multiply by 32
   SHR(0x05, $$)
   SHL(0x05, $$)
-  RETURN(0, $$)
+  RETURN(0x0140, $$)
 
 @noTestOpcode:
   0x4e4f2043414c4c4441544120544f2054455354204841524e4553530000000000

@@ -30,7 +30,7 @@
   MSTORE(0x81, $$)
   MSTORE8(0x80, 0xCC)
 
-  0x20 ; ret length — we're going to use the return buffer
+  0x20 ; ret length
   0x80 ; ret offsert
   0x21 ; arg length
   0x80 ; arg offset
@@ -44,3 +44,25 @@
   SWAP1
   JUMP($$)
 
+; input [x0|y0|x1|y1|dst|return
+; output [t
+@linePixels:
+  MSTORE(0x81, $$)
+  MSTORE(0xA1, $$)
+  MSTORE(0xC1, $$)
+  MSTORE(0xE1, $$)
+  MSTORE8(0x80, 0x1E)
+
+  POP() ; we ignore "dst" for the remote client case (always will be 0x80)
+
+  0x0100 ; allow the whole scratch space for return
+  0x80  ; return dst
+  0x81  ; arg length
+  0x80  ; arg offset
+  MLOAD(0) ; address
+  GAS ; forward whatevers left
+  STATICCALL($$, $$, $$, $$, $$, $$)
+
+  POP() ; assume success
+
+  JUMP($$)

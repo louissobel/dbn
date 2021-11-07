@@ -1,0 +1,260 @@
+; def:    linePixels
+; input:  [x0|y0|x1|y1|dst|ret
+; output: [|
+; notes:  writes up to 101 pairs of (x, y) bytes to dst+1 (number of pairs at dst)
+
+@linePixelsImpl:
+
+  ; increment dst by 1 to leave room for the eventual counter
+  DUP5
+  ADD(1, $$)
+  SWAP5
+  POP()
+
+  ; steep = abs(y1 - y0) > abs(x1 - x0)
+    ; abs(x1 - x0)
+      DUP1
+      DUP4
+      SUB($$, $$)
+      SAR(0xFF, DUP1)
+      DUP2
+      DUP2
+      ADD($$, $$)
+      XOR($$, $$)
+      SWAP1
+      POP()
+    ; abs(y1 - y0)
+      DUP3
+      DUP6
+      SUB($$, $$)
+      SAR(0xFF, DUP1)
+      DUP2
+      DUP2
+      ADD($$, $$)
+      XOR($$, $$)
+      SWAP1
+      POP()
+    GT($$, $$)
+
+  ; if steep:
+  JUMPI($linePixelsNoSteepSwap,   XOR(1, DUP1))
+    ; x0, y0 = y0, x0
+      DUP2
+      SWAP3
+      SWAP2
+      POP()
+
+    ; x1, y1 = y1, x1
+      DUP4
+      SWAP5
+      SWAP4
+      POP()
+
+  @linePixelsNoSteepSwap:
+  ; [steep|x0|y0|x1|y1|dst|ret
+
+  ; if x0 > x1: (skip if x0 < x1)
+  DUP4
+  DUP3
+  SLT($$, $$)
+  JUMPI($linePixelsNoXSwap, $$)
+    ; x0, x1 = x1, x0
+      DUP2 
+      SWAP4
+      SWAP2
+      POP()
+    ; y0, y1 = y1, y0
+      DUP3
+      SWAP5
+      SWAP3
+      POP()
+
+  @linePixelsNoXSwap:
+  ; [steep|x0|y0|x1|y1|dst|ret
+
+  ; if y0 < y1:
+  ;   ystep = 1
+  ; else:
+  ;   ystep = -1
+    DUP5
+    DUP4
+    SLT($$, $$)
+    DUP1
+    JUMPI($linePixelsYStepFound, $$)
+    NOT($$)
+
+  @linePixelsYStepFound:
+  ; [ystep|steep|x0|y0|x1|y1|dst|ret
+  
+  ; deltax = x1 - x0
+    DUP3
+    DUP6
+    SUB($$, $$)
+  ; [deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+
+
+  ; deltay = abs(y1 - y0)
+    DUP5
+    DUP8
+    SUB($$, $$)
+    SAR(0xFF, DUP1)
+    DUP2
+    DUP2
+    ADD($$, $$)
+    XOR($$, $$)
+    SWAP1
+    POP()
+  ; [deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+
+  ; error = -deltax / 2
+    SAR(1, DUP2) ; divide by 2 first
+    ADD(1, NOT($$)) ; negative
+  ; [error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+
+
+  ; counter of how many pixels emitted
+  0
+
+  ; y = y0
+  ; for x in range(x0, x1 + 1):
+  ;     if steep:
+  ;         yield (y,x)
+  ;     else:
+  ;         yield (x,y)
+  ;   
+  ;     error = error + deltay
+  ;     if error > 0:
+  ;         y = y + ystep
+  ;         error = error - deltax
+  DUP8
+  DUP8
+
+  @linePixelsLoop:
+  ; [x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+
+  ;;; skip the emit if (y < 0 or y > 100 or x < 0 or x > 100)
+  ;;;   --> we can actually simplify this to x > 100 | y > 100 if we used unsigned comparisons
+    100
+    DUP2
+    GT($$, $$)
+    100
+    DUP4
+    GT($$, $$)
+    JUMPI($linePixelsSkipEmit, OR($$, $$))
+
+  DUP2
+  DUP2
+  ; it's _actually_ [x, y at the head,
+  ; but steep means we skip the flip code, so flip here first
+  ; [yO|xO|x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+  DUP10
+  JUMPI($linePixelsPostPotentialSteepOutputFlip, $$)
+  ; if we're "steep", we _skip_ this code, which is why
+  ; the initial yO / xO seem backwards...
+  SWAP1
+
+  @linePixelsPostPotentialSteepOutputFlip:
+  ; write actual data
+
+    ; [y|x
+    DUP15 ; [dst|y|x
+
+    ;;; for now, make copies of the data...
+
+    DUP6  ; [counter|dst|y|x
+    ADD($$, $$) ; [loc|y|x
+    SWAP1       ; [y|loc|x
+    DUP2        ; [loc|y|loc|x
+    MSTORE8($$, $$) ; [loc|x
+    ADD(1, $$)      ; [loc+1|x
+    MSTORE8($$, $$) ; [
+
+    ; increment counter
+    DUP3
+    ADD(2, $$)
+    SWAP3
+    POP()
+
+
+  @linePixelsSkipEmit:
+
+
+  ; [x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+
+  ;     error = error + deltay
+  ;     if error > 0: # skip block if !(error > 0)
+  ;         y = y + ystep
+  ;         error = error - deltax
+  DUP4
+  DUP6
+  ADD($$, $$)
+  0
+  DUP2
+  SGT($$, $$)
+  JUMPI($linePixelsPostErrorUpdate, XOR(1, $$))
+    ; [error'|x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+    DUP3
+    DUP9
+    ADD($$, $$)
+    SWAP3
+    POP()
+
+    DUP7
+    SWAP1()
+    SUB($$, $$)
+
+  @linePixelsPostErrorUpdate:
+    ; error still top of stack, save it
+    SWAP4()
+    POP()
+
+
+  ; loop if x < (x1 + 1)
+  ADD(1, $$)
+  DUP1
+  ADD(1, DUP12)
+  SGT($$, $$)
+  JUMPI($linePixelsLoop, $$)
+
+  ;[x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+
+
+  ; *(dst - 1) = counter/2
+  1
+  DUP14      ; [dst|1|x|y|counter
+  SUB($$, $$)
+  DUP4       ; [counter|dst|x|y
+  SHR(1, $$) ; [counter/2
+  SWAP1      
+  MSTORE8($$, $$)
+
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  JUMP($$)
+
+
+  ;    y = y0
+  ;    for x in range(x0, x1 + 1):
+  ;        if steep:
+  ;            yield (y,x)
+  ;        else:
+  ;            yield (x,y)
+  ;
+  ;        error = error + deltay
+  ;        if error > 0:
+  ;            y = y + ystep
+  ;            error = error - deltax
+
+  STOP
+  

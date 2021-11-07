@@ -184,10 +184,11 @@ describe("Draw#lineCommand", function () {
       const contract = fs.readFileSync('artifacts/contracts/RenderDBNTestArtifact.eth')
       const vm = new VM()
 
+      const data = Buffer.from([0x1E, x0, y0, x1, y1, pen])
       const runOpts = {
         code: contract,
         gasLimit: new BN(0xffffffff),
-        data: Buffer.from([0x1E, x0, y0, x1, y1, pen]),
+        data: data,
       }
       const result = await vm.runCode(runOpts)
 
