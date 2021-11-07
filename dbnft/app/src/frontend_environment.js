@@ -13,6 +13,9 @@ const configForEnvironment = {
 		ethNetwork: 'http://localhost:8545',
 		verbose: true,
 		mintWhitelist: devAddress,
+
+		useHelpers: true,
+		helperAddress: '0x19af9857f53675c17248113E2818eaBBEb8089DE',
 	},
 
 	localhost_rinkeby: {

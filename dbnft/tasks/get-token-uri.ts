@@ -14,6 +14,10 @@ task("get-token-uri", "Fetches / pretty prints token URI")
     "tokenId",
     "tokenID (in decimal)"
   )
+  .addOptionalParam(
+    "saveImageDataTo",
+    "a file path to save the image data to"
+  )
   .setAction(async (params) => {
     const hre = require("hardhat");
 
@@ -27,4 +31,9 @@ task("get-token-uri", "Fetches / pretty prints token URI")
       colors: true,
     })
     console.log(output)
+
+    if (params.saveImageDataTo) {
+      console.log("writing raw image_data to", params.saveImageDataTo)
+      fs.writeFileSync(params.saveImageDataTo, parsed.image_data)
+    }
   });

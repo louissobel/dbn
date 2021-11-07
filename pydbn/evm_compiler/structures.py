@@ -74,7 +74,7 @@ class ScopeDependencies(object):
 
         return expected
 
-Metadata = namedtuple('Metadata', ['owning_contract', 'description'])
+Metadata = namedtuple('Metadata', ['helper_address', 'description'])
 EMPTY_METADATA = Metadata(None, None)
 
 class SymbolDirectory(object):

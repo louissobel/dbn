@@ -11,6 +11,7 @@ import {SessionStorage, STORAGE_KEY_RESET_INITIAL_CODE} from '../storage'
 import {maybeExtractDescription, maybeExtractConfig} from '../lang-dbn/dbn.js'
 import CodeInput from './CodeInput'
 
+import frontendEnvironment from '../frontend_environment'
 
 
 const MAX_MAGNIFICATION = 4
@@ -80,8 +81,8 @@ class Editor extends React.Component {
 
     const renderOpts = {
       code: code,
-      useHelpers: !codeConfig.nohelpers,
-      helperAddress: '0xAABBCCDDEEFFAABBCCDDEEFFAABBCCDDEEFF1234',
+      useHelpers: !codeConfig.nohelpers && frontendEnvironment.config.useHelpers,
+      helperAddress: frontendEnvironment.config.helperAddress,
     }
     const description = maybeExtractDescription(code)
     if (description) {

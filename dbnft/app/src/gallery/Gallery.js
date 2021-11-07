@@ -30,7 +30,7 @@ class RenderJob {
     this._setRenderState('INTERPRETING')
 
     // TODO: ERROR HANDLING!!!
-    const renderResult = await renderDBN(
+    renderDBN(
       {bytecode: bytecode},
       (update, data) => {
         if (update === 'INTERPRET_PROGRESS') {
@@ -40,10 +40,15 @@ class RenderJob {
         }
       }
     )
+    .then((renderResult) => {
+      this.result = renderResult;
+      this._newImage(renderResult.imageData)
+      this._setRenderState('DONE')
+    })
+    .catch((e) => {
+      console.error(e)
+    })
 
-    this.result = renderResult;
-    this._newImage(renderResult.imageData)
-    this._setRenderState('DONE')
   }
 
   _setRenderState(newState) {

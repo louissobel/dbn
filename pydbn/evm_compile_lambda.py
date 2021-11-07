@@ -28,7 +28,7 @@ def handler(event, context):
         return unhandled_error(400, '"metadata" must be provided in input (even if empty dict)')
 
     metadata = evm_compiler.Metadata(
-        owning_contract=input_metadata.get('owning_contract'),
+        helper_address=input_metadata.get('helper_address'),
         description=input_metadata.get('description'),
     )
 

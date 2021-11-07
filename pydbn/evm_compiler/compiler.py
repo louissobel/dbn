@@ -20,7 +20,7 @@ class DBNEVMCompiler(DBNAstVisitor):
     Memory layout
     0x0000 : 11 bytes free
     0x000B : boolean byte indicating that the bitmap is fully initialized
-    0x000C : right-aligned 20byte owning contract address
+    0x000C : right-aligned 20byte helper contract address
     0x0020 : pixel data offset
     0x0040 : Pen
     0x0060 : Env pointer
@@ -355,13 +355,12 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     def emit_metadata(self, metadata):
 
-        # owningContract
-        if metadata.owning_contract:
-            self.validate_metadata_hex_string('owning_contract', metadata.owning_contract, expected_length=20)
-            # TODO: verify it's a 20 byte hex string?
-            self.emit_raw("@metadataOwningContract [!%s]" % metadata.owning_contract)
+        # helperAddress
+        if metadata.helper_address:
+            self.validate_metadata_hex_string('helper_address', metadata.helper_address, expected_length=20)
+            self.emit_raw("@metadataHelperAddress [!%s]" % metadata.helper_address)
         else:
-            self.emit_raw("@metadataOwningContract []")
+            self.emit_raw("@metadataHelperAddress []")
 
         # description
         if metadata.description:
