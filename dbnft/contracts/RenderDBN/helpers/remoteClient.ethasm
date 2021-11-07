@@ -6,82 +6,80 @@
 ; - helper address is at 0xC
 ; - I have 8 words of memory: 0x80–0x0160
 
-; input:  [dst|return
-; output: [
-@initializeBitmap:
-  MSTORE8(0x80, 0xB1) ; code for "Initialize Bitmap"
 
-  458 ; ret length
-  SWAP1 ; ret offset (dst from arg)
-  1     ; arg length
-  0x80     ; arg offset
-  MLOAD(0) ; address ( from 0xC)
-  GAS   ; forward whatever's left
+; input: [opcode|arglength|returndst|returnlength|ret
+; notes: arglength needs to include the opcode
+@callHelper:
+  MSTORE8(0x80, $$)
+  0x80
+  MLOAD(0)
+  GAS
   STATICCALL($$, $$, $$, $$, $$, $$)
 
   ; assume success...
   POP()
   JUMP($$)
+
+; input:  [dst|return
+; output: [
+@initializeBitmap:
+  458 ; ret length
+  SWAP1 ; ret offset (dst from arg)
+  1     ; arg length
+  0xB1  ; opcode
+
+  ; and we tailcall into the call
+  JUMP($callHelper)
 
 
 ; input [color|return
 @paperCommand:
   MSTORE(0x81, $$)
-  MSTORE8(0x80, 0xAE)
 
   10504 ; ret length
   MLOAD(0x20) ; (return data straight to the bitmap)
   0x21  ; arg length
-  0x80  ; arg offset
-  MLOAD(0) ; address (from 0xC)
-  GAS   ; forward whatever's left
-  STATICCALL($$, $$, $$, $$, $$, $$)
+  0xAE  ; opcode
 
-  ; assume success...
-  POP()
-  JUMP($$)
+  ; and tailcall into the helper
+  JUMP($callHelper)
 
 
 ; input [x0|y0|x1|y1|dst|pixelDataBase|return
 ; output [t
 @linePixels:
-  MSTORE(0x81, $$)
-  MSTORE(0xA1, $$)
-  MSTORE(0xC1, $$)
-  MSTORE(0xE1, $$)
+  MSTORE(0x81, $$) ; x0
+  MSTORE(0xA1, $$) ; y0
+  MSTORE(0xC1, $$) ; x1
+  MSTORE(0xE1, $$) ; y1
   POP() ; we ignore "dst" for the remote client case (always will be 0x80)
-  MSTORE(0x0101, $$)
-
-  MSTORE8(0x80, 0x1E)
+  MSTORE(0x0101, $$) ; pixelDataBase
 
   0x0100 ; allow the whole scratch space for return
   0x80  ; return dst
   0xA1  ; arg length
-  0x80  ; arg offset
-  MLOAD(0) ; address
-  GAS ; forward whatevers left
-  STATICCALL($$, $$, $$, $$, $$, $$)
+  0x1E ; opcode
 
-  POP() ; assume success
-
-  JUMP($$)
+  ; tailcall straight into the helper
+  JUMP($callHelper)
 
 
 ; input [d|return
 ; output [t
 @timeNumber:
   MSTORE(0x81, $$)
-  MSTORE8(0x80, 0xCC)
+
+  $postTimeNumberHelperCall
+
 
   0x20 ; ret length
   0x80 ; ret offsert
   0x21 ; arg length
-  0x80 ; arg offset
-  MLOAD(0) ; address
-  GAS ; forward whatever's left
-  STATICCALL($$, $$, $$, $$, $$, $$)
+  0xCC ; opcode
 
-  POP() ; assume success
+  JUMP($callHelper)
+
+  @postTimeNumberHelperCall:
 
   MLOAD(0x80)
   SWAP1
