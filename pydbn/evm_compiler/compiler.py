@@ -24,17 +24,18 @@ class DBNEVMCompiler(DBNAstVisitor):
     0x0020 : pixel data offset
     0x0040 : Pen
     0x0060 : Env pointer
-    0x0080 : [bitmap starts...]
+    0x0080 : 8 words of working memory for helper calls
+    0x0180 : [bitmap starts...]
     .... (bitmap is 40 + 14 + 404 + 101*104 = 10962 long)
-    0x2B60 : Env start
+    0x2C60 : Env start
     """
-    BITMAP_BASE = 0x80
+    BITMAP_BASE = 0x180
     PIXEL_DATA_START = BITMAP_BASE + 14 + 40 + 404
 
     PIXEL_DATA_START_ADDRESS = 0x20
     PEN_ADDRESS = 0x40
     ENV_POINTER_ADDRESS = 0x60
-    FIRST_ENV_ADDRESS = 0x2B60
+    FIRST_ENV_ADDRESS = 0x2C60
 
     """
     Env layout:
@@ -977,11 +978,11 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.update_stack(1, 'Line Return')
 
         # get the arguments on the stack in the weird order Line expects:
-        # [y0|x1|y1|x0
+        # [y1|x1|y0|x0
         self.visit(node.args[0])
-        self.visit(node.args[3])
-        self.visit(node.args[2])
         self.visit(node.args[1])
+        self.visit(node.args[2])
+        self.visit(node.args[3])
 
         # run the command!
         self.emit_jump('lineCommand')

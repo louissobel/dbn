@@ -1,12 +1,16 @@
 
 
-; "inlined" client for helpers, just a jump table
+; "inlined" client for helpers, ~just a jump table
 
 @initializeBitmap:
 	JUMP($initializeBitmapImpl)
 
-@timeNumber:
-	JUMP($timeNumberImpl)
+@paperCommand:
+	MLOAD(0x20) ; get the dst in place (pixeldataoffset)
+	JUMP($paperCommandImpl)
 
 @linePixels:
 	JUMP($linePixelsImpl)
+
+@timeNumber:
+	JUMP($timeNumberImpl)

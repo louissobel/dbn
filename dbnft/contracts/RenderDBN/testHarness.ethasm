@@ -85,6 +85,11 @@ JUMP($unknownTEST)
   10962 ; bitmap length
   JUMP($testStringReturn)
 
+
+@paperCommand:
+  MLOAD(0x20)
+  JUMP($paperCommandImpl)
+
 @testBASE64ENCODE:
   POP() ; clear the test opcode
   ; Pull in CALLDATA[1:]

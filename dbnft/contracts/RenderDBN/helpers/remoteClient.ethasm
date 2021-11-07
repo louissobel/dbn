@@ -24,25 +24,23 @@
   JUMP($$)
 
 
-; input [d|return
-; output [t
-@timeNumber:
+; input [color|return
+@paperCommand:
   MSTORE(0x81, $$)
-  MSTORE8(0x80, 0xCC)
+  MSTORE8(0x80, 0xAE)
 
-  0x20 ; ret length
-  0x80 ; ret offsert
-  0x21 ; arg length
-  0x80 ; arg offset
-  MLOAD(0) ; address
-  GAS ; forward whatever's left
+  10504 ; ret length
+  MLOAD(0x20) ; (return data straight to the bitmap)
+  0x21  ; arg length
+  0x80  ; arg offset
+  MLOAD(0) ; address (from 0xC)
+  GAS   ; forward whatever's left
   STATICCALL($$, $$, $$, $$, $$, $$)
 
-  POP() ; assume success
-
-  MLOAD(0x80)
-  SWAP1
+  ; assume success...
+  POP()
   JUMP($$)
+
 
 ; input [x0|y0|x1|y1|dst|pixelDataBase|return
 ; output [t
@@ -67,3 +65,25 @@
   POP() ; assume success
 
   JUMP($$)
+
+
+; input [d|return
+; output [t
+@timeNumber:
+  MSTORE(0x81, $$)
+  MSTORE8(0x80, 0xCC)
+
+  0x20 ; ret length
+  0x80 ; ret offsert
+  0x21 ; arg length
+  0x80 ; arg offset
+  MLOAD(0) ; address
+  GAS ; forward whatever's left
+  STATICCALL($$, $$, $$, $$, $$, $$)
+
+  POP() ; assume success
+
+  MLOAD(0x80)
+  SWAP1
+  JUMP($$)
+

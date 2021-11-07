@@ -1,17 +1,18 @@
 ; def:    paperCommand
-; input:  [color|return
+; input:  [dst|color|return
 ; output: [|
-; state:  assumes there is a valid bitmap of dim 101x101 at pixelDataOffset
-;         (and the pixelDataOffset lives at 0x20)
+; state: 
 ; notes:  
-@paperCommand:
+@paperCommandImpl:
+  SWAP1
+
   ; clamp color to [0, 100]
   $postPaperCommandClampColor
   SWAP1
   JUMP($clampValue)
   @postPaperCommandClampColor:
 
-  ; [color
+  ; [color|dst
   0x0101010101010101010101010101010101010101010101010101010101010101
   MUL($$, $$)
 
@@ -19,8 +20,7 @@
   ; so first smash it into place
   ; then set the cursor to 8 and tick up by 32
 
-  ; Initialize dst to "pixel data offset" from 0x20
-  MLOAD(0x20)     ; [dst|color
+  SWAP1           ; [dst|color
   DUP2            ; [color|dst|color
   DUP2            ; [dst|color|dst|color
   MSTORE($$, $$)  ; [dst|color
