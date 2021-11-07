@@ -44,20 +44,21 @@
   SWAP1
   JUMP($$)
 
-; input [x0|y0|x1|y1|dst|return
+; input [x0|y0|x1|y1|dst|pixelDataBase|return
 ; output [t
 @linePixels:
   MSTORE(0x81, $$)
   MSTORE(0xA1, $$)
   MSTORE(0xC1, $$)
   MSTORE(0xE1, $$)
-  MSTORE8(0x80, 0x1E)
-
   POP() ; we ignore "dst" for the remote client case (always will be 0x80)
+  MSTORE(0x0101, $$)
+
+  MSTORE8(0x80, 0x1E)
 
   0x0100 ; allow the whole scratch space for return
   0x80  ; return dst
-  0x81  ; arg length
+  0xA1  ; arg length
   0x80  ; arg offset
   MLOAD(0) ; address
   GAS ; forward whatevers left

@@ -1,21 +1,20 @@
 ; def:    lineCommand
-; input:  [x1|y1|y0|x0|ret
+; input:  [y1|x1|y0|x0ret
 ; output: [|
 ; state:  assumes pixelDataOffset is at 0x20 (delegated assumption from Set)
 ;         assumes pen color at 0x40
 ;         assumes 8 words of scratch memory at 0x80
 ; notes:  the weird argument layout is so we can easily swap a word to bottom of stack
 @lineCommand:
-  0x80   ; [pixelListDst|x1|y1|y0|x0
-  SWAP3  ; [y0|x1|y1|pixelListDst|x0
-  $postLinePixelsCall ; [ret|y0|x1|y1|pixelListDst|x0
-  SWAP5               ; [x0|y0|x1|y1|pixelListDst|ret
+  ; [y1|x1|y0|x0
+  0x80                  ; [pixelListDst|y1|x1|y0|x0
+  SWAP2                 ; [x1|y1|pixelListDst|y0|x0
+  MLOAD(0x20)           ; [pixelDataBase|x1|y1|pixelListDst|y0|x0
+  SWAP4                 ; [y0|x1|y1|pixelListDst|pixelDataBase|x0
+  $postLinePixelsCall   ; [ret|y0|x1|y1|pixelListDst|pixelDataBase|x0
+  SWAP6                 ; [x0|y0|x1|y1|pixelListDst|pixelDataBase|ret
   JUMP($linePixels)
   @postLinePixelsCall:
-
-  ; load pixel data base
-  MLOAD(0x20)
-
 
   ; get and clamp pen
   $postLineCommandClampColor
@@ -23,31 +22,23 @@
   JUMP($clampValue)
   @postLineCommandClampColor:
 
-  ; [pen|pixelDataBase
+  ; [pen
 
+  ; @debug [0xdd]
   ; now copy in from the pixellist to the bitmap
-  SHR(0xf8, MLOAD(0x80)) ; [pixelCount|pen|pixelDataBase
-  0x81                   ; [listBase|pixelCount|pen|pixelDataBase
-  0                      ; [i|listBase|pixelCount|pen|pixelDataBase
+  SHR(0xf8, MLOAD(0x80)) ; [pixelCount|pen
+  0x81                   ; [listBase|pixelCount|pen
+  0                      ; [i|listBase|pixelCount|pen
   JUMP($lineCommandPixelCopyTest)
 
-
   @lineCommandPixelCopyLoop:
-    ; [i (guranteed < pixelcount)|listBase|pixelCount|pen|pixelDataBase
-    DUP1       ; [i|i|listBase|pixelCount|pen|pixelDataBase
-    SHL(1, $$) ; [i * 2|i|listBase|pixelCount|pen|pixelDataBase
-    DUP3       ; [listBase|i * 2|i|listBase|PixelCount|pen|pixelDataBase
-    ADD($$, $$); [thisPixel|i|listBase|pixelCount|pen|pixelDataBase
-    SHR(0xF0, MLOAD($$)) ; [yx|i|listBase|pixelCount|pen|pixelDataBase
-    DUP1          ; [yx|yx|i|listBase|pixelCount|pen|pixelDataBase
-    AND(0xFF, $$) ; [x|yx|i|listBase|pixelCount|pen|pixelDataBase
-    SWAP1         ; [yx|x|i|listBase|pixelCount|pen|pixelDataBase
-    SHR(8, $$)    ; [y|x|i|listBase|pixelCount|pen|pixelDataBase
-    MUL(104, $$)  ; [y*104|x|i|listBase|pixelCount|pen|pixelDataBase
-    ADD($$, $$)   ; [y*104+x|i|listBase|pixelCount|pen|pixelDataBase
-    DUP6          ; [pixelDataBase|y*104+x|i|listBase|pixelCount|pen|pixelDataBase
-    ADD($$, $$)   ; [loc|i|listBase|pixelCount|pen|pixelDataBase
-    DUP5          ; [pen|loc|i|listBase|pixelCount|pen|pixelDataBase
+    ; [i (guranteed < pixelcount)|listBase|pixelCount|pen
+    DUP1       ; [i|i|listBase|pixelCount|pen
+    SHL(1, $$) ; [i * 2|i|listBase|pixelCount|pen
+    DUP3       ; [listBase|i * 2|i|listBase|PixelCount|pen
+    ADD($$, $$); [thisPixel|i|listBase|pixelCount|pen
+    SHR(0xF0, MLOAD($$)) ; [loc|i|listBase|pixelCount|pen
+    DUP5
     SWAP1
     MSTORE8($$, $$)
 
@@ -61,7 +52,6 @@
     JUMPI($lineCommandPixelCopyLoop, $$)
 
 
-    POP()
     POP()
     POP()
     POP()

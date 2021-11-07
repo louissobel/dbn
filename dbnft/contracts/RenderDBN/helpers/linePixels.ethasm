@@ -1,5 +1,5 @@
 ; def:    linePixels
-; input:  [x0|y0|x1|y1|dst|ret
+; input:  [x0|y0|x1|y1|dst|pixelDataBase|ret
 ; output: [|
 ; notes:  writes up to 101 pairs of (x, y) bytes to dst+1 (number of pairs at dst)
 
@@ -51,7 +51,7 @@
       POP()
 
   @linePixelsNoSteepSwap:
-  ; [steep|x0|y0|x1|y1|dst|ret
+  ; [steep|x0|y0|x1|y1|dst|pixelDataBase|ret
 
   ; if x0 > x1: (skip if x0 < x1)
   DUP4
@@ -70,7 +70,7 @@
       POP()
 
   @linePixelsNoXSwap:
-  ; [steep|x0|y0|x1|y1|dst|ret
+  ; [steep|x0|y0|x1|y1|dst|pixelDataBase|ret
 
   ; if y0 < y1:
   ;   ystep = 1
@@ -84,13 +84,13 @@
     NOT($$)
 
   @linePixelsYStepFound:
-  ; [ystep|steep|x0|y0|x1|y1|dst|ret
+  ; [ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
   
   ; deltax = x1 - x0
     DUP3
     DUP6
     SUB($$, $$)
-  ; [deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+  ; [deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
 
 
   ; deltay = abs(y1 - y0)
@@ -104,12 +104,12 @@
     XOR($$, $$)
     SWAP1
     POP()
-  ; [deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+  ; [deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
 
   ; error = -deltax / 2
     SAR(1, DUP2) ; divide by 2 first
     ADD(1, NOT($$)) ; negative
-  ; [error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+  ; [error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
 
 
   ; counter of how many pixels emitted
@@ -130,7 +130,7 @@
   DUP8
 
   @linePixelsLoop:
-  ; [x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+  ; [x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
 
   ;;; skip the emit if (y < 0 or y > 100 or x < 0 or x > 100)
   ;;;   --> we can actually simplify this to x > 100 | y > 100 if we used unsigned comparisons
@@ -146,7 +146,7 @@
   DUP2
   ; it's _actually_ [x, y at the head,
   ; but steep means we skip the flip code, so flip here first
-  ; [yO|xO|x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+  ; [yO|xO|x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
   DUP10
   JUMPI($linePixelsPostPotentialSteepOutputFlip, $$)
   ; if we're "steep", we _skip_ this code, which is why
@@ -157,17 +157,27 @@
   ; write actual data
 
     ; [y|x
-    DUP15 ; [dst|y|x
+    MUL(104, $$)
+    ADD($$, $$)
+    DUP15
+    ADD($$, $$)    ; [v|x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
 
-    ;;; for now, make copies of the data...
+    DUP14 ; [dst|v|x|y|counter
+    DUP5  ; [counter|dst|v|x|y|counter
+    ADD($$, $$) ; [loc|v|x|y|counter
 
-    DUP6  ; [counter|dst|y|x
-    ADD($$, $$) ; [loc|y|x
-    SWAP1       ; [y|loc|x
-    DUP2        ; [loc|y|loc|x
-    MSTORE8($$, $$) ; [loc|x
-    ADD(1, $$)      ; [loc+1|x
-    MSTORE8($$, $$) ; [
+    ; loc gets v & 0xFF00
+    ; loc+1 gets v & 0x00FF
+    DUP2              ; [v|loc|v|x|y|counter
+    AND(0xFF00, $$)   ; [v&0xFF00|loc|v|x|y|counter
+    SHR(8, $$)        ; [v&0xFF00>>8|loc|v|x|y|counter
+    DUP2              ; [loc|v&0xFF00|loc|v|x|y|counter
+    MSTORE8($$, $$)   ; [loc|v|x|y|counter
+    SWAP1             ; [v|loc|x|y|counter
+    AND(0xFF, $$)     ; [v&0xFF|loc|x|y|counter
+    SWAP1             ; [loc|v&0xFF|x|y|counter
+    ADD(1, $$)        ; [loc+1|v&0xFF|x|y|counter
+    MSTORE8($$, $$)
 
     ; increment counter
     DUP3
@@ -179,7 +189,7 @@
   @linePixelsSkipEmit:
 
 
-  ; [x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+  ; [x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
 
   ;     error = error + deltay
   ;     if error > 0: # skip block if !(error > 0)
@@ -192,7 +202,7 @@
   DUP2
   SGT($$, $$)
   JUMPI($linePixelsPostErrorUpdate, XOR(1, $$))
-    ; [error'|x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+    ; [error'|x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
     DUP3
     DUP9
     ADD($$, $$)
@@ -216,7 +226,7 @@
   SGT($$, $$)
   JUMPI($linePixelsLoop, $$)
 
-  ;[x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|ret
+  ;[x|y|counter|error|deltay|deltax|ystep|steep|x0|y0|x1|y1|dst|pixelDataBase|ret
 
 
   ; *(dst - 1) = counter/2
@@ -228,6 +238,7 @@
   SWAP1      
   MSTORE8($$, $$)
 
+  POP()
   POP()
   POP()
   POP()

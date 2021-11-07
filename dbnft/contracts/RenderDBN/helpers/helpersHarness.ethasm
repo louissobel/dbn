@@ -45,7 +45,8 @@ REVERT(0x00, 1)
 
 @linePixels:
   $postLinePixelsCall
-  0x20
+  CALLDATALOAD(0x81) ; pixelDataBase
+  0x20               ; dst
   CALLDATALOAD(0x61) ; y1
   CALLDATALOAD(0x41) ; x1
   CALLDATALOAD(0x21) ; y0
