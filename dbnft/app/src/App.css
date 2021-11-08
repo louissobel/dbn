@@ -376,6 +376,14 @@ body {
   background-color: #d6d2e7;
 }
 
+.dbn-mint-modal .modal-header {
+  border-bottom-color: var(--bs-gray-600);
+}
+
+.dbn-mint-modal .modal-footer {
+  border-top:  none;
+}
+
 .dbn-mint-modal {
   font-size: 0.9rem;
 }

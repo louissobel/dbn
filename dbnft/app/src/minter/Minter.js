@@ -162,9 +162,9 @@ function Minter(props) {
             </div>
           }
 
-          <div class="dbn-mint-modal-text">
+          <div class="dbn-mint-modal-text mt-2">
             {isMinting &&
-              <p>
+              <p className="text-center">
                 Minting...
               </p>
             }

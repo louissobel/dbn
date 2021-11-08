@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 function TokenMetadataTable(props) {
   return(
-    <table className="table dbn-token-metadata-table">
+    <table className="table dbn-token-metadata-table border-dark">
       <tbody>
         <tr>
           <th scope="row">Name</th>
