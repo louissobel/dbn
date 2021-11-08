@@ -2,25 +2,114 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./Base64.sol";
 
-contract DBNCoordinator is ERC721Enumerable, Ownable {
+contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
     using Strings for uint256;
 
     event DrawingDeployed(uint256 tokenId, address addr, string externalURL);
 
     Counters.Counter private _tokenIds;
+    uint256[] private _allTokens;
+    mapping(address => mapping(uint256 => uint256)) private _ownedTokens;
+    mapping(uint256 => uint256) private _ownedTokensIndex;
+
     mapping (uint256 => address) private _drawingAddressForTokenId;
     string private _baseExternalURI;
 
     constructor(string memory baseExternalURI) ERC721("Design By Numbers NFT", "DBNFT") {
         _baseExternalURI = baseExternalURI;
     }
+
+    /**********************************************************
+    Enumeration Interface
+    We're not using ERC721Enumerable from openzeppelin because it:
+     - is bigger than we need due to burnable support
+     - doesn't have a way to easily return all tokenIDs, which we want for the gallery
+
+    All this code is copied from OpenZeppelin's ERC721Enumerable implementation though
+    */
+    function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC721) returns (bool) {
+        return interfaceId == type(IERC721Enumerable).interfaceId || super.supportsInterface(interfaceId);
+    }
+
+    function tokenOfOwnerByIndex(address owner, uint256 index) public view virtual override returns (uint256) {
+        require(index < ERC721.balanceOf(owner), "owner index out of bounds");
+        return _ownedTokens[owner][index];
+    }
+
+    function totalSupply() public view virtual override returns (uint256) {
+        return _allTokens.length;
+    }
+
+    function tokenByIndex(uint256 index) public view virtual override returns (uint256) {
+        require(index < totalSupply(), "global index out of bounds");
+        return _allTokens[index];
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal virtual override {
+        super._beforeTokenTransfer(from, to, tokenId);
+
+        if (from == address(0)) {
+            // Mint
+            _addTokenToAllTokensEnumeration(tokenId);
+        } else if (from != to) {
+            // Transfer out
+            _removeTokenFromOwnerEnumeration(from, tokenId);
+        }
+
+        if (to != from) {
+            // Transfer In (also handles Mint)
+            _addTokenToOwnerEnumeration(to, tokenId);
+        }
+    }
+
+    function _addTokenToAllTokensEnumeration(uint256 tokenId) private {
+        _allTokens.push(tokenId);
+    }
+
+    function _removeTokenFromOwnerEnumeration(address from, uint256 tokenId) private {
+        // To prevent a gap in from's tokens array, we store the last token in the index of the token to delete, and
+        // then delete the last slot (swap and pop).
+
+        uint256 lastTokenIndex = ERC721.balanceOf(from) - 1;
+        uint256 tokenIndex = _ownedTokensIndex[tokenId];
+
+        // When the token to delete is the last token, the swap operation is unnecessary
+        if (tokenIndex != lastTokenIndex) {
+            uint256 lastTokenId = _ownedTokens[from][lastTokenIndex];
+
+            _ownedTokens[from][tokenIndex] = lastTokenId; // Move the last token to the slot of the to-delete token
+            _ownedTokensIndex[lastTokenId] = tokenIndex; // Update the moved token's index
+        }
+
+        // This also deletes the contents at the last position of the array
+        delete _ownedTokensIndex[tokenId];
+        delete _ownedTokens[from][lastTokenIndex];
+    }
+
+    function _addTokenToOwnerEnumeration(address to, uint256 tokenId) private {
+        uint256 length = ERC721.balanceOf(to);
+        _ownedTokens[to][length] = tokenId;
+        _ownedTokensIndex[tokenId] = length;
+    }
+
+    /*
+     * END ENUMERATION METHODS
+     *******************************************/
+
+
+
 
     // TODO: for now, minting is locked down to just owner
     function deploy(bytes memory bytecode) public onlyOwner returns (address) {
@@ -112,6 +201,10 @@ contract DBNCoordinator is ERC721Enumerable, Ownable {
     function tokenCode(uint256 tokenId) public view returns (bytes memory) {
         address addr = _addressForToken(tokenId);
         return addr.code;
+    }
+
+    function allTokens() public view returns (uint256[] memory) {
+        return _allTokens;
     }
 
     function _metadataJSONFragmentWithoutImage(Metadata memory metadata) internal pure returns (string memory) {

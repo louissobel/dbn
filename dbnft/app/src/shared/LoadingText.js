@@ -5,9 +5,13 @@ function LoadingText() {
 
   // TODO: we should cancel the timeout on unmount...
   useEffect(() => {
-    setTimeout(() => {
+    let t = setTimeout(() => {
       setDotCount((dotCount+1)%5)
     }, 250)
+
+    return () => {
+      clearTimeout(t)
+    }
   }, [dotCount])
 
   return (

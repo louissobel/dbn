@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useHistory } from "react-router-dom";
 import { Icon } from '@iconify/react'
 import { AutoSizer, List, WindowScroller } from 'react-virtualized'
-
+import Alert from 'react-bootstrap/Alert';
+import classNames from 'classnames'
 
 import renderDBN from '../render'
 import {dbnCoordinator} from '../eth_tools'
@@ -24,14 +25,12 @@ class RenderJob {
   async run() {
     this._setRenderState('LOADING_BYTECODE')
 
-    // TODO: error handling!
     // TODO: I think we need to grab the address too?
     // (I think that can be done in same call or something?)
     const bytecode = await dbnCoordinator.methods.tokenCode(this.tokenId).call()
 
     this._setRenderState('INTERPRETING')
 
-    // TODO: ERROR HANDLING!!!
     renderDBN(
       {bytecode: bytecode},
       (update, data) => {
@@ -48,7 +47,8 @@ class RenderJob {
       this._setRenderState('DONE')
     })
     .catch((e) => {
-      console.error(e)
+      this._setRenderState('ERROR')
+      console.error('error rending', this.tokenId, e)
     })
 
   }
@@ -118,16 +118,26 @@ function Item({ id, present }) {
   }
 
   return (
-    <div key={id} class="dbn-nft-gallery-item">
+    <div
+      key={id}
+      onClick={present ? goToDetail : null}
+      className={classNames("dbn-nft-gallery-item", {present: present})}
+    >
        #{id}
 
-        {(renderState === 'INTERPRETING' || renderState === 'DONE') &&
-          <ImageViewer onClick={goToDetail} imageData={imageData} magnify={1}/>
+        {(renderState === 'INTERPRETING' || renderState === 'DONE' || renderState === 'ERROR') &&
+          <ImageViewer imageData={imageData} magnify={1}/>
         }
 
        {(renderState === 'LOADING_BYTECODE' || renderState === 'INTERPRETING') &&
-         <div class="dbn-nft-gallery-item-loader">
+         <div class="dbn-nft-gallery-item-status dbn-nft-gallery-item-loader">
            <Icon icon="mdi:ethereum" inline={true} />
+         </div>
+        }
+
+       {(renderState === 'ERROR') &&
+         <div class="dbn-nft-gallery-item-status dbn-nft-gallery-item-error">
+           <Icon icon="oi:warning" inline={true} />
          </div>
         }
     </div>
@@ -139,20 +149,27 @@ function Gallery() {
   const [rpcError, setRPCError] = useState(null)
   const [presentTokens, setPresentTokens] = useState(null)
 
-  useEffect(async () => {
-    // TODO: handle errors!?
-    const totalSupply = await dbnCoordinator.methods.totalSupply().call()
-    const newPresentTokens = {};
 
-    // TOOD: this probably needs to be cached
-    // in some way or another... or maybe I have a
-    // call in the coordinator itself that returns it?
-    for (var i=0;i<totalSupply;i++) {
-      let tokenId = await dbnCoordinator.methods.tokenByIndex(i).call()
-      newPresentTokens[tokenId] = true
+  async function loadPresentTokens() {
+    const allTokens = await dbnCoordinator.methods.allTokens().call()
+    const presentTokens = {};
+    for (let tokenId of allTokens) {
+      presentTokens[tokenId] = true;
     }
-    setPresentTokens(newPresentTokens)
-    setLoading(false)
+    return presentTokens
+  }
+
+
+  useEffect(() => {
+    loadPresentTokens()
+    .then((presentTokens) => {
+      setPresentTokens(presentTokens)
+      setLoading(false)
+    })
+    .catch((e) => {
+      setRPCError(e)
+      console.error(e)
+    })
   }, [])
 
   function makeList() {
@@ -213,8 +230,13 @@ function Gallery() {
 
   return (
     <div class="pt-3 p-3 dbn-nft-gallery">
-      {/* TODO:fix centering */}
-      {loading && <LoadingText />}
+      {(loading && !rpcError) && <div className="text-center"><LoadingText /></div>}
+      {(loading && rpcError) && 
+        <Alert variant="danger">
+          <p>Error getting token list</p>
+          <p>{rpcError.toString()}</p>
+        </Alert>
+      }
       
       {!loading && 
         makeList(presentTokens)

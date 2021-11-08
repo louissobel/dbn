@@ -429,6 +429,9 @@ body {
   margin-right: 10px;
   font-size: 1.5rem;
   color: rgba(0, 0, 0, .5);
+}
+
+.dbn-nft-gallery-item.present {
   cursor: pointer;
 }
 
@@ -446,7 +449,7 @@ body {
     to {transform:rotate(360deg);}
 }
 
-.dbn-nft-gallery-item-loader {
+.dbn-nft-gallery-item-status {
   position: absolute;
   height: 20px;
   width: 20px;
@@ -454,8 +457,15 @@ body {
   bottom: 0px;
   font-size: 15px;
   line-height: 20px;
-  color: #1f1f83;
+}
 
+.dbn-nft-gallery-item-loader {
+  color: #1f1f83;
   animation: itemLoaderSpin 1s infinite linear;
+}
+
+.dbn-nft-gallery-item-error {
+  font-size: 12px;
+  color:  var(--bs-red);
 }
 
