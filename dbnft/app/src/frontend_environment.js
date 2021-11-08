@@ -37,10 +37,13 @@ const configForEnvironment = {
 
 	testnet: {
 		compileEndpoint: 'https://1ard2p8bka.execute-api.us-east-1.amazonaws.com/evm_compile',
-		coordinatorContractAddress: "0xC6730c7cDd99e8c38B0bc73Da99C188985DF0b39",
+		coordinatorContractAddress: "0x5AdEb7252a70873197d453885Ed657a96AA19A25",
 		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',
 		testnetBanner: true,
 		mintWhitelist: devAddress,
+
+		useHelpers: true,
+		helperAddress: '0x74164b0dfadf433c2111ed8fe46087e90ec94731',
 	},
 }
 
