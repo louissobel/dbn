@@ -52,7 +52,7 @@ function Viewer() {
       setBytecode(bytecode)
 
       const renderResult = await renderDBN(
-        {bytecode: bytecode},
+        {bytecode: bytecode, codeAddress: metadata.drawing_address},
         (update, data) => {
           if (update === 'INTERPRET_PROGRESS') {
             if (data.imageData) {

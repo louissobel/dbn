@@ -20,6 +20,8 @@ onmessage = ({ data }) => {
     compileEndpoint: data.frontendEnvironment.config.compileEndpoint,
     verbose: data.frontendEnvironment.config.verbose,
 
+    codeAddress: data.codeAddress,
+
     useHelpers: data.useHelpers,
     helperAddress: data.helperAddress,
   }
@@ -226,7 +228,7 @@ const renderDBNFromBytecode = async function(data, opts, onRenderStateChange) {
 
   const result = await evmInterpret(
     data.bytecode,
-    {gasLimit: GAS_LIMIT, helper},
+    {gasLimit: GAS_LIMIT, helper, codeAddress: opts.codeAddress},
     makeStepListener(100),
   )
 

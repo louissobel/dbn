@@ -105,6 +105,10 @@ var evmInterpret = async function(bytecode, opts, onStep) {
     data: opts.data,
   }
 
+  if (opts.codeAddress) {
+    runOpts.address = new Address(Buffer.from(opts.codeAddress.slice(2), 'hex'))
+  }
+
   try {
     return await vm.runCode(runOpts)
   } finally {

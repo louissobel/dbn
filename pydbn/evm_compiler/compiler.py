@@ -161,6 +161,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         paper = structures.BuiltinProcedure('Paper', 'command', 1, self.handle_builtin_paper)
         pen = structures.BuiltinProcedure('Pen', 'command', 1, self.handle_builtin_pen)
         time = structures.BuiltinProcedure('Time', 'number', 1, self.handle_builtin_time)
+        address = structures.BuiltinProcedure('Address', 'number', 0, self.handle_builtin_address)
 
         debugger = structures.BuiltinProcedure('DEBUGGER', 'command', 0, self.handle_builtin_debugger)
         self.builtin_procedures = {
@@ -172,6 +173,8 @@ class DBNEVMCompiler(DBNAstVisitor):
             'pen': pen,
             'Time': time,
             'time': time,
+            'Address': address,
+            'address': address,
             'DEBUGGER': debugger,
         }
 
@@ -1015,6 +1018,11 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_label(label)
 
         self.update_stack(-1, 'Time (leaving return value on stack)')
+
+    def handle_builtin_address(self, node):
+        # easy...
+        self.emit_opcode(ADDRESS)
+        self.update_stack(1, 'Address left on stack')
 
     def visit_procedure_definition_node(self, node):
         self.emit_line_no(node.line_no)
