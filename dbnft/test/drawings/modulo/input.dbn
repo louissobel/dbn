@@ -1,0 +1,7 @@
+Repeat A 0 100 {
+  Pen 100
+  Same? (A % 2) 1 {
+    Pen 0
+  }
+  Line A 0 A 100
+}

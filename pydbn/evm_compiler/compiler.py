@@ -1280,11 +1280,14 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.visit(node.right)
         self.visit(node.left)
 
+        # note that both SDIV and SMOD return 0 for division-by-zero,
+        # which is a reasonable (and inline with DBN implementation) outcome.
         ops = {
             '+': ADD,
             '-': SUB,
-            '/': SDIV, # TODO: what about zero?
+            '/': SDIV,
             '*': MUL,
+            '%': SMOD,
         }
         self.emit_opcode(ops[node.value])
 

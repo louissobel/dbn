@@ -495,7 +495,8 @@ def parse_arithmetic(tokens):
         '+' : (0, 'LEFT'),
         '-' : (0, 'LEFT'),
         '*' : (1, 'LEFT'),
-        '/' : (1, 'LEFT')
+        '/' : (1, 'LEFT'),
+        '%' : (1, 'LEFT')
     }
 
     # grab the open paren token
