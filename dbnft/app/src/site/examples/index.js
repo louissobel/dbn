@@ -1,3 +1,5 @@
+/* eslint import/no-anonymous-default-export: "off" */
+
 import line from './line'
 import paper from './paper'
 import pen from './pen'

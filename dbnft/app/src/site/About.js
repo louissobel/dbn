@@ -10,7 +10,6 @@ import SampleCodeAndImage from './SampleCodeAndImage'
 function About() {
 
   const [assemblyCode, setAssemblyCode] = useState(null)
-  const [bytecode, setBytecode] = useState(null)
 
   const sampleCode = 
 `Repeat X 0 100 {
@@ -43,7 +42,6 @@ function About() {
             <SampleCodeAndImage
               code={sampleCode}
               onAssemblyPresent={setAssemblyCode}
-              onBytecodePresent={setBytecode}
             />
 
             <h4>NFT</h4>

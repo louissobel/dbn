@@ -11,6 +11,7 @@ import {drawSelection} from "@codemirror/view"
 import {lineNumbers} from "@codemirror/gutter"
 
 import {dbnLanguage, dbnftHighlightStyle} from '../lang-dbn/dbn'
+import {dbnColorToByte} from './examples/helpers'
 
 
 // not "width" or "height" because alignmet can change
@@ -33,11 +34,12 @@ function SpecItemSlider(props) {
 
   var handleStyle = {}
   if (props.colorPicker) {
-    let color = 255 * (1 - value / 100.0)
+    let color = dbnColorToByte(value)
     handleStyle['backgroundColor'] = `rgb(${color}, ${color}, ${color})`
 
     // handle contrast against the grey overall tooltip background
-    // TODO: is that the final tooltip background?
+    // (if that background color changes, I'll have to remember
+    // to update this too...)
     if (value < 35) {
       handleStyle['border'] = '1px solid rgb(170, 170, 170)'
     }

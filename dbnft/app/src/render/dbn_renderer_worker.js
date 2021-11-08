@@ -2,7 +2,6 @@ import './dbn_renderer_worker_etherjs_workaround'
 import {evmAssemble, evmInterpret, linkCode} from './evm_tools'
 import helperContractCodeByAddress from './helper_contracts'
 import { BN } from 'ethereumjs-util'
-import immediate from 'immediate'
 
 const GAS_LIMIT = new BN(0xffffffff)
 

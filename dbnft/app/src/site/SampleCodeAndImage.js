@@ -7,7 +7,6 @@ import renderDBN from '../render'
 import ImageViewer from '../shared/ImageViewer'
 
 import CodeMirror from '@uiw/react-codemirror';
-import {drawSelection} from "@codemirror/view"
 import {lineNumbers} from "@codemirror/gutter"
 import {dbnLanguage, dbnftHighlightStyle} from '../lang-dbn/dbn'
 
@@ -34,7 +33,7 @@ function SampleCodeAndImage({ className, code, noheaders, onAssemblyPresent, onB
     })
     .then((r) => setImageData(r.imageData))
     .catch(error => console.error('', error))
-  }, [code, onAssemblyPresent]);
+  }, [code, onAssemblyPresent, onBytecodePresent]);
   
 
 	return (

@@ -1,6 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
 
-import { useHistory } from "react-router-dom";
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 import { Icon } from '@iconify/react';
@@ -39,7 +38,6 @@ function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample
 
   const code = useRef(null)
   const [interacted, setInteracted] = useState(false)
-  const history = useHistory()
 
   const uiEditableDispatchRef = useRef(null)
 
@@ -117,7 +115,7 @@ function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample
         <div>
           {interacted &&
             <div className="align-left dbn-reference-code-and-image-go-edit">
-              <a href="#" onClick={onGoEditClick}>
+              <a href="/create" onClick={onGoEditClick}>
                 <Icon icon="oi:share-boxed" inline={true} />
               </a>
             </div>

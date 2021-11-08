@@ -1,3 +1,5 @@
+/* eslint import/no-anonymous-default-export: "off" */
+
 import {
   varsFromSpec,
   dbnColorToByte,

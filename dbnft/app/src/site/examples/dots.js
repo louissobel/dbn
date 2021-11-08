@@ -1,9 +1,9 @@
+/* eslint import/no-anonymous-default-export: "off" */
+
 import {
   varsFromSpec,
   drawPaper,
   drawLine,
-  dbnColorToByte,
-  drawTooltipGuide,
   makeDBNColorPixel,
 } from './helpers'
 
