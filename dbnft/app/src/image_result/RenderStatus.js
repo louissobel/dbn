@@ -9,7 +9,7 @@ import StatusDot from '../shared/StatusDot'
 
 function GasStats({gasUsed}) {
   return (
-    <div class="d-inline ms-2 dbn-image-render-status-stats">
+    <div className="d-inline ms-2 dbn-image-render-status-stats">
       Gas: <NumberFormat
         value={gasUsed}
         displayType={'text'}
@@ -21,7 +21,7 @@ function GasStats({gasUsed}) {
 
 function BytecodeStats({codeSize}) {
   return (
-    <div class="d-inline ms-2 dbn-image-render-status-stats">
+    <div className="d-inline ms-2 dbn-image-render-status-stats">
       Bytecode: {codeSize + "b"}
     </div>
   )
@@ -60,7 +60,7 @@ function RenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, da
     case "INITIAL":
       status = (
         <>
-          <div class="d-inline me-1">
+          <div className="d-inline me-1">
             <StatusDot />
           </div>
 
@@ -71,11 +71,11 @@ function RenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, da
     case "RENDERING":
       status = (
         <>
-          <div class="d-inline me-1">
+          <div className="d-inline me-1">
             <StatusDot pending />
           </div>
 
-          <span class="dbn-image-render-status-message">
+          <span className="dbn-image-render-status-message">
             Rendering...
           </span>
 
@@ -95,11 +95,11 @@ function RenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, da
     case "DONE":
       status = (
         <>
-          <div class="d-inline me-1">
+          <div className="d-inline me-1">
             <StatusDot ok />
           </div>
           
-          <span class="dbn-image-render-status-message">
+          <span className="dbn-image-render-status-message">
             OK!
           </span>
 
@@ -112,11 +112,11 @@ function RenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, da
     case "ERROR":
       status = (
         <>
-          <div class="d-inline me-1">
+          <div className="d-inline me-1">
             <StatusDot error />
           </div>
 
-          <span class="dbn-image-render-status-message">
+          <span className="dbn-image-render-status-message">
             {errorMessage(renderError)}
           </span>
         </>

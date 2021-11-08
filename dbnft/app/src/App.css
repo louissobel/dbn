@@ -395,8 +395,16 @@ body {
 
 .dbn-mint-modal-text {
   text-align:  center;
-  margin-top:  20px;
   overflow:  scroll;
+}
+
+.dbn-nft-minter-transaction-hash {
+  font-style: italic;
+  font-size: 0.7rem;
+}
+
+.dbn-mint-status-alert-fine-print {
+  font-size:  0.7rem;
 }
 
 .dbn-token-metadata-table {

@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 
 import { useWeb3React } from '@web3-react/core'
 
@@ -20,11 +20,20 @@ function Minter(props) {
   const web3React = useWeb3React()
 
   const [isMinting, setIsMinting] = useState(false)
+  const mintEventEmitter = useRef(null)
   const [errorMessage, setErrorMessage] = useState(null)
 
   const [mintResult, setMintResult] = useState(null)
+  const [mintTransactionHash, setMintTransactionHash] = useState(null)
 
   const [showModal, setShowModal] = useState(false)
+
+  const {onMintInProgress} = props;
+  useEffect(() => {
+    if (mintTransactionHash && mintEventEmitter.current && onMintInProgress) {
+      onMintInProgress(mintTransactionHash, mintEventEmitter.current)
+    }
+  }, [onMintInProgress, mintTransactionHash])
 
   function showMintButton() {
     if (!web3React.active) {
@@ -57,19 +66,29 @@ function Minter(props) {
     console.log(deployBytecode)
 
     // TODO: how do we want to think about error handling here?
-     dbnCoordinator.methods.deploy(deployBytecode)
+    let mintPromiEmitter = dbnCoordinator.methods.deploy(deployBytecode)
       .send({from: web3React.account})
-      .then((result) => {
+    mintEventEmitter.current = mintPromiEmitter;
+
+    
+    mintPromiEmitter
+      .once('transactionHash', (h) => {
+        setMintTransactionHash(h)
+      })
+      .on('confirmation', (r) => console.log('confirmation', r))
+      .then((receipt) => {
         setIsMinting(false)
+        mintEventEmitter.current = null;
+
         setErrorMessage(null)
-        setMintResult(result)
-        console.log(result)
+        setMintResult(receipt)
       })
       .catch((error) => {
         setIsMinting(false)
+        mintEventEmitter.current = null;
 
         // TODO: improve this error handling?
-        console.log(error)
+        console.error('minting', error)
         setErrorMessage(error.message)
       })
 
@@ -79,18 +98,20 @@ function Minter(props) {
   const handleModalShow = () => {
     setShowModal(true);
     setMintResult(null);
+    setMintTransactionHash(null)
     setErrorMessage(null);
+
     setIsMinting(false);
+    mintEventEmitter.current = null
   }
 
   function renderMintResult() {
     const event = mintResult.events.DrawingDeployed;
-    console.log(event, mintResult)
 
     return (
       <div>
         <h5>NFT Minted!</h5>
-        {/* TODO: I probably should get this from tokenURI...*/}
+        {/* TODO: I probably should get this from tokenURI...?*/}
 
         <TokenMetadataTable
           tokenId={event.returnValues.tokenId}
@@ -144,7 +165,7 @@ function Minter(props) {
         keyboard={!isMinting}
         className="dbn-mint-modal"
       >
-        <Modal.Header closeButton={!isMinting}>
+        <Modal.Header closeButton={true}>
           <Modal.Title>
             Mint DBN NFT
             <Icon icon="mdi:ethereum" inline={true} />
@@ -166,6 +187,11 @@ function Minter(props) {
             {isMinting &&
               <p className="text-center">
                 Minting...
+              </p>
+            }
+            {isMinting && mintTransactionHash && 
+              <p className="dbn-nft-minter-transaction-hash">
+              Transaction: {mintTransactionHash}
               </p>
             }
 

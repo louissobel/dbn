@@ -7,7 +7,7 @@ import { Icon } from '@iconify/react';
 
 function FixedPill({label, value, maxWidth}) {
   return (
-    <span class="badge rounded-pill bg-light text-dark ms-1">
+    <span className="badge rounded-pill bg-light text-dark ms-1">
       {label + ":"}
       <span
         className="dbn-image-control-bar-fixed-pill-content"

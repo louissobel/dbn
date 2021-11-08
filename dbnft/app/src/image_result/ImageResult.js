@@ -63,6 +63,7 @@ function ImageResult(props) {
             bytecode={props.bytecode}
             description={props.description}
             imageData={props.imageData}
+            onMintInProgress={props.onMintInProgress}
           />
         </div>
       }

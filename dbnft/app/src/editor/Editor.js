@@ -6,6 +6,7 @@ import Col from 'react-bootstrap/Col';
 
 
 import ImageResult from '../image_result/ImageResult'
+import MintStatusAlert from '../minter/MintStatusAlert'
 import renderDBN from '../render'
 import {SessionStorage, STORAGE_KEY_RESET_INITIAL_CODE} from '../storage'
 import {maybeExtractDescription, maybeExtractConfig} from '../lang-dbn/dbn.js'
@@ -45,7 +46,10 @@ class Editor extends React.Component {
       darkmode: false,
 
       renderError: null,
+
+      mintsInProgress: [],
     };
+    this._mintEventEmitters = {}
 
     if (!SessionStorage.enabled) {
       console.warn('sessionStorage is not enabled, cannot persist code across refreshes');
@@ -55,6 +59,34 @@ class Editor extends React.Component {
     }
 
     this.initialCode = this.getInitialCode()
+  }
+
+  
+  onMintInProgress(transactionHash, mintEventEmitter) {
+    this._mintEventEmitters[transactionHash] = mintEventEmitter
+
+    if (!this.state.mintsInProgress.includes(transactionHash)) {
+      let newMintsInProgress = this.state.mintsInProgress.concat([transactionHash])
+      this.setState({
+        mintsInProgress: newMintsInProgress,
+      })
+    }
+  }
+
+  removeInProgressMint(transactionHashToRemove) {
+    console.log(transactionHashToRemove)
+    let newMintsInProgress = []
+    this.state.mintsInProgress.forEach((transactionHash) => {
+      if (transactionHash !== transactionHashToRemove) {
+        newMintsInProgress.push(transactionHash)
+        console.log(transactionHash);
+      }
+    })
+    this.setState({
+      mintsInProgress: newMintsInProgress,
+    }, () => {
+      delete this._mintEventEmitters[transactionHashToRemove]
+    })
   }
 
   dbnRender(code) {
@@ -227,9 +259,43 @@ class Editor extends React.Component {
     return out
   }
 
+  topInfoRow() {
+    // only shown sometimes
+    const anyMintsInProgress = this.state.mintsInProgress.length > 0
+
+    const show = anyMintsInProgress;
+
+    if (!show) {
+      return null
+    }
+
+    let mintStatus = this.state.mintsInProgress.map((transactionHash) => {
+      return <MintStatusAlert
+        key={transactionHash}
+        transactionHash={transactionHash}
+        mintEventEmitter={this._mintEventEmitters[transactionHash]}
+        onClose={this.removeInProgressMint.bind(this, transactionHash)}
+      />
+    })
+
+    return (
+      <Row className="pt-3 justify-content-md-center">
+        <Col md={12} lg={9} xl={6}>
+
+          {mintStatus}
+
+        </Col>
+      </Row>
+    )    
+
+  }
+
   render() {
     return (
       <Container>
+        {this.topInfoRow()}
+
+
         <Row className="pt-5">
           <Col sm={12} md={9} lg={6}>
             <ImageResult
@@ -240,6 +306,7 @@ class Editor extends React.Component {
 
               showMinter={true}
               minterEnabled={this.state.renderState === 'DONE'}
+              onMintInProgress={this.onMintInProgress.bind(this)}
 
               bytecode={this.state.bytecode}
               gasUsed={this.state.gasUsed}
