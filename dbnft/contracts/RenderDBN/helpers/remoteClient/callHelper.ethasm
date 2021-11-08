@@ -1,0 +1,19 @@
+; client to call helper contract
+
+; ASSUMES:
+; - helper address is at 0xC
+; - I have 8 words of memory: 0x80–0x0160
+
+
+; input: [opcode|arglength|returndst|returnlength|ret
+; notes: arglength needs to include the opcode
+@callHelper:
+  MSTORE8(0x80, $$)
+  0x80
+  MLOAD(0)
+  GAS
+  STATICCALL($$, $$, $$, $$, $$, $$)
+
+  ; assume success...
+  POP()
+  JUMP($$)

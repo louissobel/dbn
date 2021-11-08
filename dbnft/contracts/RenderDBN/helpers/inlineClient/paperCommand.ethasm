@@ -1,0 +1,5 @@
+;link:paperCommandImpl
+
+@paperCommand:
+	MLOAD(0x20) ; get the dst in place (pixeldataoffset)
+	JUMP($paperCommandImpl)

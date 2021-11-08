@@ -1,61 +1,51 @@
 
-artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm : \
-	contracts/RenderDBN/drawHarness.ethasm \
-	artifacts/intermediate_ethasm/inlinedHelpers.ethasm \
-	artifacts/intermediate_ethasm/alwaysInlined.ethasm
-	cat $^ > $@
-
-artifacts/intermediate_ethasm/helpersDrawHarness.ethasm : \
-	contracts/RenderDBN/drawHarness.ethasm \
-	contracts/RenderDBN/helpers/remoteClient.ethasm \
-	artifacts/intermediate_ethasm/alwaysInlined.ethasm
-	cat $^ > $@
-
-artifacts/intermediate_ethasm/inlinedHelpers.ethasm : \
-	contracts/RenderDBN/helpers/inlineClient.ethasm \
-	contracts/RenderDBN/helpers/initializeBitmap.ethasm \
-	contracts/RenderDBN/helpers/paperCommand.ethasm \
-	contracts/RenderDBN/helpers/linePixels.ethasm \
-	contracts/RenderDBN/helpers/timeNumber.ethasm
-	cat $^ > $@
-
-artifacts/intermediate_ethasm/alwaysInlined.ethasm : \
-	contracts/RenderDBN/lineCommand.ethasm \
-	contracts/RenderDBN/setCommand.ethasm \
-	contracts/RenderDBN/clampValue.ethasm \
-	contracts/RenderDBN/envGet.ethasm \
-	contracts/RenderDBN/dotGet.ethasm
-	cat $^ > $@
-
-
 artifacts/intermediate_ethasm/helpers.ethasm : \
 	contracts/RenderDBN/helpers/helpersHarness.ethasm \
-	contracts/RenderDBN/helpers/initializeBitmap.ethasm \
-	contracts/RenderDBN/helpers/paperCommand.ethasm \
-	contracts/RenderDBN/helpers/linePixels.ethasm \
-	contracts/RenderDBN/clampValue.ethasm \
-	contracts/RenderDBN/helpers/timeNumber.ethasm
+	$(wildcard contracts/RenderDBN/helpers/impl/*) \
+	contracts/RenderDBN/inlined/clampValue.ethasm
 	cat $^ > $@
 
 artifacts/contracts/helpers.eth : artifacts/intermediate_ethasm/helpers.ethasm
 	hh assemble --file $^ --output $@
 
+artifacts/intermediate_ethasm/helpersLinkArtifact.json : \
+	$(wildcard contracts/RenderDBN/helpers/remoteClient/*) \
+	$(wildcard contracts/RenderDBN/inlined/*)
+	python scripts/make_link_artifact.py $^ --output $@
+
+artifacts/intermediate_ethasm/inlineLinkArtifact.json : \
+	$(wildcard contracts/RenderDBN/helpers/inlineClient/*) \
+	$(wildcard contracts/RenderDBN/helpers/impl/*) \
+	$(wildcard contracts/RenderDBN/inlined/*)
+	python scripts/make_link_artifact.py $^ --output $@
+
 .PRECIOUS : artifacts/drawings/%.helpers.ethasm
 artifacts/drawings/%.helpers.ethasm: \
-	artifacts/intermediate_ethasm/helpersDrawHarness.ethasm \
-	artifacts/intermediate_ethasm/drawings/%.helpers.ethasm
-	cat $^ > $@
+	artifacts/intermediate_ethasm/drawings/%.helpers.ethasm \
+	artifacts/intermediate_ethasm/helpersLinkArtifact.json
+	python scripts/link.py \
+		--drawing $< \
+		--harness contracts/RenderDBN/drawHarness.ethasm \
+		--functions artifacts/intermediate_ethasm/helpersLinkArtifact.json \
+		--output $@
 
 .PRECIOUS : artifacts/drawings/%.ethasm
 artifacts/drawings/%.ethasm : \
-	artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm \
-	artifacts/intermediate_ethasm/drawings/%.ethasm
-	cat $^ > $@
+	artifacts/intermediate_ethasm/drawings/%.ethasm \
+	artifacts/intermediate_ethasm/inlineLinkArtifact.json
+	python scripts/link.py \
+		--drawing $< \
+		--harness contracts/RenderDBN/drawHarness.ethasm \
+		--functions artifacts/intermediate_ethasm/inlineLinkArtifact.json \
+		--output $@
 
-app/src/contracts/drawHarness.ethasm : artifacts/intermediate_ethasm/singleContractDrawHarness.ethasm
+app/src/contracts/drawHarness.ethasm : contracts/RenderDBN/drawHarness.ethasm
 	cp $^ $@
 
-app/src/contracts/helpersDrawHarness.ethasm : artifacts/intermediate_ethasm/helpersDrawHarness.ethasm
+app/src/contracts/inlineLinkArtifact.json : artifacts/intermediate_ethasm/inlineLinkArtifact.json
+	cp $^ $@
+
+app/src/contracts/helpersLinkArtifact.json : artifacts/intermediate_ethasm/helpersLinkArtifact.json
 	cp $^ $@
 
 app/src/contracts/DBNCoordinator.json : artifacts/contracts/DBNCoordinator.sol/DBNCoordinator.json
@@ -69,7 +59,8 @@ FORCE:
 .PHONY : frontend
 frontend: \
 	app/src/contracts/drawHarness.ethasm \
-	app/src/contracts/helpersDrawHarness.ethasm \
+	app/src/contracts/inlineLinkArtifact.json \
+	app/src/contracts/helpersLinkArtifact.json \
 	app/src/contracts/DBNCoordinator.json
 
 artifacts/intermediate_ethasm/drawings/scratch_drawings/%.ethasm : scratch_drawings/%.dbn $(wildcard ../pydbn/**/*)

@@ -149,6 +149,9 @@ const renderDBN = async function(data, opts, onRenderStateChange) {
   const linkedAssembly = linkCode(assemblyCode, {
     useHelpers: opts.useHelpers,
   })
+  if (opts.verbose) {
+    console.log(linkedAssembly)
+  }
 
   const bytecode = await evmAssemble(linkedAssembly)
   if (opts.verbose) {

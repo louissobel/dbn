@@ -1,0 +1,4 @@
+;link:linePixelsImpl
+
+@linePixels:
+	JUMP($linePixelsImpl)

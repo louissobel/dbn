@@ -1,3 +1,4 @@
+;link:initializeBitmap
 ; Header / entry point for actually drawing
 
 ; Load our "helper contract address" from code to 0x0C

@@ -1,0 +1,23 @@
+;link:callHelper
+
+; input [d|return
+; output [t
+@timeNumber:
+  MSTORE(0x81, $$)
+
+  $postTimeNumberHelperCall
+
+
+  0x20 ; ret length
+  0x80 ; ret offsert
+  0x21 ; arg length
+  0xCC ; opcode
+
+  JUMP($callHelper)
+
+  @postTimeNumberHelperCall:
+
+  MLOAD(0x80)
+  SWAP1
+  JUMP($$)
+

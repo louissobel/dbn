@@ -1,0 +1,19 @@
+;link:callHelper
+
+; input [x0|y0|x1|y1|dst|pixelDataBase|return
+; output [t
+@linePixels:
+  MSTORE(0x81, $$) ; x0
+  MSTORE(0xA1, $$) ; y0
+  MSTORE(0xC1, $$) ; x1
+  MSTORE(0xE1, $$) ; y1
+  POP() ; we ignore "dst" for the remote client case (always will be 0x80)
+  MSTORE(0x0101, $$) ; pixelDataBase
+
+  0x0100 ; allow the whole scratch space for return
+  0x80  ; return dst
+  0xA1  ; arg length
+  0x1E ; opcode
+
+  ; tailcall straight into the helper
+  JUMP($callHelper)

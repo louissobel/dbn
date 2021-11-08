@@ -1,3 +1,4 @@
+;link:clampValue
 ; def:    paperCommand
 ; input:  [dst|color|return
 ; output: [|

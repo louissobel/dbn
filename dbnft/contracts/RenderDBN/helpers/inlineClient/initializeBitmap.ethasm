@@ -1,0 +1,4 @@
+;link:initializeBitmapImpl
+
+@initializeBitmap:
+	JUMP($initializeBitmapImpl)

@@ -1,0 +1,13 @@
+;link:callHelper
+
+; input:  [dst|return
+; output: [
+@initializeBitmap:
+  458 ; ret length
+  SWAP1 ; ret offset (dst from arg)
+  1     ; arg length
+  0xB1  ; opcode
+
+  ; and we tailcall into the call
+  JUMP($callHelper)
+

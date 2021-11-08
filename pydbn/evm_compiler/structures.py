@@ -188,3 +188,15 @@ BuiltinProcedure = namedtuple('BuiltinProcedure', [
     'handler',
 ])
 
+
+LinkedFunction = namedtuple('LinkedFunction', [
+    'label',
+])
+
+class LinkedFunctions:
+    DOT_GET = LinkedFunction('dotGet')
+    SET_COMMAND = LinkedFunction('setCommand')
+    LINE_COMMAND = LinkedFunction('lineCommand')
+    PAPER_COMMAND = LinkedFunction('paperCommand')
+    ENV_GET = LinkedFunction('envGet')
+    TIME_NUMBER = LinkedFunction('timeNumber')

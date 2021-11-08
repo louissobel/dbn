@@ -4,18 +4,67 @@ import { Account, Address } from 'ethereumjs-util'
 import { Block } from '@ethereumjs/block'
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
-import inlineHarness from '!!raw-loader!../contracts/drawHarness.ethasm'
+import drawHarness from '!!raw-loader!../contracts/drawHarness.ethasm'
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
-import helperHarness from '!!raw-loader!../contracts/helpersDrawHarness.ethasm'
+import inlineLinkArtifact from '../contracts/inlineLinkArtifact.json'
+import helpersLinkArtifact from '../contracts/helpersLinkArtifact.json'
 
+
+var parseLinkList = function (data) {
+  const lines = data.split("\n", 1)
+  const firstLine = lines[0]
+  if (firstLine.startsWith(';link:')) {
+    let splitLine = firstLine.split(':')
+    let linkString = splitLine[1]
+    if (linkString.length > 1) {
+      return linkString.split(',')
+    } else {
+      return []
+    }
+  } else {
+    return []
+  }
+}
 
 var linkCode = function (assemblyCode, opts) {
+  let linkArtifact;
+
   if (opts.useHelpers) {
-    return helperHarness + "\n\n\n" + assemblyCode
+    linkArtifact = helpersLinkArtifact;
   } else {
-    return inlineHarness + "\n\n\n" + assemblyCode
+    linkArtifact = inlineLinkArtifact;
   }
+
+  const seen = {}
+  const linkQueue = [drawHarness, assemblyCode]
+  const output = []
+
+  while (linkQueue.length > 0) {
+    let next = linkQueue.shift()
+    output.push(next)
+    let links = parseLinkList(next)
+    for (let link of links) {
+      let data = linkArtifact[link];
+      if (!data) {
+        throw new Error('no data for linked function ' + link)
+      }
+
+      if (!seen[link]) {
+        seen[link] = true;
+        linkQueue.push(data)
+      }
+    }
+  }
+
+  /*
+   This is a hack... the drawing needs to be at the end (to avoid padding metadata)
+   but it is nice for the algorithm to treat it like other input.
+   So just splice it out and re-push it to the end.
+  */
+  output.splice(1, 1)
+  output.push(assemblyCode)
+
+  return output.join("\n\n")
 }
 
 var evmAssemble = async function(assembly) {

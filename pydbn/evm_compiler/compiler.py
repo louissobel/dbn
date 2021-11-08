@@ -2,7 +2,7 @@ import sys
 import contextlib
 
 from . import structures
-from .structures import CompileError
+from .structures import CompileError, LinkedFunctions
 from parser.structures.ast_nodes import *
 from parser import DBNAstVisitor
 
@@ -72,7 +72,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.lines = []
         self.label_prefix_counts = {}
         self.line_no = 0
-        self.no_env = False
+        self.needed_linked_functions = set()
 
         # stack_size is relative to command / program scope
         self.stack_size = 0
@@ -113,7 +113,11 @@ class DBNEVMCompiler(DBNAstVisitor):
         # Special metadata functions
         self.emit_metadata(metadata)
 
-        return "\n".join(self.lines)
+        self.log('needed linked functions: %s' % self.needed_linked_functions)
+
+        link_line = ";link:%s\n" % ",".join(sorted(self.needed_linked_functions))
+
+        return link_line + "\n".join(self.lines)
 
     def _allocate_stack_variables(self, node):
        # Stack variable allocation decisions
@@ -252,27 +256,26 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     def emit_opcode(self, opcode):
         self.lines.append(opcode.ethasm_format())
-        return self
 
     def emit_push(self, literal):
         # TODO: format the literal as hex?
         self.lines.append(str(literal))
-        return self
 
     def emit_push_label(self, label):
         self.lines.append("$%s" % label)
-        return self
 
     def emit_label(self, label):
         self.lines.append("@%s:" % label)
 
     def emit_jump(self, label):
         self.lines.append("JUMP($%s)" % label)
-        return self
+
+    def emit_linked_function_jump(self, linked_function):
+        self.needed_linked_functions.add(linked_function.label)
+        self.emit_jump(linked_function.label)
 
     def emit_jumpi(self, label):
         self.lines.append("JUMPI($%s, $$)" % label)
-        return self
 
     def emit_dup(self, depth):
         self.emit_opcode([
@@ -293,7 +296,6 @@ class DBNEVMCompiler(DBNAstVisitor):
             DUP15,
             DUP16,
         ][depth-1])
-        return self
 
     def emit_swap(self, depth):
         self.emit_opcode([
@@ -314,7 +316,6 @@ class DBNEVMCompiler(DBNAstVisitor):
             SWAP15,
             SWAP16,
         ][depth-1])
-        return self
 
     def emit_bit_for_index(self, index):
         """
@@ -334,11 +335,9 @@ class DBNEVMCompiler(DBNAstVisitor):
         else:
             # TODO: need to make sure I cover this in a test, it means a lot of variables!
             self.emit_raw("SHL(%d, 1)" % index)
-        return self
 
     def emit_load_env_base(self):
         self.emit_raw("MLOAD(%d)" % self.ENV_POINTER_ADDRESS)
-        return self
 
     def emit_line_no(self, line_no):
         # just comment for now
@@ -347,7 +346,6 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_newline()
         self.emit_comment("line number: %d" % line_no)
         self.line_no = line_no
-        return self
 
     def emit_raw(self, data):
         self.lines.append(data)
@@ -494,7 +492,7 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.visit(bracket_left)    # x
             self.visit(bracket_right)   # y
 
-            self.emit_jump('setCommand')
+            self.emit_linked_function_jump(LinkedFunctions.SET_COMMAND)
             self.emit_label(label)
 
             self.update_stack(-4, 'set dot')
@@ -639,7 +637,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_push((2 + index) * 32)  # wordoffset
         self.emit_bit_for_index(index)    # bit
         self.emit_load_env_base()         # env_base
-        self.emit_jump('envGet')
+        self.emit_linked_function_jump(LinkedFunctions.ENV_GET)
         self.emit_label(label)
 
 
@@ -984,7 +982,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.visit(node.args[3])
 
         # run the command!
-        self.emit_jump('lineCommand')
+        self.emit_linked_function_jump(LinkedFunctions.LINE_COMMAND)
         self.emit_label(label)
 
         self.update_stack(-5, 'Line')
@@ -998,7 +996,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.visit(node.args[0])
 
         # run the command!
-        self.emit_jump('paperCommand')
+        self.emit_linked_function_jump(LinkedFunctions.PAPER_COMMAND)
         self.emit_label(label)
 
         self.update_stack(-2, 'Paper')
@@ -1013,7 +1011,7 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         self.visit(node.args[0])
 
-        self.emit_jump('timeNumber')
+        self.emit_linked_function_jump(LinkedFunctions.TIME_NUMBER)
         self.emit_label(label)
 
         self.update_stack(-1, 'Time (leaving return value on stack)')
@@ -1074,8 +1072,6 @@ class DBNEVMCompiler(DBNAstVisitor):
             )
 
             with self.new_symbol_directory(new_directory, 'command_def'):
-                # TODO: don't allow Line, Setdot, (field?)
-                # or any other side-effectful things in Number!
                 self.visit(node.body)
 
             # Epilogue:
@@ -1274,7 +1270,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.visit(node.right)
         self.visit(node.left)
 
-        self.emit_jump('dotGet')
+        self.emit_linked_function_jump(LinkedFunctions.DOT_GET)
         self.emit_label(label)
 
         # -2 not -3 because value stays on stack

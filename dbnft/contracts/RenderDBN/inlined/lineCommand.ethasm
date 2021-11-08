@@ -1,3 +1,4 @@
+;link:clampValue,linePixels
 ; def:    lineCommand
 ; input:  [y1|x1|y0|x0ret
 ; output: [|

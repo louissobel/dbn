@@ -1,0 +1,13 @@
+;link:callHelper
+
+; input [color|return
+@paperCommand:
+  MSTORE(0x81, $$)
+
+  10504 ; ret length
+  MLOAD(0x20) ; (return data straight to the bitmap)
+  0x21  ; arg length
+  0xAE  ; opcode
+
+  ; and tailcall into the helper
+  JUMP($callHelper)

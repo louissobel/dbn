@@ -1,0 +1,4 @@
+;link:timeNumberImpl
+
+@timeNumber:
+	JUMP($timeNumberImpl)
