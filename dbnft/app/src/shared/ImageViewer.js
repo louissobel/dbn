@@ -55,13 +55,14 @@ class ImageViewer extends React.Component {
         if (!this.state.canvasDrawnAtAll) {
           this.setState({canvasDrawnAtAll: true})
         }
+
+        this._img = img
       }.bind(this)
 
       img.onerror = function(e) {
         console.error("error loading bitmap image", e)
       }
       img.src = url;
-      this._img = img
     }
   }
 

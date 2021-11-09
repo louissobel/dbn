@@ -454,6 +454,10 @@ body {
   cursor: pointer;
 }
 
+.dbn-nft-gallery-item.image-viewer-present {
+  border-color: rgba(0,0,0,0);
+}
+
 
 .dbn-nft-gallery-item .dbn-image-holder {
   position: absolute;

@@ -14,7 +14,6 @@ class WorkerPool {
   async get() {
     return new Promise((resolve) => {
       this.queue.push(resolve)
-      console.log('queue length:', this.queue.length)
       this._checkAvailable()
     })
   }
@@ -27,7 +26,6 @@ class WorkerPool {
   _checkAvailable() {
     while (this.inUse < this.max) {
       if (this.queue.length > 0) {
-        console.log(this.inUse, this.queue.length, this.max)
         let item = this.queue.shift()
         item(new Worker())
         this.inUse++;
@@ -39,7 +37,7 @@ class WorkerPool {
 }
 
 const workerPools = {
-  gallery: new WorkerPool(10)
+  gallery: new WorkerPool(8)
 }
 
 // String --> bitmapBlob (or error...)

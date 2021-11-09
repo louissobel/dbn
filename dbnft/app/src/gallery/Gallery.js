@@ -117,15 +117,22 @@ function Item({ id, present }) {
     history.push("/dbnft/" + id)
   }
 
+  const showImageViewer = (renderState === 'INTERPRETING' || renderState === 'DONE' || renderState === 'ERROR')
   return (
     <div
       key={id}
       onClick={present ? goToDetail : null}
-      className={classNames("dbn-nft-gallery-item", {present: present})}
+      className={classNames(
+        "dbn-nft-gallery-item",
+        {
+          present: present,
+          'image-viewer-present': showImageViewer,
+        }
+      )}
     >
        #{id}
 
-        {(renderState === 'INTERPRETING' || renderState === 'DONE' || renderState === 'ERROR') &&
+        {showImageViewer &&
           <ImageViewer imageData={imageData} magnify={1}/>
         }
 
@@ -229,7 +236,7 @@ function Gallery() {
   }
 
   return (
-    <div class="pt-3 p-3 dbn-nft-gallery">
+    <div className="pt-3 p-3 dbn-nft-gallery">
       {(loading && !rpcError) && <div className="text-center"><LoadingText /></div>}
       {(loading && rpcError) && 
         <Alert variant="danger">
