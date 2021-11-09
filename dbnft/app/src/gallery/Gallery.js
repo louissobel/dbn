@@ -215,6 +215,7 @@ function Gallery() {
 
                 return (
                   <List
+                    tabIndex={null} // we don't want the whole list to be focusable
                     className='List'
                     width={width}
                     autoHeight

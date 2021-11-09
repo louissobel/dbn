@@ -162,6 +162,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         pen = structures.BuiltinProcedure('Pen', 'command', 1, self.handle_builtin_pen)
         time = structures.BuiltinProcedure('Time', 'number', 1, self.handle_builtin_time)
         address = structures.BuiltinProcedure('Address', 'number', 0, self.handle_builtin_address)
+        field = structures.BuiltinProcedure('Field', 'command', 5, self.handle_builtin_field)
 
         debugger = structures.BuiltinProcedure('DEBUGGER', 'command', 0, self.handle_builtin_debugger)
         self.builtin_procedures = {
@@ -175,6 +176,8 @@ class DBNEVMCompiler(DBNAstVisitor):
             'time': time,
             'Address': address,
             'address': address,
+            'Field': field,
+            'field': field,
             'DEBUGGER': debugger,
         }
 
@@ -989,6 +992,21 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_label(label)
 
         self.update_stack(-5, 'Line')
+
+    def handle_builtin_field(self, node):
+        label = self.generate_label("postFieldCall")
+
+        self.emit_push_label(label)
+        self.update_stack(1, 'Field Return')
+
+        for arg in reversed(node.args):
+            self.visit(arg)
+
+        self.emit_linked_function_jump(LinkedFunctions.FIELD_COMMAND)
+        self.emit_label(label)
+
+        self.update_stack(-6, 'Field')
+
 
     def handle_builtin_paper(self, node):
         label = self.generate_label("postPaperCall")

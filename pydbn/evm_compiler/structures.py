@@ -200,3 +200,4 @@ class LinkedFunctions:
     PAPER_COMMAND = LinkedFunction('paperCommand')
     ENV_GET = LinkedFunction('envGet')
     TIME_NUMBER = LinkedFunction('timeNumber')
+    FIELD_COMMAND = LinkedFunction('fieldCommand')

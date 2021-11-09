@@ -1,0 +1,69 @@
+;link:lineCommand
+
+; def:    fieldCommand
+; input:  [x0|y0|x1|y1|color|ret
+; output: [|
+; state:  assumes pixelDataOffset is at 0x20 (for Line)
+;         assumes pen is at 0x40
+@fieldCommand:
+  ; not terribly efficient, we're going to just make multiple line calls
+
+  ; swap x0,y0 <> x1,y1 if x1 < x0
+  DUP1 ; [x0|x0|y0|x1|y1|color|ret
+  DUP4 ; [x1|x0|x0|y0|x1|y1|color|ret
+  SGT($$, $$)
+  JUMPI($fieldCommandNoSwap, $$)
+    ; [x0|y0|x1|y1|color|ret
+    SWAP2 ; [x1|y0|x0|y1|color|ret
+    SWAP1 ; [y0|x1|x0|y1|color|ret
+    SWAP3 ; [y1|x1|x0|y0|color|ret
+    SWAP1 ; [x1|y1|x0|y0|color|ret
+
+  @fieldCommandNoSwap:
+    ; [x0|y0|x1|y1|color|ret
+
+
+  ; save current pen, set pen to color
+  MLOAD(0x40) ; [oldPen|x0|y0|x1|y1|color|ret
+  DUP6        ; [color|oldPen|x0|y0|x1|y1|color|ret
+  MSTORE(0x40, $$)
+
+  @fieldCommandLoop:
+    ; [oldPen|x|y0|x1|y1|color|ret
+
+    ; draw a line
+    $fieldCommandPostLineCall
+    DUP3 ; [x|fieldRet|oldPen|x|y0|x1|y1|color|ret
+    DUP5 ; [y0|x|fieldRet|oldPen|x|y0|x1|y1|color|ret
+    DUP2 ; [x|y0|x|fieldRet|oldPen|x|y0|x1|y1|color|ret
+    DUP9 ; [y1|x|y0|x|fieldRet|oldPen|x|y0|x1|y1|color|ret
+    JUMP($lineCommand)
+    @fieldCommandPostLineCall:
+      ; [oldPen|x|y0|x1|y1|color|ret
+
+    ; if x == x1, we're done.
+    ; else increment x and repeat
+    DUP4 ; [x1|oldPen|x|y0|x1|y1|color|ret
+    DUP3 ; [x|x1|oldPen|x|y0|x1|y1|color|ret
+    EQ($$, $$)
+    JUMPI($fieldCommandLoopDone, $$)
+      ; [oldPen|x|y0|x1|y1|color|ret
+      DUP2
+      ADD(1, $$)
+      SWAP2
+      POP()
+      JUMP($fieldCommandLoop)
+
+  @fieldCommandLoopDone:
+    ; [oldPen|x|y0|x1|y1|color|ret
+
+    ; [oldPen|x|y0|x1|y1|color|ret
+    ; restore pen
+    MSTORE(0x40, $$)
+
+  POP()
+  POP()
+  POP()
+  POP()
+  POP()
+  JUMP($$)
