@@ -79,8 +79,16 @@ const makeStepListener = function(throttleInterval) {
       // as flag that the "bitmap is ready"
       var wipImage = null;
       if (step.memory[0x0B]) {
+
+        // Create a bitmap. We can't just return step.memory.slice
+        // because we lazily allocate the bitmap memory in the EVM,
+        // so there might not be a whole valid bitmap!
+        const bitmapLength = 10962;
+        const wipBitmapData = new Uint8Array(bitmapLength)
+        wipBitmapData.set(step.memory.subarray(0x0180, 0x0180 + 10962))
+
         wipImage = new Blob(
-          [step.memory.slice(0x0180, 0x0180 + 10962)],
+          [wipBitmapData],
           {type: 'image/bmp'}
         )
 

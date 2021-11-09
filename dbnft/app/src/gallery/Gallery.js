@@ -32,7 +32,7 @@ class RenderJob {
     this._setRenderState('INTERPRETING')
 
     renderDBN(
-      {bytecode: bytecode},
+      {bytecode: bytecode, workerPool: 'gallery'},
       (update, data) => {
         if (update === 'INTERPRET_PROGRESS') {
           if (data.imageData) {

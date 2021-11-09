@@ -16,10 +16,8 @@ class ImageViewer extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (prevProps.imageData !== this.props.imageData) {
-      // clear image cache and free the URL
+      // clear cached image
       this._img = null
-      URL.revokeObjectURL(this._blobUrl)
-      this._blobUrl = null;
     }
     this.drawCanvas()
   }
@@ -44,12 +42,18 @@ class ImageViewer extends React.Component {
 
       let img = new Image()
       img.onload = function() {
+        // once the image is loaded, we're good to free the object URL.
+        URL.revokeObjectURL(url)
+
+        // and then cache it
+        this._img = img
         context.drawImage(img, 0, 0, this.side(), this.side())
       }.bind(this)
-      img.src = url;
 
-      this._img = img
-      this._blobUrl = url
+      img.onerror = function(e) {
+        console.error("error loading bitmap image", e)
+      }
+      img.src = url;
     }
   }
 
