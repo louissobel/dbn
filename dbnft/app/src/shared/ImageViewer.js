@@ -1,5 +1,7 @@
 import React from 'react';
 
+import classNames from 'classnames'
+
 class ImageViewer extends React.Component {
   constructor(props) {
     super(props);
@@ -31,6 +33,9 @@ class ImageViewer extends React.Component {
 
     if (!this.props.imageData) {
       context.clearRect(0, 0, this.side(), this.side());
+      if (this.state.canvasDrawnAtAll) {
+        this.setState({canvasDrawnAtAll: false})
+      }
       return
     }
 
@@ -45,15 +50,18 @@ class ImageViewer extends React.Component {
         // once the image is loaded, we're good to free the object URL.
         URL.revokeObjectURL(url)
 
-        // and then cache it
-        this._img = img
         context.drawImage(img, 0, 0, this.side(), this.side())
+
+        if (!this.state.canvasDrawnAtAll) {
+          this.setState({canvasDrawnAtAll: true})
+        }
       }.bind(this)
 
       img.onerror = function(e) {
         console.error("error loading bitmap image", e)
       }
       img.src = url;
+      this._img = img
     }
   }
 
@@ -88,11 +96,14 @@ class ImageViewer extends React.Component {
   render() {
     return (
       <div
-        className={
-          "dbn-image-holder "
-             + (this.props.onPixelHover ? " crosshairs " : "")
-             + (this.props.extraClass || "")
-        }
+        className={classNames(
+          'dbn-image-holder',
+          {
+            crosshairs: !!this.props.onPixelHover,
+            'no-image-data': !this.state.canvasDrawnAtAll,
+          },
+          this.props.extraClass,
+        )}
         style={{width: this.side()+"px", height: this.side()+"px"}}
         onMouseMove={this.imageMouseOver.bind(this)}
         onMouseLeave={this.imageMouseOut.bind(this)}

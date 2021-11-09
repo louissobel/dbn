@@ -45,6 +45,9 @@
 }
 
 .dbn-image-holder {
+}
+
+.dbn-image-holder.no-image-data {
   background-color: white;
 }
 
