@@ -100,7 +100,7 @@ DotGet {
 	}
 
 	Set {
-		(("S" | "s") "et " "global "?)
+		(("S" | "s") "et " (("G" | "g") "lobal ")?)
 	}
 
 	Repeat {
