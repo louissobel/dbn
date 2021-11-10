@@ -30,7 +30,7 @@ function specDiff(currentSpec, newSpec) {
   return out
 }
 
-function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample }) {
+function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample, titleImage }) {
   const canvasRef = useRef()
 
   const [spec, setSpec] = useState(example.initialSpec)
@@ -144,6 +144,16 @@ function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample
             left: '-10px',
           }}
         />
+
+        {titleImage &&
+          <div
+            style={{
+              position: 'relative',
+              top:'-20px',
+              fontWeight: 'bold',
+            }}
+          >{titleImage}</div>
+        }
       </Col>
     </Row>
   )

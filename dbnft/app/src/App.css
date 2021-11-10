@@ -152,6 +152,7 @@ body {
 
 :root {
   --dbn-lighter-background-color: #ece9f5;
+  --dbn-number-highlight: #1b1bac;
 }
 
 .dbn-about-body {
@@ -169,6 +170,8 @@ body {
   border-radius: 3px;
   border: 1px solid rgba(0,0,0,.2);
   min-height: 50px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .dbn-sample-code-and-image {
@@ -200,6 +203,17 @@ body {
   font-weight: bold;
 }
 
+.dbn-reference-inline-code.number {
+  font-weight: normal;
+  color: var(--dbn-number-highlight);
+}
+
+.dbn-reference-canvas-example-label {
+  font-family: monospace;
+  color: var(--dbn-number-highlight);
+  font-size: 0.8rem;
+}
+
 .dbn-reference-code-and-image {
   font-size: .9rem;
 }
@@ -227,6 +241,10 @@ body {
   padding-top: 1rem;
   padding-bottom: 1rem;
   border-bottom:  2px solid rgba(0,0,0, .3);
+}
+
+.dbn-reference-section p {
+  margin-top: 1rem;
 }
 
 .dbn-reference-index {
@@ -285,7 +303,7 @@ body {
 
 
 .dbn-ui-editable-tooltip-holder .rc-slider-rail {
-  background-color: #1b1bac;
+  background-color: var(--dbn-number-highlight);
 }
 
 .dbn-ui-editable-tooltip-holder .rc-slider-mark {
@@ -302,7 +320,7 @@ body {
 
 .dbn-ui-editable-tooltip-holder .rc-slider-handle {
   border: none;
-  background-color: #1b1bac;
+  background-color: var(--dbn-number-highlight);
   height: 12px;
   width: 12px;
   margin-top: -4px;

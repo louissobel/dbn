@@ -11,23 +11,35 @@ import CanvasCoordinatesDemonstration from './CanvasCoordinatesDemonstration'
 import Examples from './examples'
 
 
-function ReferenceSection({name, registerRef, children}) {
+function ReferenceSection({name, registerRef, children, onMouseMove, onMouseLeave}) {
   let refCallback;
   if (registerRef) {
     refCallback = registerRef(name);
   }
 
   return (
-    <div ref={refCallback} className="dbn-reference-section">
+    <div
+      ref={refCallback}
+      className="dbn-reference-section"
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+    >
       <h3>{name}</h3>
       {children}
     </div>
   )
 }
 
-function InlineCode({ children }) {
+function InlineCode({ number, children }) {
   return (
-    <span className="dbn-reference-inline-code">{children}</span>
+    <span
+      className={classNames(
+        "dbn-reference-inline-code",
+        {number: !!number},
+      )}
+    >
+      {children}
+    </span>
   )
 }
 
@@ -93,6 +105,58 @@ function Index({ sectionList }) {
   )
 }
 
+function CanvasReferenceSection({ registerRef }) {
+  const canvasRef = useRef()
+  const [xCoord, setXCoord] = useState(null)
+  const [yCoord, setYCoord] = useState(null)
+
+  function mouseMove(e) {
+    if (!canvasRef.current) {
+      return
+    }
+
+    const canvasRect = canvasRef.current.getBoundingClientRect()
+
+    let x = Math.min(100, Math.max(0, Math.floor((e.clientX - canvasRect.x) - 10)))
+    setXCoord(x)
+
+    let y = 100 - Math.min(100, Math.max(0, Math.floor((e.clientY - canvasRect.y) - 10)))
+    setYCoord(y)
+
+    // console.log(canvasRect, e.clientX, e.clientY)
+    // console.log(x)
+  }
+
+  function mouseLeave(e) {
+    setXCoord(null)
+    setYCoord(null)
+  }
+
+  return (
+    <ReferenceSection
+      registerRef={registerRef}
+      name="Canvas"
+      onMouseMove={mouseMove}
+      onMouseLeave={mouseLeave}
+    >
+      <p>
+        You draw on a 101 by 101 pixel canvas, which starts out
+        fully white. There are 10,201 points within this canvas.
+        Each point is identified by
+        two numbers, <InlineCode>x</InlineCode> and <InlineCode>y</InlineCode>,
+        which range from 0 to 100 (inclusive).
+      </p>
+
+      <CanvasCoordinatesDemonstration
+        canvasRef={canvasRef}
+        x={xCoord}
+        y={yCoord}
+      />
+
+    </ReferenceSection>
+
+  )
+}
 
 function Reference() {
   const [sectionList, dispatch] = useReducer((initialSectionList, action) => {
@@ -143,23 +207,19 @@ function Reference() {
         <Col sm={12} md={8} lg={6} className="dbn-reference-content">
           <div className="p-2" >
 
-            <ReferenceSection registerRef={registerSection()} name="Canvas">
-              <p>
-                You draw on a 101x101 pixel canvas, which starts out
-                fully white. There are 10,201 points within this canvas,
-                each of which is described by
-                two numbers, <InlineCode>x</InlineCode> and <InlineCode>y</InlineCode>.
-              </p>
-
-              <CanvasCoordinatesDemonstration />
-
-            </ReferenceSection>
+            <CanvasReferenceSection registerRef={registerSection()} />
 
             <ReferenceSection registerRef={registerSection()} name="Line">
               <p>
-                <InlineCode>Line</InlineCode>, followed by four
-                values separated by a space will draw between 
-                the two points specified.
+                You can draw a line between two points  
+                using the command <InlineCode>Line</InlineCode>.
+                The <InlineCode>x</InlineCode> and <InlineCode>y</InlineCode> coordinates
+                of each point are passed as parameters.
+              </p>
+
+              <p>
+                Try changing the example below to get a feel
+                for it.
               </p>
 
               <InteractiveCodeAndImage example={Examples.line} />
@@ -169,19 +229,36 @@ function Reference() {
 
             <ReferenceSection registerRef={registerSection()} name="Paper">
               <p>
-                <InlineCode>Paper</InlineCode> covers the whole image
-                with the specified color.
+                The command <InlineCode>Paper</InlineCode> covers the whole image
+                with the color passed as a parameter. <InlineCode number>100</InlineCode> is
+                black, <InlineCode number>0</InlineCode> is white,
+                and there are 99 shades of gray between.
               </p>
 
               <InteractiveCodeAndImage example={Examples.paper} />
 
+
+              <p>
+                Note that <InlineCode>Paper</InlineCode> will cover anything that's
+                already been drawn.
+              </p>
+
+              <InteractiveCodeAndImage example={Examples.paperCoveringLine} />
             </ReferenceSection>
 
 
             <ReferenceSection registerRef={registerSection()} name="Pen">
               <p>
-                <InlineCode>Pen</InlineCode> sets the color for subsequent
-                Lines. It will stay in place until another call to Pen.
+                You can change the color of lines using the <InlineCode>Pen</InlineCode> command.
+                The parameter passed will be the color of all subsequent lines drawn (until another call to <InlineCode>Pen</InlineCode>).
+                The default value of pen is <InlineCode number>100</InlineCode>.
+              </p>
+
+              <InteractiveCodeAndImage example={Examples.simplePen}/>
+
+              <p>
+                Just these three commands—<InlineCode>Line</InlineCode>, <InlineCode>Paper</InlineCode>, and <InlineCode>Pen</InlineCode>—allow
+                for a variety of drawings.
               </p>
 
               <InteractiveCodeAndImage example={Examples.pen}/>
@@ -191,8 +268,8 @@ function Reference() {
             <ReferenceSection registerRef={registerSection()} name="Variables">
 
               <p>
-                Use the <InlineCode>Set</InlineCode> command to save a value to a variable,
-                which can then be used later wherever you'd use a number.
+                Use the <InlineCode>Set</InlineCode> command to save a value to a variable.
+                You can then use this variable anywhere you'd use a number.
               </p>
 
               <InteractiveCodeAndImage example={Examples.variables} />
@@ -201,12 +278,35 @@ function Reference() {
 
             <ReferenceSection registerRef={registerSection()} name="Repeat">
               <p>
-                The <InlineCode>Repeat</InlineCode> will
+                The <InlineCode>Repeat</InlineCode>  command will
                 run code multiple times, with a specified variable
-                set to a different value each time.
+                set to a different value each time. It is passed three parameters:
+                the name of a variable, the starting value, and the ending value.
+                The code to actually repeat is surrounded by curly braces <InlineCode>{"{}"}</InlineCode>.
               </p>
 
               <InteractiveCodeAndImage example={Examples.repeat} />
+
+            </ReferenceSection>
+
+            <ReferenceSection registerRef={registerSection()} name="Comments">
+              <p>
+                As your code get more complicated, you can use comments
+                (anything following a <InlineCode>//</InlineCode>) to make things
+                more understandable.
+              </p>
+
+              <InteractiveCodeAndImage example={Examples.commentedLine} />
+
+              <p>
+                There is also a magic comment that, if it's the first line of the code,
+                will give your drawing a title (stored as the description of the NFT).
+              </p>
+              <InteractiveCodeAndImage
+                example={Examples.describedLine}
+                titleImage="Line Example"
+              />
+
 
             </ReferenceSection>
 
@@ -223,11 +323,11 @@ function Reference() {
 
             <ReferenceSection registerRef={registerSection()} name="Math">
               <p>
-                The math operators to add (<InlineCode>+</InlineCode>),
+                You can use math operators to add (<InlineCode>+</InlineCode>),
                 subtract (<InlineCode>-</InlineCode>),
                 multiply (<InlineCode>*</InlineCode>),
-                and divide (<InlineCode>/</InlineCode>) numbers and variables
-                are supported. Note that any math needs to be fully enclosed
+                and divide (<InlineCode>/</InlineCode>) numbers or variables.
+                Note that any math needs to be fully enclosed
                 within parentheses.
               </p>
 
@@ -237,9 +337,9 @@ function Reference() {
 
             <ReferenceSection registerRef={registerSection()} name="Questions">
               <p>
-                Code can be run conditionally using questions.
-                A question is given two arguments and will run the subsequent block
-                of code only if the answer would be yes.
+                Code can be run conditionally using <em>questions</em>.
+                A question is given two arguments and will run the following <InlineCode>{"{}"}</InlineCode> enclosed
+                block of code only if the answer is "yes".
               </p>
 
               <ul>
@@ -261,7 +361,16 @@ function Reference() {
               />
             </ReferenceSection>
 
-            <ReferenceSection registerRef={registerSection()} name="Commands"/>
+            <ReferenceSection registerRef={registerSection()} name="Commands">
+              <p>
+                You can define your own commands with the (fitting) command <InlineCode>Command</InlineCode>, followed
+                by its name, then any parameters, then the block of code to run each time the command is called.
+              </p>
+
+              <InteractiveCodeAndImage example={Examples.squareCommand} />
+
+            </ReferenceSection>
+
             <ReferenceSection registerRef={registerSection()} name="Numbers"/>
 
             <ReferenceSection registerRef={registerSection()} name="Blockchain">

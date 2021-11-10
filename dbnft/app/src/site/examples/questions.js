@@ -9,7 +9,7 @@ import {
 
 function makeInitialSpec(question1, question2) {
   return [
-    {value: 'Set C', type: 'constant'},
+    {value: 'Set threshold', type: 'constant'},
     {value: '50', name: 'cutoff', type: 'xcoord'},
     {value: '\n', type: 'constant'},
 
@@ -19,7 +19,7 @@ function makeInitialSpec(question1, question2) {
     {value: '{', type: 'constant'},
     {value: '\n', type: 'constant'},
 
-    {value: `  ${question1} X C {`, type: 'constant'},
+    {value: `  ${question1} X threshold {`, type: 'constant'},
     {value: '\n', type: 'constant'},
 
     {value: '    Pen', type: 'constant'},
@@ -28,7 +28,7 @@ function makeInitialSpec(question1, question2) {
     {value: '  }', type: 'constant'},
     {value: '\n', type: 'constant'},
 
-    {value: `  ${question2} X C {`, type: 'constant'},
+    {value: `  ${question2} X threshold {`, type: 'constant'},
     {value: '\n', type: 'constant'},
 
     {value: '    Pen', type: 'constant'},

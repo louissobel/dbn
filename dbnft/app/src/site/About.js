@@ -10,6 +10,7 @@ import SampleCodeAndImage from './SampleCodeAndImage'
 function About() {
 
   const [assemblyCode, setAssemblyCode] = useState(null)
+  const [bytecode, setBytecode] = useState(null)
 
   const sampleCode = 
 `Repeat X 0 100 {
@@ -42,21 +43,31 @@ function About() {
             <SampleCodeAndImage
               code={sampleCode}
               onAssemblyPresent={setAssemblyCode}
+              onBytecodePresent={setBytecode}
             />
 
             <h4>NFT</h4>
+
             <p>
-              While there are many ways someone could create an NFT of an image, most of them
-              involve storing the image itself outside of the blockchain. Here, artists
-              can instead create NFTs consisting of the actual DBN code
-              (transformed into a <a target="_blank" rel="noreferrer" href="https://ethervm.io/">different form</a>)
-              necessary to render the final image.
+              This tool enables you to create NFTs by compiling DBN code directly to a smart contract that
+              can render itself as a bitmap. There is no Solidity involved in this step, just DBN and raw EVM Opcodes.
             </p>
 
             <h6>The above code becomes:</h6>
             <pre class="dbn-about-sample-code" style={{height: "100px"}}>
               {assemblyCode}
             </pre>
+
+            <h6>Which is then turned into:</h6>
+            <pre class="dbn-about-sample-code" style={{height: "100px"}}>
+              {bytecode}
+            </pre>
+
+            <p>
+              Minting a DBNFT involves <em>deploying</em> your drawing as a smart contract
+              to the Ethereum blockchain. When it's time to get the image for the NFT,
+              that smart contract is called and a bitmap image is created and returned.
+            </p>
           </div>
         </Col>
 

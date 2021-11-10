@@ -9,7 +9,39 @@ import {
   drawTooltipGuide,
 } from './helpers'
 
-export default {
+export const simplePen = {
+  name: 'simplepen',
+
+  initialSpec: [
+    {value: "Pen", type: 'constant'},
+    {value: '100', type: 'color', name: 'pen'},
+    {value: '\n', type: 'constant'},
+    {value: "Line", type: 'constant'},
+    {value: '0', name: 'x0', type: 'xcoord'},
+    {value: '0', name: 'y0', type: 'ycoord'},
+    {value: '100', name: 'x1', type: 'xcoord'},
+    {value: '100', name: 'y1', type: 'ycoord'},
+  ],
+
+  draw(ctx, spec, tooltipItemName) {
+    let [pen, x0, y0, x1, y1] = varsFromSpec(['pen', 'x0', 'y0', 'x1', 'y1'], spec)
+
+    initCanvas(ctx)
+    drawLine(ctx, pen, x0, y0, x1, y1)
+
+    if (tooltipItemName && tooltipItemName !== 'pen') {
+      drawTooltipGuide(ctx, spec, tooltipItemName, {
+        'y0': 'y1',
+        'y1': 'y0',
+        'x0': 'x1',
+        'x1': 'x0',
+      })
+    }
+  }
+}
+
+
+export const pen = {
   name: 'pen',
 
   initialSpec: [

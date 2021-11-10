@@ -7,13 +7,10 @@ import Row from 'react-bootstrap/Row';
 // RGB for the "guidebar" to appear showing what's moving in Line
 const GUIDEBAR_COLOR = [0x1b, 0x1b, 0xac]
 
-function CanvasCoordinatesDemonstration({ func, initialSpec }) {
-  const canvasRef = useRef()
-
-  const [xCoord, setXCoord] = useState(50)
-  const [yCoord, setYCoord] = useState(50)
+function CanvasCoordinatesDemonstration({ x, y, canvasRef }) {
 
   useEffect(() => {
+    console.log('drawing')
     let canvas = canvasRef.current;
     let ctx = canvas.getContext('2d')
 
@@ -28,59 +25,145 @@ function CanvasCoordinatesDemonstration({ func, initialSpec }) {
     guidePixel.data[2] = GUIDEBAR_COLOR[2]
     guidePixel.data[3] = 255;
 
-    for (let x = 0; x<121; x++) {
-      ctx.putImageData(guidePixel, x, 120 - (yCoord + 10))
+    if (y !== null) {
+      for (let x = 0; x<121; x++) {
+        ctx.putImageData(guidePixel, x, 120 - (y + 10))
+      }
     }
-    for (let y = 0; y<121; y++) {
-      ctx.putImageData(guidePixel, (xCoord + 10), y)
+
+    if (x !== null) {
+      for (let y = 0; y<121; y++) {
+        ctx.putImageData(guidePixel, (x + 10), y)
+      }
     }
-  }, [xCoord, yCoord])
 
-  function canvasMouseOver(e) {
-    const canvasX = Math.min(120, Math.max(e.nativeEvent.offsetX, 0))
-    const canvasY = Math.min(120, Math.max(e.nativeEvent.offsetY, 0))
 
-    const offsetX = Math.min(100, Math.max(canvasX - 10, 0))
-    const offsetY = Math.min(100, Math.max((120 - canvasY) - 10, 0))
+    // axis ticks, X
+    for (let xTick of [0, 100]) {
+      for (let xTickY = 111; xTickY<121; xTickY++) {
+        ctx.putImageData(guidePixel, xTick+10, xTickY)
+      }      
+    }
 
-    setXCoord(offsetX)
-    setYCoord(offsetY)
-  }
 
-  function canvasMouseOut(e) {
-    setXCoord(50)
-    setYCoord(50)
-  }
+    // axis ticks, Y
+    for (let yTick of [10, 110]) {
+      for (let yTickX = 0; yTickX<10; yTickX++) {
+        ctx.putImageData(guidePixel, yTickX, yTick)
+      }      
+    }
+
+  }, [x, y])
+
+  // function canvasMouseOver(e) {
+  //   const canvasX = Math.min(120, Math.max(e.nativeEvent.offsetX, 0))
+  //   const canvasY = Math.min(120, Math.max(e.nativeEvent.offsetY, 0))
+
+  //   const offsetX = Math.min(100, Math.max(canvasX - 10, 0))
+  //   const offsetY = Math.min(100, Math.max((120 - canvasY) - 10, 0))
+
+  //   setXCoord(offsetX)
+  //   setYCoord(offsetY)
+  // }
+
+  // function canvasMouseOut(e) {
+  //   setXCoord(50)
+  //   setYCoord(50)
+  // }
 
   return (
 
     <Row className="dbn-reference-code-and-image">
-      <Col className="pt-3 text-center" xs={6}>
-        <h6>X: <span class="dbn-reference-canvas-demo-number">
-            {xCoord}
-          </span>
-        </h6>
+      <Col>
+        <div style={{position: 'relative', width:121}} className='mx-auto'>
+          <canvas
+            ref={canvasRef}
+            height={121}
+            width={121}
+            // onMouseMove={canvasMouseOver}
+            // onMouseLeave={canvasMouseOut}
+            style={{
+              position: 'relative',
+              top:'-10px',
+              left: '-10px',
+              cursor: 'crosshair',
+            }}
+          />
 
-        <h6>Y: <span class="dbn-reference-canvas-demo-number">
-            {yCoord}
-          </span>
-        </h6>
-      </Col>
+          <div style={{
+            position: 'absolute',
+            textAlign: 'center',
+            width: 101,
+            top:'calc(100px + 1rem)',
+            left: 0,
+            lineHeight:'1rem',
+          }}>
+            <span className="dbn-reference-inline-code">
+              {(x === null) ? 'x' : 'x: ' + x}
+            </span>
+          </div>
 
-      <Col xs={6}>
-        <canvas
-          ref={canvasRef}
-          height={121}
-          width={121}
-          onMouseMove={canvasMouseOver}
-          onMouseLeave={canvasMouseOut}
-          style={{
-            position: 'relative',
-            top:'-10px',
-            left: '-10px',
-            cursor: 'crosshair',
-          }}
-        />
+         <div style={{
+            position: 'absolute',
+            textAlign: 'right',
+            height: 101,
+            width: '100px',
+            lineHeight: '101px',
+            top: 0,
+            left: 'calc(-100px - 1.5rem)',
+          }}>
+            <span className="dbn-reference-inline-code">
+              {(y === null) ? 'y' : 'y: ' + y}
+            </span>
+          </div>
+
+         <div style={{
+            position: 'absolute',
+            textAlign: 'center',
+            width: '20px',
+            top: 112,
+            lineHeight:'1rem',
+            left: -10,
+
+          }}>
+            <span className="dbn-reference-canvas-example-label">0</span>
+          </div>
+
+         <div style={{
+            position: 'absolute',
+            textAlign: 'center',
+            width: '20px',
+            top: 112,
+            lineHeight:'1rem',
+            left: 90,
+
+          }}>
+            <span className="dbn-reference-canvas-example-label">100</span>
+          </div>
+
+         <div style={{
+            position: 'absolute',
+            textAlign: 'right',
+            width: '20px',
+            top: 100,
+            lineHeight: 0,
+            left: 'calc(-22px - 1em)',
+          }}>
+            <span className="dbn-reference-canvas-example-label">0</span>
+          </div>
+
+         <div style={{
+            position: 'absolute',
+            textAlign: 'right',
+            width: '20px',
+            top: 0,
+            lineHeight: 0,
+            left: 'calc(-22px - 1em)',
+          }}>
+            <span className="dbn-reference-canvas-example-label">100</span>
+          </div>
+
+        </div>
       </Col>
     </Row>
   )
