@@ -461,7 +461,7 @@ class DBNEVMCompiler(DBNAstVisitor):
                 # If we set a variable in a block, for the remainder of the block
                 # we can later assume that that variable is present
                 # (and use optimized read path)
-                if isinstance(node, DBNSetNode) and node.set_type == 'variable':
+                if isinstance(sub_node, DBNSetNode) and sub_node.set_type == 'variable':
                     symbol = sub_node.left.value
                     if symbol_directory_for_this_block.location_for(symbol).is_global():
                         symbol_directory_for_this_block.set_local(symbol)
