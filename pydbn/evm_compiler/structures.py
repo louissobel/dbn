@@ -54,23 +54,31 @@ class ScopeDependencies(object):
             self.procedures_called,
         )
 
-    def globals_expected_by_any_called_function(self, procedure_definitions_by_name, seen=None):
+    def globals_expected_by_any_called_function(self, procedure_definitions_by_name, seen=None, root=False):
         if seen is None:
             seen = set()
 
         expected = set()
 
         for call in self.procedures_called:
-            # TODO: better error message?
             if call.symbol in seen:
                 continue
             seen.add(call.symbol)
 
+            # TODO: better error message?
             dfn = procedure_definitions_by_name[call.symbol]
             for get in dfn.scope_dependencies.variable_gets:
                 if get.is_global:
                     expected.add(get.symbol)
-            expected |= dfn.scope_dependencies.globals_expected_by_any_called_function(procedure_definitions_by_name, seen)
+
+            # For the root scope, we _also_ need to check if any
+            # (recursively) called functions do a Set global
+            if root:
+                for set_ in dfn.scope_dependencies.variable_sets:
+                    if set_.is_global:
+                        expected.add(set_.symbol)
+
+            expected |= dfn.scope_dependencies.globals_expected_by_any_called_function(procedure_definitions_by_name, seen, root=root)
 
         return expected
 

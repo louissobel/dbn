@@ -245,11 +245,26 @@ def parse_set(tokens):
         "Set needs to be passed two arguments, but none provided",
     )
 
+    global_token = None
     if next_token.type   == 'OPENBRACKET':
         first_arg = parse_bracket(tokens)
+        set_type = 'dot'
 
     elif next_token.type == 'WORD':
         first_arg = parse_word(tokens)
+        set_type = 'variable'
+
+    elif next_token.type == 'GLOBAL':
+        global_token = pop_asserting_present(tokens)
+        next_token = peek_asserting_present(tokens)
+        if next_token.type != 'WORD':
+            raise ParseError(
+                "Set \"global\" must be followed by variable name",
+                next_token.line_no,
+                next_token.char_no,
+            )
+        first_arg = parse_word(tokens)
+        set_type = 'global_variable'
 
     else:
         raise ParseError(
@@ -271,8 +286,13 @@ def parse_set(tokens):
     )
     noop = parse_newline(tokens)
 
-    node_tokens = [set_token] + first_arg.tokens + second_arg.tokens + noop.tokens
+    node_tokens = [set_token]
+    if global_token:
+        node_tokens.append(global_token)
+
+    node_tokens += first_arg.tokens + second_arg.tokens + noop.tokens
     return DBNSetNode(
+        value=set_type,
         children=[first_arg, second_arg],
         tokens=node_tokens,
         line_no=set_token.line_no,

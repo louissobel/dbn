@@ -1,0 +1,9 @@
+
+Command SetX {
+	Set global X 50
+	Set X (X + 10)
+	Line X 0 X 100
+}
+
+SetX
+Line X 0 X 100

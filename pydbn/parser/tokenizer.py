@@ -46,6 +46,7 @@ class DBNTokenizer:
 
         # then keywords
         self.register('SET',               r'([sS]et)\b')
+        self.register('GLOBAL',            r'([gG]lobal)\b')
         self.register('REPEAT',            r'([rR]epeat)\b')
         self.register('QUESTION',          r'([sS]ame|NotSame|notsame|[sS]maller|NotSmaller|notsmaller)\? '),
         self.register('COMMAND',           r'([cC]ommand)\b'),

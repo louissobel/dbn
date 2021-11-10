@@ -100,7 +100,7 @@ DotGet {
 	}
 
 	Set {
-		(("S" | "s") "et ")
+		(("S" | "s") "et " "global "?)
 	}
 
 	Repeat {
@@ -150,7 +150,7 @@ DotGet {
 	Number { $[0123456789]+ }
 
 	AddOperators { $[+-]}
-	MulOperators { $[*/]}
+	MulOperators { $[*/%]}
 	LineComment { "//" ![\n]* }
 	@precedence { LineComment, MulOperators }
 

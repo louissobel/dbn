@@ -461,7 +461,7 @@ class DBNEVMCompiler(DBNAstVisitor):
                 # If we set a variable in a block, for the remainder of the block
                 # we can later assume that that variable is present
                 # (and use optimized read path)
-                if self.node_is_variable_set(sub_node):
+                if isinstance(node, DBNSetNode) and node.set_type == 'variable':
                     symbol = sub_node.left.value
                     if symbol_directory_for_this_block.location_for(symbol).is_global():
                         symbol_directory_for_this_block.set_local(symbol)
@@ -472,9 +472,6 @@ class DBNEVMCompiler(DBNAstVisitor):
                     # TODO: emit some kind of warning about the dead code?
                     break
 
-    def node_is_variable_set(self, node):
-        return isinstance(node, DBNSetNode) and isinstance(node.left, DBNWordNode)
-
     def node_is_value(self, node):
         return isinstance(node, DBNValueNode)
 
@@ -484,7 +481,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         left = node.left
 
         # If left is a bracket, we're setting a single dot
-        if   isinstance(left, DBNBracketNode):
+        if node.set_type == 'dot':
             self._validate_side_effect('set_dot')
 
             # Peer inside the bracket
@@ -503,7 +500,7 @@ class DBNEVMCompiler(DBNAstVisitor):
 
             self.update_stack(-4, 'set dot')
 
-        elif isinstance(left, DBNWordNode):
+        elif node.set_type == 'variable':
             # Get the value on the stack
             self.visit(node.right)
 
@@ -534,6 +531,32 @@ class DBNEVMCompiler(DBNAstVisitor):
                 self.handle_env_set(symbol)
 
             self.update_stack(-1, 'set variable')
+
+        elif node.set_type == 'global_variable':
+            # This is simpler than 'variable', we just set it straight
+            # into the base env (which we statically know the address for)
+            #
+            # We also take no stack / env / etc location into consideration.
+            # This also means that the "this variable got set" code in Block
+            # needs to be sure to _ignore_ this set type
+            self.visit(node.right)
+            symbol = left.value
+
+            if self.getting_scope_dependencies:
+                self.scope_dependencies.variable_sets.append(
+                    structures.ScopeDependencies.VariableAccess(
+                        symbol,
+                        self.stack_size,
+                        True,
+                        self.line_no,
+                    )
+                )
+
+            index = self.symbol_mapping[symbol]
+            self.emit_push(self.FIRST_ENV_ADDRESS + ((2 + index) * 32))
+            self.emit_opcode(MSTORE)
+
+            self.update_stack(-1, 'set global variable')
 
     def visit_word_node(self, node):
         symbol = node.value
@@ -933,7 +956,6 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_jump(dfn.label)
         self.emit_label(post_call_label)
 
-        # TODO: this maybe needs to consider any noop arg optimizations we make...
         stack_consumed = len(dfn.stack_slots) + len(dfn.local_env_args) + 1 # + 1 for return address
         if dfn.is_number:
             # one less stack slot is consumed if we're calling a "Number":
@@ -1339,11 +1361,12 @@ class DBNEVMCompiler(DBNAstVisitor):
             return self.scope_dependencies
 
 
-    def make_variable_location_decisions_for(self, scope_dependencies, args, name):
+    def make_variable_location_decisions_for(self, scope_dependencies, args, name, root=False):
         self.log("\n\n[][][][][][][] Stack decision for %s" % name)
 
         expected_globals = scope_dependencies.globals_expected_by_any_called_function(
             self.procedure_definitions_by_name,
+            root=root,
         )
 
         local_env_args = []
@@ -1356,10 +1379,17 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.log("---> Gets:")
         for g in all_gets:
             self.log("   • %s" % (g,))
-        all_sets = scope_dependencies.variable_sets
+
+        all_sets_including_globals = scope_dependencies.variable_sets
         self.log("---> Sets:")
-        for s in all_sets:
+        for s in all_sets_including_globals:
             self.log("   • %s" % (s,))
+
+        # We ignore global sets when making variable location decisions,
+        # as they have no bearing on how we allocate variables themselves
+        # (they do impact root-level stack allocation, but that's handled
+        # by the expected_globals computation above)
+        all_sets = [s for s in all_sets_including_globals if not s.is_global]
 
         arg_set = set(args)
         non_arg_variables = ({a.symbol for a in all_gets} | {a.symbol for a in all_sets}) - arg_set

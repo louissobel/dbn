@@ -108,6 +108,10 @@ class DBNSetNode(DBNBaseNode):
     def right(self):
         return self.children[1]
 
+    @property
+    def set_type(self):
+        return self.value
+
 
 @node
 class DBNRepeatNode(DBNBaseNode):
