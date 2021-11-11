@@ -2,7 +2,12 @@ import React from 'react';
 
 import { Link } from "react-router-dom";
 
+import frontendEnvironment from '../frontend_environment'
+
 function TokenMetadataTable(props) {
+
+  const etherscanURL = frontendEnvironment.config.etherscanBase + "/address/" + props.address;
+
   return(
     <table className="table dbn-token-metadata-table border-dark">
       <tbody>
@@ -17,8 +22,9 @@ function TokenMetadataTable(props) {
         <tr>
           <th scope="row">Drawing Address</th>
           <td>
-            {/* TODO... link out to "view on etherscan?"... */}
-            {props.address}
+            <a href={etherscanURL}>
+              {props.address}
+            </a>
           </td>
         </tr>
         <tr>

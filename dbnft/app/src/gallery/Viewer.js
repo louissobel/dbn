@@ -7,6 +7,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Alert from 'react-bootstrap/Alert';
 
+import frontendEnvironment from '../frontend_environment'
 import renderDBN from '../render'
 import {eth, dbnCoordinator} from '../eth_tools'
 import ImageResult from '../image_result/ImageResult'
@@ -99,9 +100,17 @@ function Viewer() {
     )
   }
 
+  const openSeaURL = (
+    frontendEnvironment.config.openSeaBase +
+    "/assets/" +
+    frontendEnvironment.config.coordinatorContractAddress +
+    "/" + 
+    tokenId
+  );
+
   return (
     <Container>
-      <Row className="pt-3 justify-content-md-center">
+      <Row className="pt-3 pb-3 justify-content-md-center">
         <Col sm={12} md={9} lg={8} xl={6}>
           <div class="dbn-nft-viewer">
             <h1>DBNFT #{tokenId.toString()}</h1>
@@ -126,6 +135,10 @@ function Viewer() {
                   address={tokenMetadata.drawing_address}
                   externalURL={tokenMetadata.external_url}
                 />
+
+                <div>
+                  <a href={openSeaURL}>View on OpenSea</a>
+                </div>
               </>
             }
           </div>
