@@ -40,6 +40,14 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
         // Initialize this...
         _allowedMinterForTokenId[0] = _msgSender();
         _allowedMinterForTokenId[1] = _msgSender();
+        _allowedMinterForTokenId[2] = _msgSender();
+        _allowedMinterForTokenId[3] = _msgSender();
+        _allowedMinterForTokenId[4] = _msgSender();
+        _allowedMinterForTokenId[5] = _msgSender();
+        _allowedMinterForTokenId[6] = _msgSender();
+        _allowedMinterForTokenId[7] = _msgSender();
+        _allowedMinterForTokenId[8] = _msgSender();
+        _allowedMinterForTokenId[9] = _msgSender();
 
         // first open token id is 101
         _tokenIds._value = 101;

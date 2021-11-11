@@ -13,7 +13,6 @@ const configForEnvironment = {
 		mintPrice: 10000000000000000, // 0.01 ETH
 		ethNetwork: 'http://localhost:8545',
 		verbose: true,
-		mintWhitelist: devAddress,
 
 		useHelpers: true,
 		helperAddress: '0x19af9857f53675c17248113E2818eaBBEb8089DE',
@@ -25,7 +24,6 @@ const configForEnvironment = {
 		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',
 		verbose: true,
 		testnetBanner: true,
-		mintWhitelist: devAddress,
 	},
 
 	// should this be testnet?
@@ -39,9 +37,9 @@ const configForEnvironment = {
 	testnet: {
 		compileEndpoint: 'https://1ard2p8bka.execute-api.us-east-1.amazonaws.com/evm_compile',
 		coordinatorContractAddress: "0x5AdEb7252a70873197d453885Ed657a96AA19A25",
+		mintPrice: 10000000000000000, // 0.01 ETH
 		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',
 		testnetBanner: true,
-		mintWhitelist: devAddress,
 
 		useHelpers: true,
 		helperAddress: '0x74164b0dfadf433c2111ed8fe46087e90ec94731',
