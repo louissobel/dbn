@@ -1,6 +1,15 @@
 ;link:initializeBitmap
 ; Header / entry point for actually drawing
 
+; Revert if CALLVALUE is not zero (this is not a payable contract)
+ISZERO(CALLVALUE)
+JUMPI($confirmedNotPayable, $$)
+  ; else, revert
+  MSTORE8(0x00, 0x45)
+  REVERT(0x00, 1)
+
+@confirmedNotPayable:
+
 ; Load our "helper contract address" from code to 0x0C
 ; (that right-aligns it at the word 0x00)
 ; if it's not present (length zero) this is noop
@@ -10,15 +19,13 @@ CODECOPY(0x0C, $metadataHelperAddress, #metadataHelperAddress)
 ; ABI:
 ; - if calldata is empty, then we render
 ; - otherwise, first byte of calldata determines operation
-; - TODO: we should also have a single payable (if value>0) check
 ISZERO(CALLDATASIZE)
 JUMPI($render, $$)
-
-; TODO: check for Value (this is not a payable contract :)
 
 SHR(0xF8, CALLDATALOAD(0))
 ;; Jump table for non-render functions:
 ;;  0xDE: get description data
+;;  0x33: get helper address
 JUMPI($loadDescription, EQ(0xDE, DUP1))
 JUMPI($helperAddress, EQ(0x33, DUP1))
 

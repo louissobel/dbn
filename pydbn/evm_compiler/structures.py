@@ -65,7 +65,6 @@ class ScopeDependencies(object):
                 continue
             seen.add(call.symbol)
 
-            # TODO: better error message?
             dfn = procedure_definitions_by_name[call.symbol]
             for get in dfn.scope_dependencies.variable_gets:
                 if get.is_global:

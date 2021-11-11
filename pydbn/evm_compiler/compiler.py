@@ -248,13 +248,15 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.lines = old_lines
 
     def emit_comment(self, comment):
-        # TODO: escape the comment?
+        if "\n" in comment:
+            raise AssertionError("cannot have newline in comment")
+
         self.lines.append("; %s" % comment)
 
     def emit_debug(self):
         label = self.generate_label("debug")
 
-        # TODO: add some kind of option to make this throw
+        # TODO: add some kind of option to make this throw?
         self.emit_raw("@%s [0xdd]" % label)
 
     def emit_newline(self):
@@ -264,7 +266,6 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.lines.append(opcode.ethasm_format())
 
     def emit_push(self, literal):
-        # TODO: format the literal as hex?
         self.lines.append(str(literal))
 
     def emit_push_label(self, label):
@@ -346,8 +347,6 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.emit_raw("MLOAD(%d)" % self.ENV_POINTER_ADDRESS)
 
     def emit_line_no(self, line_no):
-        # just comment for now
-        # TODO: debug mode where we spit this out for real?
         self.log("-- Line Number %d" % line_no)
         self.emit_newline()
         self.emit_comment("line number: %d" % line_no)
@@ -374,7 +373,6 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.emit_raw("@metadataDescription []")
 
     def validate_metadata_hex_string(self, name, s, expected_length=None):
-        # TODO: what do we want to do with these errors?
         if not s[0:2] == '0x':
             raise ValueError('metadata %s (%s) is not hex string' % (name, s))
 
@@ -388,6 +386,10 @@ class DBNEVMCompiler(DBNAstVisitor):
             if (len(s) - 2)/2 != expected_length:
                 raise ValueError('metadata %s (%s) is unexpected length! (wanted %d)' % (name, s, expected_length))
 
+    def index_for_symbol(self, symbol):
+        if not symbol in self.symbol_mapping:
+            raise AssertionError("cannot get index for unknown symbol %s" % symbol)
+        return self.symbol_mapping[symbol] 
 
     ###
     # Stack tracking
@@ -428,12 +430,13 @@ class DBNEVMCompiler(DBNAstVisitor):
         # initialization is just setting the bitmap to 0xFF...FF
         self.emit_raw("MSTORE(%d, NOT(0))" % self.FIRST_ENV_ADDRESS)
 
-        # TODO: Emit some comments about the memory layout?
 
         self.emit_newline()
         self.emit_comment('placeholders for root-level stack vars')
         for _ in self.root_stack_slots:
-            self.emit_push(0); # TODO: I can shrink this in size...
+            # This is a placeholder, so, like in the command call path,
+            # just pick something from W_base (and CALLDATASIZE will be zero)
+            self.emit_opcode(CALLDATASIZE)
         self.update_stack(len(self.root_stack_slots), 'root stack slots')
 
         self.visit_block_node(node)
@@ -552,7 +555,7 @@ class DBNEVMCompiler(DBNAstVisitor):
                     )
                 )
 
-            index = self.symbol_mapping[symbol]
+            index = self.index_for_symbol(symbol)
             self.emit_push(self.FIRST_ENV_ADDRESS + ((2 + index) * 32))
             self.emit_opcode(MSTORE)
 
@@ -591,8 +594,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         this symbol
         """
 
-        # TODO: better error message for unexpected symbol
-        index = self.symbol_mapping[symbol]
+        index = self.index_for_symbol(symbol)
 
         self.emit_load_env_base()  # [env_base|value
         self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32)) # [addr|value
@@ -614,8 +616,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         assumes value to set is top of stack
         """
 
-        # TODO: better error message for unexpected symbol
-        index = self.symbol_mapping[symbol]
+        index = self.index_for_symbol(symbol)
 
         self.emit_load_env_base()       # [env_base
 
@@ -637,8 +638,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         Optimization for formal args, repeat args, etc
         where we don't need to check the bitmap / climb the env
         """
-        # TODO: better error message for unexpected symbol
-        index = self.symbol_mapping[symbol]
+        index = self.index_for_symbol(symbol)
 
         self.emit_load_env_base()
         self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))
@@ -658,8 +658,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         call helper function, which takes args
         [env_base|bit|wordoffset
         """
-        # TODO: better error message for unexpected symbol
-        index = self.symbol_mapping[symbol]
+        index = self.index_for_symbol(symbol)
         label = self.generate_label("afterEnvGetCall")
 
         self.emit_push_label(label)       # return
@@ -690,11 +689,8 @@ class DBNEVMCompiler(DBNAstVisitor):
             new_location = structures.SymbolDirectory.SymbolLocation.local()
 
             # then I need to set the bitmap..
-            # TODO: better error message?
-            index = self.symbol_mapping[var_symbol]
 
-            # also the layering here feels kind of messy...
-
+            index = self.index_for_symbol(var_symbol)
             self.emit_load_env_base()       # [env_base
 
             # toggle bitmap
@@ -942,11 +938,12 @@ class DBNEVMCompiler(DBNAstVisitor):
                 self.visit(arg_nodes_by_name[slot.symbol])
             else:
                 # it's a placeholder, so let's just emit the cheapest, smallest
-                # instruction (one from the class W_base)
-                # TODO: should we instead set to zero somehow? (CALLDATASIZE?)
+                # instruction (one from the class W_base).
+                # We use CALLDATASIZE because we know it will be zero if we're rendering,
+                # and zero is a reasonable choice to have as the placeholder.
                 # TODO: we _could_ put the placeholders in the definition,
                 # but it's simpler from a stack-allocation perspective to do it here.
-                self.emit_opcode(ADDRESS)
+                self.emit_opcode(CALLDATASIZE)
                 self.update_stack(1, 'command stack slot placeholder')
 
         # Then, local env args (also reversed)
@@ -1133,9 +1130,6 @@ class DBNEVMCompiler(DBNAstVisitor):
             if dfn.is_number:
                 # Add the default return
                 # Explicit "values" will jump straight to the epilogue
-                # TODO: some kind of warning if we use the default?
-                # _can_ I statically know???? I don't think so.
-                # Runtime warnings???
                 self.emit_push(0)
                 self.emit_label(dfn.epilogue_label)
                 self.update_stack(1, 'Number return value')
@@ -1205,13 +1199,13 @@ class DBNEVMCompiler(DBNAstVisitor):
 
         # build the bitmap
         # TODO: (uh... we can do this compile time... I think?)
-        # we need to set to zero even if there's env vars
+        # we need to set to zero even if there's no env vars
         # because we don't clean up popped environments
         if not local_env_args:
             self.emit_push(0)           # [0|new_env_base
         else:
             for i, symbol in enumerate(local_env_args):
-                index = self.symbol_mapping[symbol] # TODO: better error message?
+                index = self.index_for_symbol(symbol)
                 self.emit_bit_for_index(index)
 
                 if i != 0:
@@ -1225,7 +1219,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         # We don't use the same code as "Set" handling because we
         # already have the bitmap set and the env_base on the stack
         for symbol in local_env_args:                           # [new_env_base|arg*
-            index = self.symbol_mapping[symbol] # TODO: better error message?
+            index = self.index_for_symbol(symbol)
             self.emit_opcode(SWAP1)                             # [arg*|new_env_base
             self.emit_opcode(DUP2)                              # [new_env_base|arg*|new_env_base
             self.emit_raw("ADD(%d, $$)" % ((2 + index) * 32))   # [env_location|arg*|new_env_base
@@ -1305,9 +1299,10 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.stack_size = stack_size_on_entry
 
     def visit_load_node(self, node):
-        # TODO!
-        self.emit_line_no(node.line_no)
-        self.add('LOAD_CODE', node.value)
+        raise CompileError(
+            "Load is not supported in this version of DBN",
+            node.line_no,
+        )
 
     def visit_bracket_node(self, node):
         label = self.generate_label("postDotGet")
