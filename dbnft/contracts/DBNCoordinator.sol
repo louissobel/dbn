@@ -15,19 +15,22 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
 
     event DrawingDeployed(uint256 tokenId, address addr, string externalURL);
 
+    // Config
     enum ContractMode { AllowlistOnly, Open }
     ContractMode private _contractMode;
     uint256 private _mintPrice;
+    string private _baseExternalURI;
 
-
+    // Minting
     Counters.Counter private _tokenIds;
+    mapping (uint256 => address) private _drawingAddressForTokenId;
+    
+    // Enumeration
     uint256[] private _allTokens;
     mapping(address => mapping(uint256 => uint256)) private _ownedTokens;
     mapping(uint256 => uint256) private _ownedTokensIndex;
 
-    mapping (uint256 => address) private _drawingAddressForTokenId;
-    string private _baseExternalURI;
-
+    // Allowlist
     mapping (uint256 => address) private _allowedMinterForTokenId;
 
     constructor(string memory baseExternalURI) ERC721("Design By Numbers NFT", "DBNFT") {
@@ -55,6 +58,11 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
 
     function setMintPrice(uint256 price) public onlyOwner {
         _mintPrice = price;
+    }
+
+    function withdraw() public onlyOwner {
+        address payable to = payable(msg.sender);
+        to.transfer(address(this).balance);
     }
 
     /**********************************************************
@@ -200,6 +208,8 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
         require(msg.value == _mintPrice, "WRONG_PRICE");
 
         uint256 tokenId = _tokenIds.current();
+        require(tokenId < 10201, 'SOLD_OUT');
+
         _tokenIds.increment();
 
         return _mintAtTokenId(bytecode, tokenId);

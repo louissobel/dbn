@@ -295,7 +295,7 @@ class Editor extends React.Component {
             <Alert variant="warning">
               Minting is currently limited. You can still work on drawings
               and learn the DBN language! Follow @__ for updates on when minting will
-              open up.
+              open up or to request access to mint.
             </Alert>
           }
 
