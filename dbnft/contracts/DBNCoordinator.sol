@@ -15,6 +15,11 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
 
     event DrawingDeployed(uint256 tokenId, address addr, string externalURL);
 
+    enum ContractMode { AllowlistOnly, Open }
+    ContractMode private _contractMode;
+    uint256 private _mintPrice;
+
+
     Counters.Counter private _tokenIds;
     uint256[] private _allTokens;
     mapping(address => mapping(uint256 => uint256)) private _ownedTokens;
@@ -23,8 +28,33 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
     mapping (uint256 => address) private _drawingAddressForTokenId;
     string private _baseExternalURI;
 
+    mapping (uint256 => address) private _allowedMinterForTokenId;
+
     constructor(string memory baseExternalURI) ERC721("Design By Numbers NFT", "DBNFT") {
         _baseExternalURI = baseExternalURI;
+        _contractMode = ContractMode.AllowlistOnly;
+
+        // Initialize this...
+        _allowedMinterForTokenId[0] = _msgSender();
+        _allowedMinterForTokenId[1] = _msgSender();
+
+        // first open token id is 101
+        _tokenIds._value = 101;
+
+        // initial mint price
+        _mintPrice = 10000000 gwei; // 0.01 eth
+    }
+
+    function getContractMode() public view returns (ContractMode) {
+        return _contractMode;
+    }
+
+    function setContractOpen() public onlyOwner {
+        _contractMode = ContractMode.Open;
+    }
+
+    function setMintPrice(uint256 price) public onlyOwner {
+        _mintPrice = price;
     }
 
     /**********************************************************
@@ -109,11 +139,83 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
      *******************************************/
 
 
+    /**********************************************************
+    * Allowlist stuff.
+    *  - internally, I need to check in a mintTokenId call that the sender can do so
+    *  - externally, I need to:
+    *    - read the allowlist for tokens 0–100 to display status? (or some kind of admin panel...)
+    *    - read the allowlist for a given _address_
+    *    - update the allowlist
+    * 
+    *  - mapping token --> address _allowedMinterForTokenId
+    *  - internal can just look at _allowedMinterForTokenId to check that sender == the person
+    *  - externally, getting allowed address for a given token is enough
+    *  - internally, we'll also _remove_ tokens from this list as things get minted
+    * 
+    *  Also, we _know_ that only [0, 100] are going to be allowlisted
+    */
+    function getAllowedMinter(uint256 tokenId) public view returns(address) {
+        return _allowedMinterForTokenId[tokenId];
+    }
+
+    function getAllowedTokenIds(address addr) public view returns(uint256[] memory) {
+        uint8 count = 0;
+
+        for (uint8 i = 0; i < 101; i++) {
+            if (_allowedMinterForTokenId[i] == addr) {
+                count++;
+            }
+        }
+
+        uint256[] memory allowed = new uint256[](count);
+        count = 0;
+        for (uint8 i = 0; i < 101; i++) {
+            if (_allowedMinterForTokenId[i] == addr) {
+                allowed[count] = i;
+                count++;
+            }
+        }
+
+        return allowed;
+    }
 
 
-    // TODO: for now, minting is locked down to just owner
-    function deploy(bytes memory bytecode) public onlyOwner returns (address) {
+    struct AllowlistUpdate { 
+       uint256 tokenId;
+       address addr;
+    }
+    function updateAllowlist(AllowlistUpdate[] calldata input) public onlyOwner {
+        for (uint i = 0; i < input.length; i++) {
+            AllowlistUpdate calldata up = input[i];
+            _allowedMinterForTokenId[up.tokenId] = up.addr;
+        }
+    }
 
+    /*
+     *
+     ****************************************************/
+
+    function mint(bytes memory bytecode) payable public returns (address) {
+        require(_contractMode == ContractMode.Open, "NOT_OPEN");
+        require(msg.value == _mintPrice, "WRONG_PRICE");
+
+        uint256 tokenId = _tokenIds.current();
+        _tokenIds.increment();
+
+        return _mintAtTokenId(bytecode, tokenId);
+    }
+
+    function mintTokenId(bytes memory bytecode, uint256 tokenId) public returns (address) {
+        require(_allowedMinterForTokenId[tokenId] == msg.sender, "NOT_ALLOWLISTED");
+
+        // and then clear the allowlist entry
+        _allowedMinterForTokenId[tokenId] = address(0);
+
+        return _mintAtTokenId(bytecode, tokenId);
+    }
+
+    // private one they both call into
+    function _mintAtTokenId(bytes memory bytecode, uint256 tokenId) internal returns (address) {
         address addr;
         assembly {
             addr := create(0, add(bytecode, 0x20), mload(bytecode))
@@ -132,8 +234,6 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
         */
         assert(addr != address(0));
 
-        uint256 tokenId = _tokenIds.current();
-        _tokenIds.increment();
 
         _drawingAddressForTokenId[tokenId] = addr;
 

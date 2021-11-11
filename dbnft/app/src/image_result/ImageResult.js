@@ -64,6 +64,7 @@ function ImageResult(props) {
             description={props.description}
             imageData={props.imageData}
             onMintInProgress={props.onMintInProgress}
+            onMintabilityStatusChange={props.onMintabilityStatusChange}
           />
         </div>
       }

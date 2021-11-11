@@ -10,6 +10,9 @@ require("./tasks/deploy-coordinator")
 require("./tasks/deploy-helper")
 require("./tasks/get-token-uri")
 
+require("./tasks/allowlist")
+require("./tasks/open-contract")
+
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 

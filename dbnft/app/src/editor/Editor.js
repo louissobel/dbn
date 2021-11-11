@@ -3,6 +3,7 @@ import React from 'react';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import Alert from 'react-bootstrap/Alert';
 
 
 import ImageResult from '../image_result/ImageResult'
@@ -62,7 +63,7 @@ class Editor extends React.Component {
   }
 
   
-  onMintInProgress(transactionHash, mintEventEmitter) {
+  onMintInProgress = (transactionHash, mintEventEmitter) => {
     this._mintEventEmitters[transactionHash] = mintEventEmitter
 
     if (!this.state.mintsInProgress.includes(transactionHash)) {
@@ -88,6 +89,10 @@ class Editor extends React.Component {
       delete this._mintEventEmitters[transactionHashToRemove]
     })
   }
+
+  onMintabilityStatusChange = (status) => {
+    this.setState({mintabilityStatus: status})
+  } 
 
   dbnRender(code) {
     if (this.state.renderState === 'RENDERING') {
@@ -263,7 +268,9 @@ class Editor extends React.Component {
     // only shown sometimes
     const anyMintsInProgress = this.state.mintsInProgress.length > 0
 
-    const show = anyMintsInProgress;
+    const mintabilityNotice = this.state.mintabilityStatus === 'NOT_ALLOWLISTED';
+
+    const show = anyMintsInProgress || mintabilityNotice;
 
     if (!show) {
       return null
@@ -283,6 +290,14 @@ class Editor extends React.Component {
         <Col md={12} lg={9} xl={6}>
 
           {mintStatus}
+
+          {mintabilityNotice &&
+            <Alert variant="warning">
+              Minting is currently limited. You can still work on drawings
+              and learn the DBN language! Follow @__ for updates on when minting will
+              open up.
+            </Alert>
+          }
 
         </Col>
       </Row>
@@ -306,7 +321,8 @@ class Editor extends React.Component {
 
               showMinter={true}
               minterEnabled={this.state.renderState === 'DONE'}
-              onMintInProgress={this.onMintInProgress.bind(this)}
+              onMintInProgress={this.onMintInProgress}
+              onMintabilityStatusChange={this.onMintabilityStatusChange}
 
               bytecode={this.state.bytecode}
               gasUsed={this.state.gasUsed}

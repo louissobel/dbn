@@ -9,7 +9,8 @@ const devAddress = [
 const configForEnvironment = {
 	localhost: {
 		compileEndpoint: '/evm_compile',
-		coordinatorContractAddress: process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS_DEVELOPMENT,
+		coordinatorContractAddress: '0x67DCAf5D508a2278f35bee81Fc96F5A896277e2B',
+		mintPrice: 10000000000000000, // 0.01 ETH
 		ethNetwork: 'http://localhost:8545',
 		verbose: true,
 		mintWhitelist: devAddress,
