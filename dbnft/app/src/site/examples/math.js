@@ -6,6 +6,36 @@ import {
   makeDBNColorPixel,
 } from './helpers'
 
+export function drawParabola(ctx, spec) {
+  let [start, end, xshift, d, yshift, pen] = varsFromSpec([
+    'start',
+    'end',
+    'xshift',
+    'd',
+    'yshift',
+    'pen'
+  ], spec)
+
+  initCanvas(ctx)
+
+  const p = makeDBNColorPixel(ctx, pen)
+  for (let x = Math.min(start, end); x < Math.max(start, end) + 1; x++) {
+    let Xs = x - xshift;
+    let X2 = Xs * Xs;
+
+    let y;
+    if (d === 0) {
+      y = yshift // that's how divide-by-zero works in evm
+    } else {
+      y = Math.floor(X2/d) + yshift
+    }
+
+    if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+      ctx.putImageData(p, x + 10, (100-y)+10)
+    }
+  }
+}
+
 export default {
   name: 'math',
 
@@ -38,32 +68,6 @@ export default {
   ],
 
   draw(ctx, spec, tooltipItemName) {
-    let [start, end, xshift, d, yshift, pen] = varsFromSpec([
-      'start',
-      'end',
-      'xshift',
-      'd',
-      'yshift',
-      'pen'
-    ], spec)
-
-    initCanvas(ctx)
-
-    const p = makeDBNColorPixel(ctx, pen)
-    for (let x = Math.min(start, end); x < Math.max(start, end) + 1; x++) {
-      let Xs = x - xshift;
-      let X2 = Xs * Xs;
-
-      let y;
-      if (d === 0) {
-        y = yshift // that's how divide-by-zero works in evm
-      } else {
-        y = Math.floor(X2/d) + yshift
-      }
-
-      if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
-        ctx.putImageData(p, x + 10, (100-y)+10)
-      }
-    }
+    drawParabola(ctx, spec)
   }
 }

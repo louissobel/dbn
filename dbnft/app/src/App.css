@@ -247,6 +247,10 @@ body {
   margin-top: 1rem;
 }
 
+.dbn-reference-section h5 {
+  margin-top: 2rem;
+}
+
 .dbn-reference-index {
   padding-right: 0px !important;
 }

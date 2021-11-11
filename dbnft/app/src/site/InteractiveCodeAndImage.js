@@ -30,7 +30,7 @@ function specDiff(currentSpec, newSpec) {
   return out
 }
 
-function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample, titleImage }) {
+function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample, titleImage, clock }) {
   const canvasRef = useRef()
 
   const [spec, setSpec] = useState(example.initialSpec)
@@ -57,13 +57,25 @@ function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample
     }
   }
 
-  useEffect(() => {
+  function render() {
     let canvas = canvasRef.current;
     let ctx = canvas.getContext('2d')
     ctx.imageSmoothingEnabled = false
 
     example.draw(ctx, spec, tooltipItemName);
-  }, [example, spec, tooltipItemName])
+  }
+
+  useEffect(() => {
+    if (clock) {
+      let interval = setInterval(render, 1000)
+
+      return () => {
+        clearInterval(interval)
+      }
+    }
+  }, [clock])
+
+  useEffect(render, [example, spec, tooltipItemName])
 
   
   function onChange(spec) {
@@ -113,7 +125,7 @@ function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample
     <Row className="dbn-reference-code-and-image">
       <Col xs={7}>
         <div>
-          {interacted &&
+          {(interacted || clock) &&
             <div className="align-left dbn-reference-code-and-image-go-edit">
               <a href="/create" onClick={onGoEditClick}>
                 <Icon icon="oi:share-boxed" inline={true} />

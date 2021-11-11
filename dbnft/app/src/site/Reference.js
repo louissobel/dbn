@@ -338,15 +338,15 @@ function Reference() {
             <ReferenceSection registerRef={registerSection()} name="Questions">
               <p>
                 Code can be run conditionally using <em>questions</em>.
-                A question is given two arguments and will run the following <InlineCode>{"{}"}</InlineCode> enclosed
+                A question is given two parameters and will run the following <InlineCode>{"{}"}</InlineCode> enclosed
                 block of code only if the answer is "yes".
               </p>
 
               <ul>
-                <li><InlineCode>Same?</InlineCode>: if the two arguments are equal</li>
-                <li><InlineCode>NotSame?</InlineCode>: if the two arguments are not equal</li>
-                <li><InlineCode>Smaller?</InlineCode>: if the first argument is smaller than the second</li>
-                <li><InlineCode>NotSmaller?</InlineCode>: if the first argument is not smaller than the second</li>
+                <li><InlineCode>Same?</InlineCode>: if the two parameters are equal</li>
+                <li><InlineCode>NotSame?</InlineCode>: if the two parameters are not equal</li>
+                <li><InlineCode>Smaller?</InlineCode>: if the first parameters is smaller than the second</li>
+                <li><InlineCode>NotSmaller?</InlineCode>: if the first parameters is not smaller than the second</li>
               </ul>
 
               <InteractiveCodeAndImage
@@ -363,26 +363,123 @@ function Reference() {
 
             <ReferenceSection registerRef={registerSection()} name="Commands">
               <p>
-                You can define your own commands with the (fitting) command <InlineCode>Command</InlineCode>, followed
-                by its name, then any parameters, then the block of code to run each time the command is called.
+                You can define your own commands with the (fittingly named) command <InlineCode>Command</InlineCode>, followed
+                by its name, then the names of any parameters,
+                then the block of code to run each time the command is called.
               </p>
 
               <InteractiveCodeAndImage example={Examples.squareCommand} />
 
             </ReferenceSection>
 
-            <ReferenceSection registerRef={registerSection()} name="Numbers"/>
+            <ReferenceSection registerRef={registerSection()} name="Numbers">
+              <p>
+                Custom commands allow you to encapsulate drawing code. You can also
+                encapsulate common math / computation using the
+                command <InlineCode>Number</InlineCode>.
+                Similar to <InlineCode>Command</InlineCode>, the
+                command <InlineCode>Number</InlineCode> is passed the name of the new
+                procedure, then the names of any parameters, then the block
+                of code to run. Within the block, the command <InlineCode>Value</InlineCode> can
+                be used to specify the result (without a <InlineCode>Value</InlineCode> command,
+                the result will be <InlineCode number>0</InlineCode>)
+              </p>
+
+              <p>
+                You can later use this new procedure anywhere you'd use a variable
+                or a number by surrounding its name and any parameters
+                in <InlineCode>&lt; &gt;</InlineCode> angle brackets.
+              </p>
+
+              <InteractiveCodeAndImage example={Examples.parabolaNumber} />
+
+            </ReferenceSection>
 
             <ReferenceSection registerRef={registerSection()} name="Blockchain">
+              <p>
+                The original DBN book had a rich study of
+                building <em>reactive</em> programs based off inputs from the mouse,
+                keyboard, network, and so on. While those inputs are not available
+                on the deterministic blockchain, the blockchain does offer its own
+                unique capabilities that are exposed to DBN programs.
+              </p>
+
+              <p>
+                Using these can make your drawing respond to its location
+                or changes in the blockchain.
+              </p>
+
+              <h5>Time</h5>
+                <p>
+                  Each mined block in the Ethereum blockchain includes a
+                  timestamp, which isn't necessarily the <em>exact</em> time
+                  but will always be increasing and is roughly accurate.
+                </p>
+
+                <p>
+                  You can access that time in your programs using the
+                  built-in <InlineCode>Time</InlineCode> number. As in the
+                  orginal DBN book, this number takes one parameter,
+                  which should be <InlineCode number>1</InlineCode>, <InlineCode number>2</InlineCode>, or <InlineCode number>3</InlineCode>.
+                </p>
+
+                  <ul>
+                    <li><InlineCode>&lt;Time 1&gt;</InlineCode>: hour from 0–23</li>
+                    <li><InlineCode>&lt;Time 2&gt;</InlineCode>: minute from 0–59</li>
+                    <li><InlineCode>&lt;Time 3&gt;</InlineCode>: second from 0–59</li>
+                  </ul>
+
+                <InteractiveCodeAndImage example={Examples.time} clock />
+
+                <p>
+                  Note that while in the above example, the image automatically
+                  changes, that's not how the blockchain actually works. You
+                  (or whoever is looking at your drawing) will need to call
+                  your contract to re-render it to see it at a diffferent time.
+                </p>
+
+                {/*TODO: a way to simulate this in the editor? */}
+
+              <h5>Address</h5>
+                <p>
+                  When you mint a DBNFT, you are also deploying your drawing
+                  as a smart contract to the blockchain. You can access the
+                  address your contract is deployed at using
+                  the built-in number <InlineCode>&lt;Address&gt;</InlineCode> (which
+                  requires no parameters).
+
+                  {/*TODO: a way to simulate this in the editor? */}
+                </p>
+
+              <h5>Balance</h5>
+                <p>
+                  Another key aspect of the blockchain is how much Ethereum a
+                  given address has. You can query this in your drawing using
+                  the <InlineCode>&lt;Balance addr&gt;</InlineCode> number, which takes as its one
+                  parameter a 20-byte address on the blockchain. It returns
+                  the balance of that address in <em>wei</em>. A wei is the smallest
+                  unit of Ethereum, like cents for dollars. 10<sup>18</sup> wei are
+                  equivalent to one Ether.
+                </p>
+
+              <h5>Block Number</h5>
+
+              <h5>SHA3</h5>
+
+              <h5>Call</h5>
+
+            </ReferenceSection>
+
+            <ReferenceSection registerRef={registerSection()} name="Extras">
               <ul>
-                <li><InlineCode>&lt;tokenid&gt;</InlineCode></li>
-                <li><InlineCode>&lt;address&gt;</InlineCode></li>
-                <li><InlineCode>&lt;timestamp&gt;</InlineCode></li>
-                <li><InlineCode>&lt;balance addr&gt;</InlineCode></li>
+                <li>token id</li>
+                <li>hex numbers</li>
+                <li>Modulo</li>
+                <li>Field</li>
+                <li>Set Global</li>
               </ul>
             </ReferenceSection>
 
-            <ReferenceSection registerRef={registerSection()} name="Extras"/>
           </div>
         </Col>
       </Row>

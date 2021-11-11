@@ -11,6 +11,8 @@ import {questionSame, questionSmaller} from './questions'
 import dots from './dots'
 
 import squareCommand from './squareCommand'
+import parabolaNumber from './parabolaNumber'
+import time from './time'
 
 export default {
   'line': line,
@@ -27,4 +29,6 @@ export default {
   'questionSmaller': questionSmaller,
   'dots': dots,
   'squareCommand': squareCommand,
+  'parabolaNumber': parabolaNumber,
+  'time': time,
 }
