@@ -147,7 +147,7 @@ DotGet {
 	}
 
 
-	Number { $[0123456789]+ }
+	Number { $[0123456789]+ | ("0x" $[0123456789ABCDEFabcdef]+) }
 
 	AddOperators { $[+-]}
 	MulOperators { $[*/%]}

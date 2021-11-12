@@ -1344,10 +1344,12 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.update_stack(-1, 'binary op')
 
     def visit_number_node(self, node):
-        # assembler does not like leading zeros,
-        # and this is probably good anyway incase more bases in future
-        v = str(int(node.value, base=10))
-        self.emit_push(v)
+        if node.value.startswith('0x'):
+            value = int(node.value, base=16)
+        else:
+            value = int(node.value, base=10)
+
+        self.emit_push(str(value))
 
         self.update_stack(1, 'push number literal')
 

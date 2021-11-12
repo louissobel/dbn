@@ -56,7 +56,7 @@ class DBNTokenizer:
 
         # then literals
         self.register('WORD',              r'([^\d\W]\w*)')
-        self.register('NUMBER',            r'(\d+)\b')
+        self.register('NUMBER',            r'(\d+|0x[\da-fA-F]+)\b')
 
         # then newline (command seperator)
         self.register('NEWLINE',           r'(\n)')
