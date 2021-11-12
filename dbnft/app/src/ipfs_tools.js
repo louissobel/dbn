@@ -62,7 +62,7 @@ function getClient() {
     case 'local':
       return localIPFSClient;
     case 'pinata':
-      return localIPFSClient
+      return pinataIPFSClient
     default:
       throw new Error('cannot select ipfs client: ' +  frontendEnvironment.config.ipfsClient)
   }
