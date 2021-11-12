@@ -81,8 +81,8 @@ class ScopeDependencies(object):
 
         return expected
 
-Metadata = namedtuple('Metadata', ['helper_address', 'description'])
-EMPTY_METADATA = Metadata(None, None)
+Metadata = namedtuple('Metadata', ['helper_address', 'description', 'ipfs_hash'])
+EMPTY_METADATA = Metadata(None, None, None)
 
 class SymbolDirectory(object):
     """

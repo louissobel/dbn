@@ -35,6 +35,15 @@ function TokenMetadataTable(props) {
             </Link>
           </td>
         </tr>
+
+        {props.ipfsCID &&
+          <tr>
+            <th scope="row">Source Code</th>
+            <td>
+              {"ipfs://" + props.ipfsCID}
+            </td>
+          </tr>
+        }
       </tbody>
     </table>
   )

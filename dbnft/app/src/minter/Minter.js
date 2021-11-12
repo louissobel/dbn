@@ -15,6 +15,7 @@ import TokenMetadataTable from '../shared/TokenMetadataTable'
 import DBNCoordinator from '../contracts/DBNCoordinator'
 
 import {prependDeployHeader, dbnCoordinator} from '../eth_tools'
+import {ipfsClient} from '../ipfs_tools'
 
 const ALLOWLIST_FINISHED = frontendEnvironment.config.allowlistFinished;
 
@@ -30,6 +31,7 @@ function Minter(props) {
   const [errorMessage, setErrorMessage] = useState(null)
 
   const [mintResult, setMintResult] = useState(null)
+  const [ipfsCID, setIPFSCID] = useState(null)
   const [mintTransactionHash, setMintTransactionHash] = useState(null)
 
   const [showModal, setShowModal] = useState(false)
@@ -151,6 +153,14 @@ function Minter(props) {
     setMintableTokenIds(newTokenIds)
   }
 
+  async function pinSourceCodeToIPFS(code) {
+    try {
+      setIPFSCID(await ipfsClient.pinFile(code))
+    } catch (e) {
+      console.error('error pinning code to IPFS!', e)
+    }
+  }
+
   async function doMint() {
     setIsMinting(true)
 
@@ -185,8 +195,8 @@ function Minter(props) {
     mintPromiEmitter
       .once('transactionHash', (h) => {
         setMintTransactionHash(h)
+        pinSourceCodeToIPFS(props.code)
       })
-      .on('confirmation', (r) => console.log('confirmation', r))
       .then((receipt) => {
         setIsMinting(false)
         mintEventEmitter.current = null;
@@ -231,6 +241,7 @@ function Minter(props) {
           description={props.description}
           address={event.returnValues.addr}
           externalURL={event.returnValues.externalURL}
+          ipfsCID={ipfsCID}
         />
       </div>
     )
@@ -309,7 +320,7 @@ function Minter(props) {
     })
 
     return (
-      <div class="dbn-mint-modal-tokenid-selector mt-3">
+      <div className="dbn-mint-modal-tokenid-selector mt-3">
         <h6>Choose from your allowlisted token ids:</h6>
 
         {contractMode === 'Open' &&
@@ -349,7 +360,7 @@ function Minter(props) {
             extraClass="mx-auto"
           />
           {props.description &&
-            <div class="dbn-mint-modal-description">
+            <div className="dbn-mint-modal-description">
               {props.description}
             </div>
           }
@@ -358,7 +369,7 @@ function Minter(props) {
             tokenIdSelector()
           }
 
-          <div class="dbn-mint-modal-text mt-2">
+          <div className="dbn-mint-modal-text mt-2">
             {isMinting &&
               <p className="text-center">
                 Minting...

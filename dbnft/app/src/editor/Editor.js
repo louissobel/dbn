@@ -42,6 +42,7 @@ class Editor extends React.Component {
       renderState: 'INITIAL',
 
       bytecode: null,
+      lastRenderedCode: null,
       gasUsed: null,
 
       darkmode: false,
@@ -108,6 +109,7 @@ class Editor extends React.Component {
       renderState: 'RENDERING',
       renderError: null,
       bytecode: null,
+      lastRenderedCode: code,
       description: null,
       imageData: null,
       gasUsed: null,
@@ -325,6 +327,7 @@ class Editor extends React.Component {
               onMintabilityStatusChange={this.onMintabilityStatusChange}
 
               bytecode={this.state.bytecode}
+              code={this.state.lastRenderedCode}
               gasUsed={this.state.gasUsed}
               onCancel={this.cancelRender.bind(this)}
             />

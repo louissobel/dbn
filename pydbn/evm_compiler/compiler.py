@@ -372,6 +372,13 @@ class DBNEVMCompiler(DBNAstVisitor):
         else:
             self.emit_raw("@metadataDescription []")
 
+        # ipfs hash
+        if metadata.ipfs_hash:
+            self.validate_metadata_hex_string('ipfs_hash', metadata.ipfs_hash, expected_length=32)
+            self.emit_raw("@metadataIPFSHash [!%s]" % metadata.ipfs_hash)
+        else:
+            self.emit_raw("@metadataIPFSHash []")
+
     def validate_metadata_hex_string(self, name, s, expected_length=None):
         if not s[0:2] == '0x':
             raise ValueError('metadata %s (%s) is not hex string' % (name, s))

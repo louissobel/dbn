@@ -41,7 +41,7 @@ function SampleCodeAndImage({ className, code, noheaders, onAssemblyPresent, onB
       <Col xs={6} >
         {!noheaders && <h6>Input:</h6>}
 
-        <div class="dbn-sample-code-wrapper">
+        <div class="dbn-readonly-code-wrapper">
           <CodeMirror
             value={code}
             extensions={[

@@ -23,6 +23,8 @@ def handler(event, context):
     if dbn_script is None:
         return unhandled_error(400, '"code" must be provided in input')
 
+    ipfs_hash = "0x" + evm_compiler.get_hash_of_ipfs_node(dbn_script.encode('utf-8'))
+
     input_metadata = request.get('metadata')
     if input_metadata is None:
         return unhandled_error(400, '"metadata" must be provided in input (even if empty dict)')
@@ -30,6 +32,7 @@ def handler(event, context):
     metadata = evm_compiler.Metadata(
         helper_address=input_metadata.get('helper_address'),
         description=input_metadata.get('description'),
+        ipfs_hash=ipfs_hash,
     )
 
     try:

@@ -61,6 +61,7 @@ function ImageResult(props) {
           <Minter
             disabled={!props.minterEnabled}
             bytecode={props.bytecode}
+            code={props.code}
             description={props.description}
             imageData={props.imageData}
             onMintInProgress={props.onMintInProgress}

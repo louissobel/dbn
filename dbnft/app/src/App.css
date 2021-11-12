@@ -177,18 +177,19 @@ body {
 .dbn-sample-code-and-image {
   margin-bottom: 1rem;
 }
-.dbn-sample-code-wrapper {
+.dbn-readonly-code-wrapper {
   border-radius: 3px;
   border: 1px solid rgba(0,0,0,.2);
   font-size: .9rem;
   font-family: var(--bs-font-monospace);
+  text-align: left;
 }
 
-.dbn-sample-code-wrapper .cm-editor {
+.dbn-readonly-code-wrapper .cm-editor {
   border-radius: 3px;
 }
 
-.dbn-sample-code-wrapper .cm-gutters {
+.dbn-readonly-code-wrapper .cm-gutters {
   border-top-left-radius: 3px;
   border-bottom-left-radius: 3px;
 }
@@ -439,6 +440,7 @@ body {
 
 .dbn-nft-viewer {
   text-align: center;
+  padding-bottom: 100px;
 }
 
 .dbn-nft-viewer .dbn-image-control-bar {
@@ -447,6 +449,15 @@ body {
 
 .dbn-nft-viewer .dbn-image-render-status {
   text-align: left;
+}
+
+.dbn-nft-viewer-opensea {
+  font-size: 0.9rem;
+  padding-bottom: 0.5rem;
+}
+
+.dbn-nft-viewer .dbn-readonly-code-wrapper {
+  margin-top:  2rem;
 }
 
 .dbn-nft-gallery {

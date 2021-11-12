@@ -22,9 +22,6 @@ function MintStatusAlert({ transactionHash, mintEventEmitter, onClose }) {
 
   useEffect(() => {
     mintEventEmitter
-    .on('confirmation', (n) => {
-      setConfirmations(n)
-    })
     .once('receipt', (r) => {
       setMintState('COMPLETE')
       setTokenID(r.events.DrawingDeployed.returnValues.tokenId)

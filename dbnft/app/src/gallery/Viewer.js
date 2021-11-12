@@ -6,13 +6,19 @@ import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Alert from 'react-bootstrap/Alert';
+import { binary_to_base58 } from 'base58-js'
 
 import frontendEnvironment from '../frontend_environment'
 import renderDBN from '../render'
 import {eth, dbnCoordinator} from '../eth_tools'
+import {ipfsClient} from '../ipfs_tools'
 import ImageResult from '../image_result/ImageResult'
 import TokenMetadataTable from '../shared/TokenMetadataTable'
 import LoadingText from '../shared/LoadingText'
+
+import CodeMirror from '@uiw/react-codemirror';
+import {lineNumbers} from "@codemirror/gutter"
+import {dbnLanguage, dbnftHighlightStyle} from '../lang-dbn/dbn'
 
 function Viewer() {
 
@@ -25,6 +31,9 @@ function Viewer() {
   const [bytecode, setBytecode] = useState(null);
   const [gasUsed, setGasUsed] = useState(null);
   const [imageData, setImageData] = useState(null);
+
+  const [ipfsCID, setIPFSCID] = useState(null)
+  const [sourceCode, setSourceCode] = useState(null);
 
   const {tokenId} = useParams()
 
@@ -78,6 +87,40 @@ function Viewer() {
     getData(tokenId)
   }, [tokenId])
 
+  useEffect(() => {
+    if (bytecode) {
+      // This... is a big assumption, but going to prefer it
+      // over adding another RPC to the draw harness
+      let ipfsHash = Buffer.from(bytecode.slice(
+        bytecode.length - 64,
+        bytecode.length,
+      ), 'hex')
+
+      let cid = binary_to_base58(Buffer.concat([
+        Buffer.from([0x12, 0x20]),
+        ipfsHash,
+      ]))
+
+      setIPFSCID(cid)
+    }
+  }, [bytecode])
+
+
+  async function getCodeFromIPFS(cid) {
+    try {
+      const code = await ipfsClient.getTextFile(cid)
+      setSourceCode(code)
+    } catch (e) {
+      console.error('failed to get code from IPFS: ', e)
+    }
+  }
+
+  useEffect(() => {
+    if (ipfsCID) {
+      getCodeFromIPFS(ipfsCID)
+    }
+  }, [ipfsCID])
+
   function NotFound() {
     return (
       <Alert variant="warning">
@@ -110,7 +153,7 @@ function Viewer() {
 
   return (
     <Container>
-      <Row className="pt-3 pb-3 justify-content-md-center">
+      <Row className="pt-3 justify-content-md-center">
         <Col sm={12} md={9} lg={8} xl={6}>
           <div class="dbn-nft-viewer">
             <h1>DBNFT #{tokenId.toString()}</h1>
@@ -120,6 +163,10 @@ function Viewer() {
             {metadataLoading && <LoadingText />}
             {tokenMetadata &&
               <>
+                <div className="dbn-nft-viewer-opensea">
+                  <a href={openSeaURL}>View on OpenSea</a>
+                </div>
+
                 <ImageResult
                   description={tokenMetadata.description}
 
@@ -134,11 +181,25 @@ function Viewer() {
                   description={tokenMetadata.description}
                   address={tokenMetadata.drawing_address}
                   externalURL={tokenMetadata.external_url}
+                  ipfsCID={ipfsCID}
                 />
 
-                <div>
-                  <a href={openSeaURL}>View on OpenSea</a>
-                </div>
+                {sourceCode &&
+                  <div class="dbn-readonly-code-wrapper">
+                    <CodeMirror
+                      value={sourceCode}
+                      extensions={[
+                        lineNumbers(),
+                        dbnLanguage,
+                        dbnftHighlightStyle,
+                      ]}
+                      autoFocus={false}
+                      editable={false}
+                      basicSetup={false}
+                    />
+                  </div>
+                }
+
               </>
             }
           </div>
