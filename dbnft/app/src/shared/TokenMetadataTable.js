@@ -16,6 +16,10 @@ function TokenMetadataTable(props) {
           <td>DBNFT #{props.tokenId}</td>
         </tr>
         <tr>
+          <th scope="row">Creator</th>
+          <td>{props.creator}</td>
+        </tr>
+        <tr>
           <th scope="row">Description</th>
           <td>{props.description}</td>
         </tr>

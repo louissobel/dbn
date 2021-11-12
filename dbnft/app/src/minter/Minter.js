@@ -229,7 +229,8 @@ function Minter(props) {
   }
 
   function renderMintResult() {
-    const event = mintResult.events.DrawingDeployed;
+    const deployEvent = mintResult.events.DrawingDeployed;
+    const transferEvent = mintResult.events.Transfer;
 
     return (
       <div>
@@ -237,10 +238,11 @@ function Minter(props) {
         {/* TODO: I probably should get this from tokenURI...?*/}
 
         <TokenMetadataTable
-          tokenId={event.returnValues.tokenId}
+          tokenId={deployEvent.returnValues.tokenId}
+          creator={transferEvent.returnValues.to}
           description={props.description}
-          address={event.returnValues.addr}
-          externalURL={event.returnValues.externalURL}
+          address={deployEvent.returnValues.addr}
+          externalURL={deployEvent.returnValues.externalURL}
           ipfsCID={ipfsCID}
         />
       </div>

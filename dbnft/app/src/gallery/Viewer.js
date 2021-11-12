@@ -23,6 +23,7 @@ import {dbnLanguage, dbnftHighlightStyle} from '../lang-dbn/dbn'
 function Viewer() {
 
   const [tokenMetadata, setTokenMetadata] = useState(null);
+  const [creator, setCreator] = useState(null);
   const [metadataLoading, setMetadataLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [rpcError, setRPCError] = useState(null);
@@ -45,6 +46,23 @@ function Viewer() {
         .call();
 
       var metadata = JSON.parse(tokenMetadataJSON);
+
+      const creationEvents = await dbnCoordinator
+        .getPastEvents('Transfer', {
+          fromBlock: 0,
+          toBlock: 'latest',
+          filter: {
+            from: 0,
+            tokenId: tokenId,
+          }
+        })
+
+      if (creationEvents.length !== 1) {
+        console.warn('unexpected number of creationEvent: ' + creationEvents.length)
+      } else {
+        const creationEvent = creationEvents[0]
+        setCreator(creationEvent.returnValues.to)
+      }
     } catch (error) {
       setMetadataLoading(false)
       if (error.message.match(/UNKNOWN_ID/)) {
@@ -155,7 +173,7 @@ function Viewer() {
     <Container>
       <Row className="pt-3 justify-content-md-center">
         <Col sm={12} md={9} lg={8} xl={6}>
-          <div class="dbn-nft-viewer">
+          <div className="dbn-nft-viewer">
             <h1>DBNFT #{tokenId.toString()}</h1>
 
             {notFound && <NotFound />}
@@ -178,25 +196,32 @@ function Viewer() {
 
                 <TokenMetadataTable
                   tokenId={tokenId}
+                  creator={creator}
                   description={tokenMetadata.description}
                   address={tokenMetadata.drawing_address}
                   externalURL={tokenMetadata.external_url}
-                  ipfsCID={ipfsCID}
+                  // ipfsCID={ipfsCID}
                 />
 
                 {sourceCode &&
-                  <div class="dbn-readonly-code-wrapper">
-                    <CodeMirror
-                      value={sourceCode}
-                      extensions={[
-                        lineNumbers(),
-                        dbnLanguage,
-                        dbnftHighlightStyle,
-                      ]}
-                      autoFocus={false}
-                      editable={false}
-                      basicSetup={false}
-                    />
+                  <div className="dbn-nft-viewer-source mt-4">
+                    <h5>Source Code</h5>
+                    {ipfsCID &&
+                      <p className="dbn-nft-viewer-ipfs-url">ipfs://{ipfsCID}</p>
+                    }
+                    <div className="dbn-readonly-code-wrapper">
+                      <CodeMirror
+                        value={sourceCode}
+                        extensions={[
+                          lineNumbers(),
+                          dbnLanguage,
+                          dbnftHighlightStyle,
+                        ]}
+                        autoFocus={false}
+                        editable={false}
+                        basicSetup={false}
+                      />
+                    </div>
                   </div>
                 }
 

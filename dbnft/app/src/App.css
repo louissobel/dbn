@@ -456,8 +456,15 @@ body {
   padding-bottom: 0.5rem;
 }
 
-.dbn-nft-viewer .dbn-readonly-code-wrapper {
-  margin-top:  2rem;
+.dbn-nft-viewer-source h5 {
+  margin-bottom: 0px;
+}
+
+.dbn-nft-viewer-ipfs-url {
+  font-size: 0.8rem;
+  margin-bottom: 0px;
+  margin-top: 0px;
+  font-style: italic;
 }
 
 .dbn-nft-gallery {
