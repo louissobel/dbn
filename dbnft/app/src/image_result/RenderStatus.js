@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 
 import NumberFormat from 'react-number-format';
 import classNames from 'classnames';
@@ -19,9 +19,12 @@ function GasStats({gasUsed}) {
   )
 }
 
-function BytecodeStats({codeSize}) {
+function BytecodeStats({codeSize, onClick}) {
   return (
-    <div className="d-inline ms-2 dbn-image-render-status-stats">
+    <div
+      className="d-inline ms-2 dbn-image-render-status-stats examinable"
+      onClick={onClick}
+    >
       Bytecode: {codeSize + "b"}
     </div>
   )
@@ -53,8 +56,7 @@ function errorMessage(renderError) {
   }
 }
 
-function RenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, darkmode}) {
-
+function RenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, darkmode, onBytecodeSizeClick}) {
   var status;
   switch (renderState) {
     case "INITIAL":
@@ -79,11 +81,15 @@ function RenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, da
             Rendering...
           </span>
 
-          {codeSize && <BytecodeStats codeSize={codeSize} />}
+          {codeSize && <BytecodeStats codeSize={codeSize} onClick={onBytecodeSizeClick} />}
           {gasUsed && <GasStats gasUsed={gasUsed} />}
 
           {onCancel &&
-            <div className="float-end dbn-image-render-status-cancel">
+            <div className={classNames(
+              "float-end",
+              "dbn-image-render-status-cancel",
+              {'darkmode': darkmode}
+            )}>
               <Button size="sm" variant="light" onClick={onCancel}>
                 <Icon icon="oi:x" inline={true} />
               </Button>
@@ -103,7 +109,7 @@ function RenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, da
             OK!
           </span>
 
-          <BytecodeStats codeSize={codeSize} />
+          <BytecodeStats codeSize={codeSize} onClick={onBytecodeSizeClick} />
           <GasStats gasUsed={gasUsed} />
 
         </>

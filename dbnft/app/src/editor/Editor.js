@@ -4,6 +4,7 @@ import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Alert from 'react-bootstrap/Alert';
+import Modal from 'react-bootstrap/Modal';
 
 
 import ImageResult from '../image_result/ImageResult'
@@ -42,6 +43,7 @@ class Editor extends React.Component {
       renderState: 'INITIAL',
 
       bytecode: null,
+      assemblyCode: null,
       lastRenderedCode: null,
       gasUsed: null,
 
@@ -50,6 +52,8 @@ class Editor extends React.Component {
       renderError: null,
 
       mintsInProgress: [],
+
+      showCodeModal: false,
     };
     this._mintEventEmitters = {}
 
@@ -95,6 +99,10 @@ class Editor extends React.Component {
     this.setState({mintabilityStatus: status})
   } 
 
+  onShowCode = () => {
+    this.setState({showCodeModal: true})
+  }
+
   dbnRender(code) {
     if (this.state.renderState === 'RENDERING') {
       console.warn('render request while render in progress...')
@@ -109,6 +117,7 @@ class Editor extends React.Component {
       renderState: 'RENDERING',
       renderError: null,
       bytecode: null,
+      assemblyCode: null,
       lastRenderedCode: code,
       description: null,
       imageData: null,
@@ -135,6 +144,10 @@ class Editor extends React.Component {
           break;
         case 'COMPILE_END':
           break;
+        case 'LINK_END':
+          this.setState({
+            assemblyCode: data.result,
+          })
         case 'ASSEMBLE_START':
           break;
         case 'ASSEMBLE_END':
@@ -320,6 +333,7 @@ class Editor extends React.Component {
               renderError={this.state.renderError}
               imageData={this.state.imageData}
               description={this.state.description}
+              settingsStorageKey={'primary-editor'}
 
               showMinter={true}
               minterEnabled={this.state.renderState === 'DONE'}
@@ -328,6 +342,7 @@ class Editor extends React.Component {
 
               bytecode={this.state.bytecode}
               code={this.state.lastRenderedCode}
+              onShowCode={this.onShowCode}
               gasUsed={this.state.gasUsed}
               onCancel={this.cancelRender.bind(this)}
             />
@@ -342,6 +357,26 @@ class Editor extends React.Component {
             />
           </Col>
         </Row>
+
+
+        <Modal
+          show={this.state.showCodeModal}
+          size="lg"
+          onHide={() => this.setState({showCodeModal: false})}
+          className="dbn-show-code-modal"
+        >
+          <Modal.Header closeButton={true}>
+            <Modal.Title>Assembly & Bytecode</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <h6>Assembly</h6>
+            <pre className="dbn-low-level-code" style={{maxHeight:400}}>{this.state.assemblyCode}</pre>
+
+            <h6>Bytecode</h6>
+            <pre className="dbn-low-level-code wordwrap">{this.state.bytecode}</pre>
+          </Modal.Body>
+        </Modal>
+
       </Container>
     )
   }

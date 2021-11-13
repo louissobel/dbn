@@ -24,7 +24,7 @@ function ControlBar({
     canZoomOut,
     onZoomIn,
     onZoomOut,
-    magnfication,
+    magnification,
 
     hoverX,
     hoverY,
@@ -53,7 +53,7 @@ function ControlBar({
         </Button>
 
         <Button variant="light" className="zoom-indicator" disabled={true}>
-          {magnfication + "x"}
+          {magnification + "x"}
         </Button>
       </ButtonGroup>
 

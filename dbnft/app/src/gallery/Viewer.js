@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 import { useParams } from 'react-router-dom'
 
@@ -6,6 +6,7 @@ import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Alert from 'react-bootstrap/Alert';
+import Modal from 'react-bootstrap/Modal';
 import { binary_to_base58 } from 'base58-js'
 
 import frontendEnvironment from '../frontend_environment'
@@ -30,6 +31,7 @@ function Viewer() {
 
   const [renderState, setRenderState] = useState('RENDERING');
   const [bytecode, setBytecode] = useState(null);
+  const [showCodeModal, setShowCodeModal] = useState(false);
   const [gasUsed, setGasUsed] = useState(null);
   const [imageData, setImageData] = useState(null);
 
@@ -37,6 +39,8 @@ function Viewer() {
   const [sourceCode, setSourceCode] = useState(null);
 
   const {tokenId} = useParams()
+
+  const onShowCode = useCallback(() => setShowCodeModal(true))
 
   const getData = async function(tokenId) {
     try {
@@ -190,6 +194,7 @@ function Viewer() {
 
                   renderState={renderState}
                   bytecode={bytecode}
+                  onShowCode={onShowCode}
                   gasUsed={gasUsed}
                   imageData={imageData}
                 />
@@ -231,6 +236,21 @@ function Viewer() {
 
         </Col>
       </Row>
+
+      <Modal
+        show={showCodeModal}
+        onHide={() => setShowCodeModal(false)}
+        className="dbn-show-code-modal"
+      >
+        <Modal.Header closeButton={true}>
+          <Modal.Title>Bytecode</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <pre className="dbn-low-level-code wordwrap">{bytecode}</pre>
+        </Modal.Body>
+      </Modal>
+
+
     </Container>
   )
 }

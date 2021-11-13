@@ -1,7 +1,8 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 
 import classNames from 'classnames';
 
+import {SessionStorage} from '../storage'
 import Minter from '../minter/Minter'
 import ImageViewer from '../shared/ImageViewer'
 import ControlBar from './ControlBar'
@@ -11,26 +12,57 @@ import RenderStatus from './RenderStatus'
 const MAX_MAGNIFICATION = 3
 
 function ImageResult(props) {
-  const [magnfication, setMagnification] = useState(props.initialMagnification || 2)
   const [hoveringOverPixel, setHoveringOverPixel] = useState(null)
-  const [darkmode, setDarkmode] = useState(false)
+
+  let initialSettings = {
+    darkmode: false,
+    magnification: props.initialMagnification || 2,
+  }
+  const storageKey = 'dbnft.io-image-result-' + props.settingsStorageKey;
+  if (props.settingsStorageKey) {
+    if (SessionStorage.enabled) {
+      const saved = SessionStorage.get().getItem(storageKey)
+      if (saved) {
+        console.log(saved)
+        initialSettings = JSON.parse(saved)
+      }
+    }
+  }
+
+  const [darkmode, setDarkmode] = useState(initialSettings.darkmode)
+  const [magnification, setMagnification] = useState(initialSettings.magnification)
+
+  useEffect(() => {
+    if (SessionStorage.enabled) {
+      const settings = {
+        darkmode: darkmode,
+        magnification: magnification,
+      }
+      console.log(darkmode, magnification)
+      SessionStorage.get().setItem(
+        storageKey,
+        JSON.stringify(settings),
+      )
+
+    }
+  }, [darkmode, magnification])
 
   function toggleDarkmode() {
     setDarkmode(!darkmode)
   }
 
   function zoomUpdate(n) {
-    setMagnification(magnfication + n)
+    setMagnification(magnification + n)
   }
 
   return(
     <div className={classNames('dbn-image-result', {'darkmode': darkmode})}>
       <ControlBar
-        canZoomIn={magnfication < MAX_MAGNIFICATION}
+        canZoomIn={magnification < MAX_MAGNIFICATION}
         onZoomIn={() => zoomUpdate(1)}
-        canZoomOut={magnfication > 1}
+        canZoomOut={magnification > 1}
         onZoomOut={() => zoomUpdate(-1)}
-        magnfication={magnfication}
+        magnification={magnification}
 
         hoverX={hoveringOverPixel?.x}
         hoverY={hoveringOverPixel?.y}
@@ -44,7 +76,7 @@ function ImageResult(props) {
       <div className="mx-auto dbn-image-viewer" style={{width: 101*MAX_MAGNIFICATION }}>
         <ImageViewer
           imageData={props.imageData}
-          magnify={magnfication}
+          magnify={magnification}
           onPixelHover={props.imageData && setHoveringOverPixel}
           extraClass="mx-auto"
         />
@@ -74,6 +106,7 @@ function ImageResult(props) {
         renderState={props.renderState}
         renderError={props.renderError}
         codeSize={props.bytecode ? (props.bytecode.length - 2)/2 : null}
+        onBytecodeSizeClick={props.onShowCode}
         gasUsed={props.gasUsed}
         darkmode={darkmode}
         onCancel={props.onCancel}

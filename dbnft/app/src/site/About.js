@@ -54,12 +54,12 @@ function About() {
             </p>
 
             <h6>The above code becomes:</h6>
-            <pre class="dbn-about-sample-code" style={{height: "100px"}}>
+            <pre class="dbn-low-level-code" style={{height: "100px"}}>
               {assemblyCode}
             </pre>
 
             <h6>Which is then turned into:</h6>
-            <pre class="dbn-about-sample-code" style={{height: "100px"}}>
+            <pre class="dbn-low-level-code wordwrap" style={{height: "100px"}}>
               {bytecode}
             </pre>
 
