@@ -163,6 +163,7 @@ class DBNEVMCompiler(DBNAstVisitor):
         time = structures.BuiltinProcedure('Time', 'number', 1, self.handle_builtin_time)
         address = structures.BuiltinProcedure('Address', 'number', 0, self.handle_builtin_address)
         field = structures.BuiltinProcedure('Field', 'command', 5, self.handle_builtin_field)
+        call = structures.BuiltinProcedure('Call', 'number', -1, self.handle_builtin_call)
 
         debugger = structures.BuiltinProcedure('DEBUGGER', 'command', 0, self.handle_builtin_debugger)
         self.builtin_procedures = {
@@ -172,12 +173,17 @@ class DBNEVMCompiler(DBNAstVisitor):
             'line': line,
             'paper': paper,
             'pen': pen,
+
+            'Field': field,
+            'field': field,
+
             'Time': time,
             'time': time,
             'Address': address,
             'address': address,
-            'Field': field,
-            'field': field,
+            'Call': call,
+            'call': call,
+
             'DEBUGGER': debugger,
         }
 
@@ -978,7 +984,7 @@ class DBNEVMCompiler(DBNAstVisitor):
                 self.line_no,
             )
 
-        if len(node.args) != builtin.argc:
+        if len(node.args) != builtin.argc and builtin.argc != -1:
             raise CompileError(
                 "%s expects %d %s, got %d" % (
                     builtin.name,
@@ -1067,6 +1073,46 @@ class DBNEVMCompiler(DBNAstVisitor):
         # easy...
         self.emit_opcode(ADDRESS)
         self.update_stack(1, 'Address left on stack')
+
+    def handle_builtin_call(self, node):
+        # this needs to do its own argument count validation
+        # args are: [address method args*]
+        # where we can have up to 6 args
+        # (we have 8 scratch words, and need 1 for return,
+        # and the method descriptor takes 1)
+        if len(node.args) < 2:
+            raise CompileError(
+                "'Call' number requires at least two params: the address and method",
+                self.line_no
+            )  
+
+        if len(node.args) > (2 + 6):
+            raise CompileError(
+                "'Call' can take at most six numbers in addition to the address and method",
+                self.line_no,
+            )
+
+        # Ok — so stack to call are:
+        # [method|nargs|args*|address|ret
+        # input is:
+        # [address, method, args*]
+        label = self.generate_label('postCallCall')
+        self.emit_push_label(label)
+        self.update_stack(1, 'Call Call internal return')
+        self.visit(node.args[0])
+
+        for arg in reversed(node.args[2:]):
+            self.visit(arg)
+
+        self.emit_push(len(node.args) - 2)
+        self.update_stack(1, 'Call Call nargs')
+
+        self.visit(node.args[1])
+
+        self.emit_linked_function_jump(LinkedFunctions.CALL_NUMBER)
+        self.emit_label(label)
+
+        self.update_stack(-1*(len(node.args) + 1), 'Call Call nargs')  
 
     def visit_procedure_definition_node(self, node):
         self.emit_line_no(node.line_no)

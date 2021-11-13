@@ -204,7 +204,9 @@ class LinkedFunctions:
     DOT_GET = LinkedFunction('dotGet')
     SET_COMMAND = LinkedFunction('setCommand')
     LINE_COMMAND = LinkedFunction('lineCommand')
+    FIELD_COMMAND = LinkedFunction('fieldCommand')
     PAPER_COMMAND = LinkedFunction('paperCommand')
     ENV_GET = LinkedFunction('envGet')
     TIME_NUMBER = LinkedFunction('timeNumber')
-    FIELD_COMMAND = LinkedFunction('fieldCommand')
+    CALL_NUMBER = LinkedFunction('callNumber')
+

@@ -23,7 +23,6 @@ function ImageResult(props) {
     if (SessionStorage.enabled) {
       const saved = SessionStorage.get().getItem(storageKey)
       if (saved) {
-        console.log(saved)
         initialSettings = JSON.parse(saved)
       }
     }
@@ -38,7 +37,6 @@ function ImageResult(props) {
         darkmode: darkmode,
         magnification: magnification,
       }
-      console.log(darkmode, magnification)
       SessionStorage.get().setItem(
         storageKey,
         JSON.stringify(settings),

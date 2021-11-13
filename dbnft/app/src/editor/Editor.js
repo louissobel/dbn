@@ -125,7 +125,6 @@ class Editor extends React.Component {
     })
 
     const codeConfig = maybeExtractConfig(code)
-    console.log(codeConfig)
 
     const renderOpts = {
       code: code,
@@ -172,7 +171,6 @@ class Editor extends React.Component {
       }
     }, cancelSignal)
     .then((result) => {
-      console.log(result)
       this.setState({
         imageData: result.imageData,
         renderState: 'DONE',

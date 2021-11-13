@@ -1,0 +1,58 @@
+; def: 	  callNumber
+; input:  [method|nargs|args*|address|ret
+; output: [result
+@callNumber:
+
+	; 0x80 will be return, zero it out
+	MSTORE(0x80, 0)
+
+	; start in with the rest from 0xA0
+	; (starting with method)
+	MSTORE(0xA0, $$)
+
+	DUP1   ; [nargs|nargsIter|args*|address|ret
+	0xC0
+
+	@callNumberArgWriteLoop:
+	; [dst|nargs|nargsIter|args*|address|ret
+
+	; if nargsIter is zero, we're done
+	DUP3 ; [nargsIter|dst|nargs|nargsIter|args*|address|ret
+	JUMPI($callNumberArgsDone, EQ(0, $$))
+
+	; [dst|nargs|nargsIter|args*|address|ret
+	SWAP3 ; [arg|nargs|nargsIter|dst|args*|address|ret
+	DUP4  ; [dst|args|nargs|nargsIter|dst|args*|address|ret
+	MSTORE($$, $$)
+
+	; [nargs|nargsIter|dst|args*|address|ret
+	SWAP1;      	; [nargsIter|nargs|dst|args*|address|ret
+	1 	 			; [1|nargsIter|nargs|dst|args*|address|ret
+	SWAP1 			; [nargsIter|1|nargs|dst|args*|address|ret
+	SUB($$, $$)		; [nargsIter'|nargs|dst|args*|address|ret
+	SWAP2			; [dst|nargs|nargsIter'|args*|address|ret
+	ADD(0x20, $$)	; [dst'|nargs|nargsIter'|args*|address|ret
+	JUMP($callNumberArgWriteLoop)
+
+
+	@callNumberArgsDone:
+	; [dst|nargs|nargsIter|address|ret
+
+	POP() ; [nargs|nargsIter|address|ret
+
+	0x20	; [retLength|nargs|nargsIter|address|ret
+	0x80	; [retOffset|retLength|nargs|nargsIter|address|ret
+	ADD(4, MUL(0x20, DUP3)) ; [argsLength|retOffset|retLength|nargs|nargsIter|address|ret
+	0xBC 	; [argsOffset|argsLength|retOffset|retLength|nargs|nargsIter|address|ret
+	DUP7	; [addr|argsOffset|argsLength|retOffset|retLength|nargs|nargsIter|address|ret
+	GAS() 	; [gas|addr|argsOffset|argsLength|retOffset|retLength|nargs|nargsIter|address|ret
+	STATICCALL($$, $$, $$, $$, $$, $$)
+	; [result|nargs|nargsIter|address|ret
+	POP() ; assume success
+	POP()
+	POP()
+	POP()
+
+	MLOAD(0x80)
+	SWAP1
+	JUMP($$)
