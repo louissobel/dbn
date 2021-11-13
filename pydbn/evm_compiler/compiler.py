@@ -901,7 +901,7 @@ class DBNEVMCompiler(DBNAstVisitor):
                     procedure_name,
                     self.line_no,
                     len(node.args),
-                    'argument' if len(node.args) == 1 else 'arguments',
+                    'parameter' if len(node.args) == 1 else 'parameters',
                     dfn.node.line_no,
                     len(dfn.args),
                 ),
@@ -983,7 +983,7 @@ class DBNEVMCompiler(DBNAstVisitor):
                 "%s expects %d %s, got %d" % (
                     builtin.name,
                     builtin.argc,
-                    'argument' if builtin.argc == 1 else 'arguments',
+                    'parameter' if builtin.argc == 1 else 'parameters',
                     len(node.args),
                 ),
                 self.line_no
