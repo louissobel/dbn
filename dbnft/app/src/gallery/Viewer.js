@@ -21,6 +21,35 @@ import CodeMirror from '@uiw/react-codemirror';
 import {lineNumbers} from "@codemirror/gutter"
 import {dbnLanguage, dbnftHighlightStyle} from '../lang-dbn/dbn'
 
+
+async function getMetadataForToken(tokenId) {
+  const metadataJSON = await dbnCoordinator
+    .methods
+    .tokenMetadata(tokenId)
+    .call();
+
+  return JSON.parse(metadataJSON);
+}
+
+async function getTokenCreator(tokenId) {
+  const creationEvents = await dbnCoordinator
+    .getPastEvents('Transfer', {
+      fromBlock: 0,
+      toBlock: 'latest',
+      filter: {
+        from: 0,
+        tokenId: tokenId,
+      }
+    })
+
+  if (creationEvents.length !== 1) {
+    console.warn('unexpected number of creationEvent: ' + creationEvents.length)
+    return null
+  }
+
+  return creationEvents[0].returnValues.to
+}
+
 function Viewer() {
 
   const [tokenMetadata, setTokenMetadata] = useState(null);
@@ -30,6 +59,7 @@ function Viewer() {
   const [rpcError, setRPCError] = useState(null);
 
   const [renderState, setRenderState] = useState('RENDERING');
+  const [onChainRender, setOnChainRender] = useState(false);
   const [bytecode, setBytecode] = useState(null);
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [gasUsed, setGasUsed] = useState(null);
@@ -42,31 +72,13 @@ function Viewer() {
 
   const onShowCode = useCallback(() => setShowCodeModal(true))
 
-  const getData = async function(tokenId) {
+  async function loadMetadata(tokenId) {
+    var metadata;
+
     try {
-      const tokenMetadataJSON = await dbnCoordinator
-        .methods
-        .tokenMetadata(tokenId)
-        .call();
+      metadata = await getMetadataForToken(tokenId)
+      setCreator(await getTokenCreator(tokenId))
 
-      var metadata = JSON.parse(tokenMetadataJSON);
-
-      const creationEvents = await dbnCoordinator
-        .getPastEvents('Transfer', {
-          fromBlock: 0,
-          toBlock: 'latest',
-          filter: {
-            from: 0,
-            tokenId: tokenId,
-          }
-        })
-
-      if (creationEvents.length !== 1) {
-        console.warn('unexpected number of creationEvent: ' + creationEvents.length)
-      } else {
-        const creationEvent = creationEvents[0]
-        setCreator(creationEvent.returnValues.to)
-      }
     } catch (error) {
       setMetadataLoading(false)
       if (error.message.match(/UNKNOWN_ID/)) {
@@ -79,34 +91,82 @@ function Viewer() {
     setTokenMetadata(metadata)
     setMetadataLoading(false)
 
-    try {
-      const bytecode = await eth.getCode(metadata.drawing_address)
-      setBytecode(bytecode)
+    return metadata
+  }
 
-      const renderResult = await renderDBN(
-        {bytecode: bytecode, codeAddress: metadata.drawing_address},
-        (update, data) => {
-          if (update === 'INTERPRET_PROGRESS') {
-            if (data.imageData) {
-              setGasUsed(data.gasUsed)
-              setImageData(data.imageData)
-            }
+
+  async function render(metadata) {
+    const bytecode = await eth.getCode(metadata.drawing_address)
+    setBytecode(bytecode)
+
+    const renderResult = await renderDBN(
+      {
+        bytecode: bytecode,
+        codeAddress: metadata.drawing_address,
+        breakOnBlockchainDataNeeded: true,
+      },
+      (update, data) => {
+        if (update === 'INTERPRET_PROGRESS') {
+          if (data.imageData) {
+            setGasUsed(data.gasUsed)
+            setImageData(data.imageData)
           }
         }
-      )
+      },
+    )
 
-      setRenderState('DONE')
-      setGasUsed(renderResult.gasUsed)
-      setImageData(renderResult.imageData)
+    setGasUsed(renderResult.gasUsed)
+    setImageData(renderResult.imageData)
+    setRenderState('DONE')
+  }
+
+  async function renderOnChain(metadata) {
+    console.log('Rendering on chain')
+    setOnChainRender(true)
+
+    // get the latest block number so the estimateGas / call
+    // happen at the same block...
+    const blockNumber = await eth.getBlockNumber()
+
+    // no input data to trigger render
+    const txn = {to: metadata.drawing_address}
+
+    const gasEstimate = await eth.estimateGas(txn, blockNumber)
+    const hexResult = await eth.call(txn, blockNumber)
+    const data = new Blob(
+      [Buffer.from(hexResult.slice(2), 'hex')],
+      {type: 'image/bmp'},
+    )
+    setGasUsed(gasEstimate)
+    setImageData(data)
+    setRenderState('DONE')
+  }
+
+  async function loadAndRender(tokenId) {
+    const metadata = await loadMetadata(tokenId);
+    if (!metadata) {
+      return;
+    }
+
+    try {
+      await render(metadata)
     } catch (error) {
-      // TODO: show this in the status somehow?
-      console.error('error rendering: ', error)
-      setRenderState('ERROR')
+      if (error.type === 'blockchain_data_needed') {
+        try {
+          await renderOnChain(metadata)
+        } catch (error) {
+          console.error('error rendering on chain', error)
+          setRenderState('ERROR')
+        }
+      } else {
+        console.error('error rendering', error)
+        setRenderState('ERROR')
+      }
     }
   }
 
   useEffect(() => {
-    getData(tokenId)
+    loadAndRender(tokenId)
   }, [tokenId])
 
   useEffect(() => {
@@ -193,6 +253,7 @@ function Viewer() {
                   description={tokenMetadata.description}
 
                   renderState={renderState}
+                  renderingOnChain={onChainRender}
                   bytecode={bytecode}
                   onShowCode={onShowCode}
                   gasUsed={gasUsed}

@@ -76,6 +76,20 @@ const renderDBN = async function(data, onRenderStateChange, cancelSignal) {
         case 'update':
           onRenderStateChange(m.data.value.update, m.data.value.data)
           break;
+        case 'blockchain_data_needed':
+          // Either trap or turn into an update
+          if (data.breakOnBlockchainDataNeeded) {
+            console.log('Renderer breaking on blockchain data needed')
+            release(worker)
+            reject({
+              type: 'blockchain_data_needed',
+              message: `${m.data.value.opcode} needs ${m.data.value.address}`
+            })
+          } else {
+            // turn into an update
+            onRenderStateChange('BLOCKCHAIN_DATA_NEEDED', m.data.value)
+          }
+          break;
         default:
           throw new Error(`unhandled message from DBN render worker: ${m}`)
       }

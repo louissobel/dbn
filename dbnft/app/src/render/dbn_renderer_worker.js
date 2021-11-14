@@ -5,6 +5,8 @@ import { BN } from 'ethereumjs-util'
 
 const GAS_LIMIT = new BN(0xffffffff)
 
+const MASK_160 = new BN(1).shln(160).subn(1)
+
 onmessage = ({ data }) => {
   var renderFn;
   if (data.code || data.code === "") {
@@ -66,9 +68,28 @@ onmessage = ({ data }) => {
   }
 };
 
-const makeStepListener = function(throttleInterval) {
+const makeStepListener = function(throttleInterval, opts) {
   var lastCalled = 0;
   return function(step) {
+    // Report calls / balance to identify when the drawing
+    // is trying to access actual blockchain data.
+    if (step.opcode.name === 'STATICCALL') {
+      let addressStackSlot = step.stack[step.stack.length - 2];
+
+      if (addressStackSlot) {
+        let address = addressStackSlot.and(MASK_160).toString(16)
+        if (address != opts.helperAddress) {
+          postMessage({
+            message: 'blockchain_data_needed',
+            value: {
+              opcode: step.opcode.name,
+              address: address,
+            }
+          })
+        }
+      }
+    }
+
     const now = Date.now();
     if (now - lastCalled > throttleInterval) {
 
@@ -238,7 +259,7 @@ const renderDBNFromBytecode = async function(data, opts, onRenderStateChange) {
   const result = await evmInterpret(
     data.bytecode,
     {gasLimit: GAS_LIMIT, helper, codeAddress: opts.codeAddress},
-    makeStepListener(100),
+    makeStepListener(100, {helperAddress: helperAddress}),
   )
 
   if (result.exceptionError) {

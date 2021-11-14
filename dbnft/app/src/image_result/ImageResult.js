@@ -102,6 +102,7 @@ function ImageResult(props) {
 
       <RenderStatus
         renderState={props.renderState}
+        renderingOnChain={props.renderingOnChain}
         renderError={props.renderError}
         codeSize={props.bytecode ? (props.bytecode.length - 2)/2 : null}
         onBytecodeSizeClick={props.onShowCode}

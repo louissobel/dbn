@@ -7,10 +7,10 @@ import {Icon} from '@iconify/react'
 
 import StatusDot from '../shared/StatusDot'
 
-function GasStats({gasUsed}) {
+function GasStats({gasUsed, estimated}) {
   return (
     <div className="d-inline ms-2 dbn-image-render-status-stats">
-      Gas: <NumberFormat
+      Gas: {estimated ? '~' : ''}<NumberFormat
         value={gasUsed}
         displayType={'text'}
         thousandSeparator={true}
@@ -56,7 +56,16 @@ function errorMessage(renderError) {
   }
 }
 
-function RenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, darkmode, onBytecodeSizeClick}) {
+function RenderStatus({
+    renderState,
+    renderingOnChain,
+    renderError,
+    codeSize,
+    gasUsed,
+    onCancel,
+    darkmode,
+    onBytecodeSizeClick
+  }) {
   var status;
   switch (renderState) {
     case "INITIAL":
@@ -78,11 +87,11 @@ function RenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, da
           </div>
 
           <span className="dbn-image-render-status-message">
-            Rendering...
+            Rendering... {renderingOnChain && '(on chain)'}
           </span>
 
           {codeSize && <BytecodeStats codeSize={codeSize} onClick={onBytecodeSizeClick} />}
-          {gasUsed && <GasStats gasUsed={gasUsed} />}
+          {gasUsed && <GasStats estimated={renderingOnChain} gasUsed={gasUsed} />}
 
           {onCancel &&
             <div className={classNames(
@@ -106,11 +115,11 @@ function RenderStatus({renderState, renderError, codeSize, gasUsed, onCancel, da
           </div>
           
           <span className="dbn-image-render-status-message">
-            OK!
+            OK! {renderingOnChain && '(on chain)'}
           </span>
 
           <BytecodeStats codeSize={codeSize} onClick={onBytecodeSizeClick} />
-          <GasStats gasUsed={gasUsed} />
+          <GasStats estimated={renderingOnChain} gasUsed={gasUsed} />
 
         </>
       );
