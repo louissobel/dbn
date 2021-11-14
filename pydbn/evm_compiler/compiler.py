@@ -8,6 +8,7 @@ from parser import DBNAstVisitor
 
 from .symbol_collector import SymbolCollector
 from .opcodes import *
+from . import builtins
 
 def compile(node, *args, **kwargs):
     compiler = DBNEVMCompiler()
@@ -157,32 +158,28 @@ class DBNEVMCompiler(DBNAstVisitor):
             dfn.epilogue_label = None
 
     def setup_builtins(self):
-        line = structures.BuiltinProcedure('Line', 'command', 4, self.handle_builtin_line)
-        paper = structures.BuiltinProcedure('Paper', 'command', 1, self.handle_builtin_paper)
-        pen = structures.BuiltinProcedure('Pen', 'command', 1, self.handle_builtin_pen)
-        time = structures.BuiltinProcedure('Time', 'number', 1, self.handle_builtin_time)
-        address = structures.BuiltinProcedure('Address', 'number', 0, self.handle_builtin_address)
-        field = structures.BuiltinProcedure('Field', 'command', 5, self.handle_builtin_field)
-        call = structures.BuiltinProcedure('Call', 'number', -1, self.handle_builtin_call)
-
         debugger = structures.BuiltinProcedure('DEBUGGER', 'command', 0, self.handle_builtin_debugger)
         self.builtin_procedures = {
-            'Line': line,
-            'Paper': paper,
-            'Pen': pen,
-            'line': line,
-            'paper': paper,
-            'pen': pen,
+            'Line': builtins.Line,
+            'line': builtins.Line,
 
-            'Field': field,
-            'field': field,
+            'Pen': builtins.Pen,
+            'pen': builtins.Pen,
 
-            'Time': time,
-            'time': time,
-            'Address': address,
-            'address': address,
-            'Call': call,
-            'call': call,
+            'Paper': builtins.Paper,
+            'paper': builtins.Paper,
+
+            'Field': builtins.Field,
+            'field': builtins.Field,
+
+            'Time': builtins.Time,
+            'time': builtins.Time,
+
+            'Address': builtins.Address,
+            'address': builtins.Address,
+
+            'Call': builtins.Call,
+            'call': builtins.Call,
 
             'DEBUGGER': debugger,
         }
@@ -996,123 +993,10 @@ class DBNEVMCompiler(DBNAstVisitor):
             )
 
         self.emit_comment('Calling Builtin: %s' % builtin.name)
-        builtin.handler(node)
-
-    def handle_builtin_pen(self, node):
-        self.visit(node.args[0])
-        self.emit_raw("MSTORE(%d, $$)" % self.PEN_ADDRESS)
-
-        self.update_stack(-1, 'Pen')
-
-    def handle_builtin_line(self, node):
-        # first, return address
-        label = self.generate_label("postLineCall")
-
-        self.emit_push_label(label)
-
-        self.update_stack(1, 'Line Return')
-
-        # get the arguments on the stack in the weird order Line expects:
-        # [y1|x1|y0|x0
-        self.visit(node.args[0])
-        self.visit(node.args[1])
-        self.visit(node.args[2])
-        self.visit(node.args[3])
-
-        # run the command!
-        self.emit_linked_function_jump(LinkedFunctions.LINE_COMMAND)
-        self.emit_label(label)
-
-        self.update_stack(-5, 'Line')
-
-    def handle_builtin_field(self, node):
-        label = self.generate_label("postFieldCall")
-
-        self.emit_push_label(label)
-        self.update_stack(1, 'Field Return')
-
-        for arg in reversed(node.args):
-            self.visit(arg)
-
-        self.emit_linked_function_jump(LinkedFunctions.FIELD_COMMAND)
-        self.emit_label(label)
-
-        self.update_stack(-6, 'Field')
-
-
-    def handle_builtin_paper(self, node):
-        label = self.generate_label("postPaperCall")
-
-        self.emit_push_label(label)
-        self.update_stack(1, 'Paper Internal return')
-
-        self.visit(node.args[0])
-
-        # run the command!
-        self.emit_linked_function_jump(LinkedFunctions.PAPER_COMMAND)
-        self.emit_label(label)
-
-        self.update_stack(-2, 'Paper')
+        builtin.handler(self, node)
 
     def handle_builtin_debugger(self, node):
         self.emit_debug()
-
-    def handle_builtin_time(self, node):
-        label = self.generate_label("postTimeCall")
-        self.emit_push_label(label)
-        self.update_stack(1, 'Time Internal return')
-
-        self.visit(node.args[0])
-
-        self.emit_linked_function_jump(LinkedFunctions.TIME_NUMBER)
-        self.emit_label(label)
-
-        self.update_stack(-1, 'Time (leaving return value on stack)')
-
-    def handle_builtin_address(self, node):
-        # easy...
-        self.emit_opcode(ADDRESS)
-        self.update_stack(1, 'Address left on stack')
-
-    def handle_builtin_call(self, node):
-        # this needs to do its own argument count validation
-        # args are: [address method args*]
-        # where we can have up to 6 args
-        # (we have 8 scratch words, and need 1 for return,
-        # and the method descriptor takes 1)
-        if len(node.args) < 2:
-            raise CompileError(
-                "'Call' number requires at least two params: the address and method",
-                self.line_no
-            )  
-
-        if len(node.args) > (2 + 6):
-            raise CompileError(
-                "'Call' can take at most six numbers in addition to the address and method",
-                self.line_no,
-            )
-
-        # Ok — so stack to call are:
-        # [method|nargs|args*|address|ret
-        # input is:
-        # [address, method, args*]
-        label = self.generate_label('postCallCall')
-        self.emit_push_label(label)
-        self.update_stack(1, 'Call Call internal return')
-        self.visit(node.args[0])
-
-        for arg in reversed(node.args[2:]):
-            self.visit(arg)
-
-        self.emit_push(len(node.args) - 2)
-        self.update_stack(1, 'Call Call nargs')
-
-        self.visit(node.args[1])
-
-        self.emit_linked_function_jump(LinkedFunctions.CALL_NUMBER)
-        self.emit_label(label)
-
-        self.update_stack(-1*(len(node.args) + 1), 'Call Call nargs')  
 
     def visit_procedure_definition_node(self, node):
         self.emit_line_no(node.line_no)

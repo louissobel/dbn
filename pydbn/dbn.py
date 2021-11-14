@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     filename = args[0]
     if options.evm:
-        metadata = Metadata(options.evm_helper_address, options.evm_description)
+        metadata = Metadata(options.evm_helper_address, options.evm_description, None)
         print(compile_dbn_evm(filename, metadata, verbose=options.verbose))
 
     else:
