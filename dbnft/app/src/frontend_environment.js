@@ -10,13 +10,14 @@ const configForEnvironment = {
 	localhost: {
 		compileEndpoint: '/evm_compile',
 		coordinatorContractAddress: '0xFB04D45B68ce4d18324D228B1Ed8829C792Acb97',
+		expectedChainId: 5777,
 		mintPrice: 10000000000000000, // 0.01 ETH
 		ethNetwork: 'http://localhost:8545',
 		verbose: true,
 
 		useHelpers: true,
 		helperAddress: '0x19af9857f53675c17248113E2818eaBBEb8089DE',
-		chainID: 4,
+		interpreterChainId: 4,
 
 		openSeaBase: 'https://testnets.opensea.io',
 		etherscanBase: 'https://rinkeby.etherscan.io',
@@ -44,13 +45,14 @@ const configForEnvironment = {
 	testnet: {
 		compileEndpoint: 'https://1ard2p8bka.execute-api.us-east-1.amazonaws.com/evm_compile',
 		coordinatorContractAddress: "0xF58eCE1a86A64B12CecAeb0A8EcfF600B8158e5f",
+		expectedChainId: 4,
 		mintPrice: 10000000000000000, // 0.01 ETH
 		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',
 		testnetBanner: true,
 
 		useHelpers: true,
 		helperAddress: '0x5AA6e8F2962AB0A9B99f52F366eACaA8382721f5',
-		chainID: 4,
+		interpreterChainId: 4,
 
 		openSeaBase: 'https://testnets.opensea.io',
 		etherscanBase: 'https://rinkeby.etherscan.io',

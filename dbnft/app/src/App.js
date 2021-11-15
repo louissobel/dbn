@@ -5,7 +5,7 @@ import React from 'react';
 import { BrowserRouter, Switch, Route, Link } from "react-router-dom";
 
 
-import { Web3ReactProvider } from '@web3-react/core'
+import { Web3ReactProvider, useWeb3React } from '@web3-react/core'
 import Web3 from 'web3'
 
 import Navbar from 'react-bootstrap/Navbar';
@@ -37,6 +37,42 @@ function DBNFTNavbar(props) {
   )
 }
 
+function WrongEthereumNetworkWarning() {
+  const web3React = useWeb3React()
+
+  if (!web3React.chainId) {
+    return null
+  }
+
+  if (web3React.chainId === frontendEnvironment.config.expectedChainId) {
+    return null
+  }
+
+  function messageForChainId(chainId) {
+    switch(chainId) {
+      case 1:
+        return (<p>Access the mainnet instance at <a className="text-light" href="https://dbnft.io">dbnft.io</a></p>)
+      case 4:
+        return (<p>Access the Rinkeby instance at <a className="text-light" href="https://testnet.dbnft.io">testnet.dbnft.io</a></p>)
+      case 5777:
+        return (<p>Are you still connected to localhost?</p>)
+      default:
+        return (<p>This site supports only Rinkeby and mainnet</p>)
+    }
+  }
+
+  return (
+    <div className="dbn-wrong-chain">
+      <p>
+        Your metamask is currently connected to a different chain ({web3React.chainId}) than expected.
+      </p>
+
+      {messageForChainId(web3React.chainId)}
+    </div>
+  )
+}
+
+
 function App() {
   if (frontendEnvironment.environment === 'unknown') {
     console.log('unsupported environment')
@@ -57,6 +93,7 @@ function App() {
           <Switch>
             <Route exact path="/create">
               <DBNFTNavbar active="create"/>
+              <WrongEthereumNetworkWarning />
               <Editor />
             </Route>
 

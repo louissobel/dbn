@@ -26,7 +26,7 @@ onmessage = ({ data }) => {
     useHelpers: data.useHelpers,
     helperAddress: data.helperAddress,
 
-    chainID: data.frontendEnvironment.config.chainID,
+    chainId: data.frontendEnvironment.config.interpreterChainId,
   }
 
   if (opts.useHelpers && !opts.helperAddress) {
@@ -260,7 +260,7 @@ const renderDBN = async function(data, opts, onRenderStateChange) {
       {
         gasLimit: GAS_LIMIT,
         data: Buffer.from([0xDE]),
-        chainID: opts.chainID,
+        chainId: opts.chainId,
       },
     )
     onRenderStateChange('GET_DESCRIPTION_END', {})
@@ -291,7 +291,7 @@ const renderDBNFromBytecode = async function(data, opts, onRenderStateChange) {
     {
       gasLimit: GAS_LIMIT,
       data: Buffer.from([0x33]),
-      chainID: opts.chainID,
+      chainId: opts.chainId,
     }
   )
   let helperAddress = Buffer.from(helperAddressResult.returnValue).toString('hex');
@@ -327,7 +327,7 @@ const renderDBNFromBytecode = async function(data, opts, onRenderStateChange) {
       gasLimit: GAS_LIMIT,
       helper: helper,
       codeAddress: opts.codeAddress,
-      chainID: opts.chainID,
+      chainId: opts.chainId,
     },
     makeStepListener(100, {helperAddress: helperAddress}),
   )

@@ -125,7 +125,7 @@ function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample
     <Row className="dbn-reference-code-and-image">
       <Col xs={7}>
         <div>
-          {(interacted || clock) &&
+          {
             <div className="align-left dbn-reference-code-and-image-go-edit">
               <a href="/create" onClick={onGoEditClick}>
                 <Icon icon="oi:share-boxed" inline={true} />

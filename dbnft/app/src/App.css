@@ -30,7 +30,17 @@
 
 .dbn-testnet-banner {
   text-align:  center;
+  background-color: #ffb819;
+}
+
+.dbn-wrong-chain {
+  text-align: center;
   background-color: #ff4319;
+  color:  white;
+  padding: 5px;
+}
+.dbn-wrong-chain p {
+  margin-bottom: 0;
 }
 
 .dbn-image-result {
@@ -249,6 +259,11 @@ body {
 .dbn-reference-code-and-image-go-edit {
   font-style: italic;
   float: right;
+  font-size: 0.8rem;
+}
+
+.dbn-reference-code-and-image-go-edit a {
+  text-decoration:  none;
 }
 
 .dbn-reference-section {

@@ -135,6 +135,10 @@ function Minter(props) {
       return false
     }
 
+    if (web3React.chainId !== frontendEnvironment.config.expectedChainId) {
+      return false
+    }
+
     if (mintability !== 'MINTABLE') {
       return false
     }

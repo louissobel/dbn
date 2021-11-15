@@ -80,7 +80,7 @@ var evmInterpret = async function(bytecode, opts, onStep) {
   // is that the CHAINID opcode returns a different value,
   // so just use this override function.
   const common = new Common.forCustomChain(1, {
-    chainId: opts.chainID,
+    chainId: opts.chainId,
   })
   const vm = new VM({ common })
 

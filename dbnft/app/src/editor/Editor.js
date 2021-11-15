@@ -6,7 +6,6 @@ import Col from 'react-bootstrap/Col';
 import Alert from 'react-bootstrap/Alert';
 import Modal from 'react-bootstrap/Modal';
 
-
 import ImageResult from '../image_result/ImageResult'
 import MintStatusAlert from '../minter/MintStatusAlert'
 import renderDBN from '../render'
@@ -325,7 +324,6 @@ class Editor extends React.Component {
     return (
       <Container>
         {this.topInfoRow()}
-
 
         <Row className="pt-5">
           <Col sm={12} md={9} lg={6}>
