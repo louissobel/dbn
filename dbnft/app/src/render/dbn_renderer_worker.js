@@ -25,6 +25,8 @@ onmessage = ({ data }) => {
 
     useHelpers: data.useHelpers,
     helperAddress: data.helperAddress,
+
+    chainID: data.frontendEnvironment.config.chainID,
   }
 
   if (opts.useHelpers && !opts.helperAddress) {
@@ -68,26 +70,81 @@ onmessage = ({ data }) => {
   }
 };
 
+const maybeReportStaticcall = function(step, opts) {
+  if (step.stack.length < 2) {
+    // let the EVM throw the underflow...
+    return
+  }
+  let addressStackSlot = step.stack[step.stack.length - 2];
+  let address = addressStackSlot.and(MASK_160).toString(16)
+  if (address != opts.helperAddress) {
+    postMessage({
+      message: 'blockchain_data_needed',
+      value: {
+        opcode: step.opcode.name,
+        address: address,
+      }
+    })
+  }
+}
+
+const maybeReportBalance = function(step) {
+  if (step.stack.length < 1) {
+    // let the EVM throw the underflow...
+    return
+  }
+  let addressStackSlot = step.stack[step.stack.length - 1];
+  let address = addressStackSlot.and(MASK_160).toString(16)
+  // A balance call to _any_ address traps to the blockchain
+  postMessage({
+    message: 'blockchain_data_needed',
+    value: {
+      opcode: step.opcode.name,
+      address: address,
+    }
+  })
+}
+
+const maybeReportLog1 = function(step) {
+  if (step.stack.length < 3) {
+    // let the EVM throw the underflow...
+    return
+  }
+
+  // stack is [data|dataLength|topic0
+  // (where topic0 is line no and we _assume_
+  // that data is always 32 bytes at 0x80 😁)
+  let lineNo = step.stack[step.stack.length - 3].toNumber()
+  let value = new BN(step.memory.slice(0x80, 0x80 + 32), 'be')
+
+  postMessage({
+    message: 'update',
+    value: {
+      update: 'LOG',
+      data: {
+        lineNo: lineNo,
+        value: value.toString(16, 2),
+      }
+    }
+  }) 
+}
+
 const makeStepListener = function(throttleInterval, opts) {
   var lastCalled = 0;
   return function(step) {
     // Report calls / balance to identify when the drawing
     // is trying to access actual blockchain data.
     if (step.opcode.name === 'STATICCALL') {
-      let addressStackSlot = step.stack[step.stack.length - 2];
+      maybeReportStaticcall(step, opts)
+    }
 
-      if (addressStackSlot) {
-        let address = addressStackSlot.and(MASK_160).toString(16)
-        if (address != opts.helperAddress) {
-          postMessage({
-            message: 'blockchain_data_needed',
-            value: {
-              opcode: step.opcode.name,
-              address: address,
-            }
-          })
-        }
-      }
+    if (step.opcode.name === 'BALANCE') {
+      maybeReportBalance(step)
+    }
+
+    // Report Logs as they happen (only is log1 supported)
+    if (step.opcode.name === 'LOG1') {
+      maybeReportLog1(step)
     }
 
     const now = Date.now();
@@ -200,7 +257,11 @@ const renderDBN = async function(data, opts, onRenderStateChange) {
     onRenderStateChange('GET_DESCRIPTION_START', {})
     const descriptionResult = await evmInterpret(
       bytecode,
-      {gasLimit: GAS_LIMIT, data: Buffer.from([0xDE])},
+      {
+        gasLimit: GAS_LIMIT,
+        data: Buffer.from([0xDE]),
+        chainID: opts.chainID,
+      },
     )
     onRenderStateChange('GET_DESCRIPTION_END', {})
 
@@ -227,7 +288,11 @@ const renderDBNFromBytecode = async function(data, opts, onRenderStateChange) {
   // First, attempt to get a "helper address" to load in
   const helperAddressResult = await evmInterpret(
     data.bytecode,
-    {gasLimit: GAS_LIMIT, data: Buffer.from([0x33])}
+    {
+      gasLimit: GAS_LIMIT,
+      data: Buffer.from([0x33]),
+      chainID: opts.chainID,
+    }
   )
   let helperAddress = Buffer.from(helperAddressResult.returnValue).toString('hex');
   if (helperAddressResult.exceptionError) {
@@ -258,7 +323,12 @@ const renderDBNFromBytecode = async function(data, opts, onRenderStateChange) {
 
   const result = await evmInterpret(
     data.bytecode,
-    {gasLimit: GAS_LIMIT, helper, codeAddress: opts.codeAddress},
+    {
+      gasLimit: GAS_LIMIT,
+      helper: helper,
+      codeAddress: opts.codeAddress,
+      chainID: opts.chainID,
+    },
     makeStepListener(100, {helperAddress: helperAddress}),
   )
 

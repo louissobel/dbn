@@ -5,9 +5,9 @@ defines the builtin functions
 from .structures import BuiltinProcedure, LinkedFunctions
 from . import opcodes
 
-def builtin(procedure_type, nargs):
+def builtin(procedure_type, nargs, command_allowed_in_number=False):
     def decorator(fn):
-        return BuiltinProcedure(fn.__name__, procedure_type, nargs, fn)
+        return BuiltinProcedure(fn.__name__, procedure_type, nargs, fn, command_allowed_in_number)
     return decorator
 
 
@@ -69,6 +69,19 @@ def Field(compiler, node):
     compiler.update_stack(-6, 'Field')
 
 
+@builtin('command', 1, command_allowed_in_number=True)
+def Log(compiler, node):
+    # Just inline it..
+    compiler.visit(node.args[0])
+    compiler.emit_raw('MSTORE(0x80, $$)')
+    compiler.update_stack(-1, 'log')
+
+    compiler.emit_push(compiler.line_no) # topic0
+    compiler.emit_push(32) # data length
+    compiler.emit_push(0x80) # data offset
+    compiler.emit_opcode(opcodes.LOG1)
+
+
 @builtin('number', 1)
 def Time(compiler, node):
     label = compiler.generate_label("postTimeCall")
@@ -87,6 +100,35 @@ def Time(compiler, node):
 def Address(compiler, node):
     compiler.emit_opcode(opcodes.ADDRESS)
     compiler.update_stack(1, 'Address left on stack')
+
+
+@builtin('number', 0)
+def ChainID(compiler, node):
+    compiler.emit_opcode(opcodes.CHAINID)
+    compiler.update_stack(1, 'Chain ID left on stack')
+
+
+@builtin('number', 1)
+def Balance(compiler, node):
+    compiler.visit(node.args[0])
+    compiler.emit_opcode(opcodes.BALANCE)
+    # No need to update the stack; "BALANCE" swaps
+    # the arg for the result
+
+
+@builtin('number', 1)
+def SHA3(compiler, node):
+    """
+    Inline rather than jump to command
+    """
+    compiler.visit(node.args[0])
+
+    # store the arg at 0x80 (the first scratch word)
+    compiler.emit_raw('MSTORE(0x80, $$)')
+    compiler.emit_raw('SHA3(0x80, 0x20)')
+
+    # No need to update the stack, balance swaps the
+    # arg for the result
 
 
 @builtin('number', -1)

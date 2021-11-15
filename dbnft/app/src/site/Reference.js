@@ -462,7 +462,7 @@ function Reference() {
                   equivalent to one Ether.
                 </p>
 
-              <h5>Block Number</h5>
+              <h5>Chain ID</h5>
 
               <h5>SHA3</h5>
 
@@ -476,6 +476,7 @@ function Reference() {
                 <li>hex numbers</li>
                 <li>Modulo</li>
                 <li>Field</li>
+                <li>Log</li>
                 <li>Set Global</li>
               </ul>
             </ReferenceSection>

@@ -16,6 +16,7 @@ const configForEnvironment = {
 
 		useHelpers: true,
 		helperAddress: '0x19af9857f53675c17248113E2818eaBBEb8089DE',
+		chainID: 4,
 
 		openSeaBase: 'https://testnets.opensea.io',
 		etherscanBase: 'https://rinkeby.etherscan.io',
@@ -49,11 +50,12 @@ const configForEnvironment = {
 
 		useHelpers: true,
 		helperAddress: '0x5AA6e8F2962AB0A9B99f52F366eACaA8382721f5',
+		chainID: 4,
 
 		openSeaBase: 'https://testnets.opensea.io',
 		etherscanBase: 'https://rinkeby.etherscan.io',
 
-		ipfsGateway: 'https://gateway.pinata.cloud/ipfs/',
+		ipfsGateway: 'https://cloudflare-ipfs.com/ipfs/',
 		pinataBase: 'https://api.pinata.cloud/',
 		pinataJWT: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI1NzY4MmRiYy1kZWQ3LTQzOTEtODFjOC05NGYyNWY3NGI3MzEiLCJlbWFpbCI6ImxvdWlzLmEuc29iZWxAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siaWQiOiJOWUMxIiwiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjF9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZX0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjQxYmI4OTY0NGRiOTQ0NWRhZTI1Iiwic2NvcGVkS2V5U2VjcmV0IjoiMzJiZjk1MDhhZTc0Y2I0MTkxMTYzNjlkNWQ0OTM4NDA2N2Y3YzU4NGZhMjUyM2Q5N2VjMDllM2IyZmJiM2Q4ZSIsImlhdCI6MTYzNjc0MzA0MH0.DPp_EznnjBQFkluj08HLJulV19amqm1Ft4NSua6Hy2I',
 		ipfsClient: 'pinata',

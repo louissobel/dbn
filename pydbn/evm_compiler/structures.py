@@ -193,6 +193,7 @@ BuiltinProcedure = namedtuple('BuiltinProcedure', [
     'procedure_type',
     'argc',
     'handler',
+    'command_allowed_in_number'
 ])
 
 

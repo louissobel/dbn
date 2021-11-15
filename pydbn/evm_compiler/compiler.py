@@ -158,7 +158,7 @@ class DBNEVMCompiler(DBNAstVisitor):
             dfn.epilogue_label = None
 
     def setup_builtins(self):
-        debugger = structures.BuiltinProcedure('DEBUGGER', 'command', 0, self.handle_builtin_debugger)
+        debugger = structures.BuiltinProcedure('DEBUGGER', 'command', 0, self.handle_builtin_debugger, True)
         self.builtin_procedures = {
             'Line': builtins.Line,
             'line': builtins.Line,
@@ -178,9 +178,19 @@ class DBNEVMCompiler(DBNAstVisitor):
             'Address': builtins.Address,
             'address': builtins.Address,
 
+            'Balance': builtins.Balance,
+            'balance': builtins.Balance,
+
+            'ChainID': builtins.ChainID,
+            'chainID': builtins.ChainID,
+
+            'SHA3': builtins.SHA3,
+            'sha3': builtins.SHA3,
+
             'Call': builtins.Call,
             'call': builtins.Call,
 
+            'Log': builtins.Log,
             'DEBUGGER': debugger,
         }
 
@@ -832,13 +842,14 @@ class DBNEVMCompiler(DBNAstVisitor):
 
     def visit_procedure_call_node(self, node):
         procedure_name = node.procedure_name.value
+        builtin = self.builtin_procedures.get(procedure_name)
 
         if node.procedure_type == 'command':
             self.emit_line_no(node.line_no)
 
-            self._validate_side_effect('command_call')
+            if (not builtin) or (not builtin.command_allowed_in_number):
+                self._validate_side_effect('command_call')
 
-        builtin = self.builtin_procedures.get(procedure_name)
         if builtin is not None:
             return self.handle_builtin(builtin, node)
 

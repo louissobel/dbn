@@ -85,4 +85,7 @@ SWAP16  = Opcode('SWAP16')
 
 REVERT = Opcode('REVERT', 2)
 ADDRESS = Opcode('ADDRESS')
+CHAINID = Opcode('CHAINID')
+BALANCE = Opcode('BALANCE', 1)
 CALLDATASIZE = Opcode('CALLDATASIZE')
+LOG1 = Opcode('LOG1', 3)

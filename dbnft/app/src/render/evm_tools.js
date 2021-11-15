@@ -1,4 +1,5 @@
 import {assemble, parse} from "@ethersproject/asm";
+import Common from '@ethereumjs/common'
 import VM from '@ethereumjs/vm'
 import { Account, Address } from 'ethereumjs-util'
 import { Block } from '@ethereumjs/block'
@@ -72,8 +73,16 @@ var evmAssemble = async function(assembly) {
 	return await assemble(ast, {})
 }
 
+
 var evmInterpret = async function(bytecode, opts, onStep) {
-  const vm = new VM({})
+  // I can't quite get the libraries working actually using the
+  // rinkeby chain id... but that's OK; all we _really_ want
+  // is that the CHAINID opcode returns a different value,
+  // so just use this override function.
+  const common = new Common.forCustomChain(1, {
+    chainId: opts.chainID,
+  })
+  const vm = new VM({ common })
 
   if (onStep) {
     vm.on('step', onStep)
@@ -95,7 +104,7 @@ var evmInterpret = async function(bytecode, opts, onStep) {
       // TODO: make this user-configurable in the header?
       timestamp: Math.floor(Date.now() / 1000),
     }
-  })
+  }, { common })
 
 	const runOpts = {
     code: Buffer.from(bytecode.slice(2), 'hex'),

@@ -166,6 +166,9 @@ class Editor extends React.Component {
             })
           }
           break
+        case 'LOG':
+          console.log(`Line ${data.lineNo}: 0x${data.value}`)
+          break;
         default:
           break;
       }
