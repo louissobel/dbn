@@ -62,6 +62,39 @@ const disabledExtensions = baseExtensions.concat([
   disabledTheme,
 ])
 
+
+function LinkCopiedNotification({copiedAt}) {
+  const [show, setShow] = useState(false)
+  const currentTimer = useRef(null)
+
+  useEffect(() => {
+    if (copiedAt) {
+      if (currentTimer.current) {
+        clearTimeout(currentTimer.current)
+        currentTimer.current = null
+      }
+
+      setShow(true)
+      currentTimer.current = setTimeout(() => {
+        setShow(false)
+      }, 1200)
+
+      return () => {
+        clearTimeout(currentTimer.current)
+      }
+    }
+  }, [copiedAt])
+
+  
+  return (
+    <div className={"code-input-share-status " + (show ? '' : 'hidden')}>
+      Link copied
+    </div>
+  )    
+  
+
+}
+
 export default function CodeInput(props) {
   const editor = useRef();
   const filePicker = useRef();
@@ -70,6 +103,7 @@ export default function CodeInput(props) {
 
   const previousBlobURL = useRef(null);
   const [codeBlobURL, setCodeBlobURL] = useState(null)
+  const [shareLinkLastCopiedAt, setShareLinkLastCopiedAt] = useState(null)
 
   const [editedAfterRun, setEditedAfterRun] = useState(false)
   const lastRunViaKeyboard = useRef(false)
@@ -121,6 +155,23 @@ export default function CodeInput(props) {
     if (filePicker.current) {
       filePicker.current.click()
     }
+  }
+
+  function onSharePress(e) {
+    setShareLinkLastCopiedAt(Date.now())
+    e.preventDefault()
+    let el = document.createElement('input')
+    document.body.appendChild(el)
+    el.type = 'text'
+    el.value = e.target.href
+    el.select()
+    document.execCommand('copy')
+    document.body.removeChild(el)
+  }
+
+  function codeShareURL() {
+    let encodedCode = encodeURIComponent(code)
+    return '/create?initialCode=' + encodedCode;
   }
 
   function handleOpenFileChange(e) {
@@ -234,6 +285,17 @@ export default function CodeInput(props) {
     })
   }
 
+  function runKeyboardShortcutText() {
+    if (navigator.platform.indexOf('Mac') !== -1) {
+      return <span style={{fontSize: '0.7rem'}}>(⌘-⏎)</span>
+    } else if (navigator.platform.indexOf('Win') !== -1) {
+      return <span style={{fontSize: '0.7rem'}}>(ctrl-⏎)</span>
+    } else {
+      return null
+    }
+  }
+
+
   return (
     <div className="code-input-holder">
       <Row>
@@ -255,7 +317,7 @@ export default function CodeInput(props) {
         </Col>
       </Row>
       <Row className="pb-5">
-        <Col sm={12} md={12} lg={8} xl={6}>
+        <Col sm={12} md={12} lg={6} xl={6}>
           <div className="d-grid gap-2 mt-3">
             <Button 
               variant="primary"
@@ -263,12 +325,12 @@ export default function CodeInput(props) {
               disabled={props.disabled}
               onClick={onRunPress}
             >
-              Run
+              Run {runKeyboardShortcutText()}
             </Button>
           </div>
         </Col>
-        <Col className="d-lg-none d-xl-block" xl={2} />
-        <Col sm={12} md={12} lg={4} xl={4}>
+        <Col className="d-lg-none d-xl-block" xl={1} />
+        <Col sm={12} md={12} lg={6} xl={5}>
           <div className="d-grid gap-2 mt-3">
             <ButtonGroup>
               <Button
@@ -278,6 +340,15 @@ export default function CodeInput(props) {
                 download={(description || "drawing") + ".dbn"}
               >
                 Download
+              </Button>
+
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={onSharePress}
+                href={codeShareURL()}
+              >
+                Share
               </Button>
               
               <Button
@@ -289,6 +360,9 @@ export default function CodeInput(props) {
                 Open
               </Button>
             </ButtonGroup>
+            
+            <LinkCopiedNotification copiedAt={shareLinkLastCopiedAt} />
+
             <input
               type="file"
               ref={filePicker}

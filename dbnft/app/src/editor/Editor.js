@@ -31,6 +31,11 @@ if (SessionStorage.enabled) {
   }
 }
 
+let searchParams = new URLSearchParams(window.location.search);
+const initialCodeFromLocation = searchParams.get('initialCode');
+window.history.replaceState({}, document.title, window.location.pathname)
+
+
 class Editor extends React.Component {
   constructor(props) {
     super(props);
@@ -227,10 +232,8 @@ class Editor extends React.Component {
     }
 
     // Check the URL
-    let searchParams = new URLSearchParams(window.location.search);
-    let initialCode = searchParams.get('initialCode');
-    if (initialCode) {
-      return initialCode
+    if (initialCodeFromLocation) {
+      return initialCodeFromLocation;
     }
 
     // ok, fall back
@@ -324,7 +327,6 @@ class Editor extends React.Component {
     return (
       <Container>
         {this.topInfoRow()}
-
         <Row className="pt-5">
           <Col sm={12} md={9} lg={6}>
             <ImageResult

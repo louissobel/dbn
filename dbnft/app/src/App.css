@@ -165,6 +165,16 @@
   border-bottom: 1px dotted red;
 }
 
+.code-input-share-status {
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+.code-input-share-status.hidden {
+  opacity: 0;
+  transition: 300ms;
+}
+
 body {
   /*background-color: #fbfaff !important;*/
   background-color: #d6d2e7 !important;
@@ -225,6 +235,7 @@ body {
 .dbn-reference-inline-code {
   font-family: monospace;
   font-weight: bold;
+  white-space: nowrap;
 }
 
 .dbn-reference-inline-code.number {

@@ -13,6 +13,10 @@ import dots from './dots'
 import squareCommand from './squareCommand'
 import parabolaNumber from './parabolaNumber'
 import time from './time'
+import sha3 from './sha3'
+import field from './field'
+
+import {setGlobalNotGlobal, setGlobalGlobal} from './setGlobal'
 
 export default {
   'line': line,
@@ -31,4 +35,8 @@ export default {
   'squareCommand': squareCommand,
   'parabolaNumber': parabolaNumber,
   'time': time,
+  'sha3': sha3,
+  'field': field,
+  'setGlobalNotGlobal': setGlobalNotGlobal,
+  'setGlobalGlobal': setGlobalGlobal,
 }

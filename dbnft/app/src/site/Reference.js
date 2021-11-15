@@ -198,13 +198,13 @@ function Reference() {
     <Container>
       <Row>
         <Col className="d-none d-lg-block" lg={1} xl={2}></Col>
-        <Col className="d-none d-md-block dbn-reference-index"  md={4} lg={3} xl={2}>
+        <Col className="d-none d-md-block dbn-reference-index"  md={3} lg={3} xl={2}>
           <div className="sticky-top">
             <Index sectionList={sectionList} />
           </div>
         </Col>
 
-        <Col sm={12} md={8} lg={6} className="dbn-reference-content">
+        <Col sm={12} md={9} lg={7} className="dbn-reference-content">
           <div className="p-2" >
 
             <CanvasReferenceSection registerRef={registerSection()} />
@@ -406,7 +406,8 @@ function Reference() {
 
               <p>
                 Using these can make your drawing respond to its location
-                or changes in the blockchain.
+                or changes in the blockchain. Note that using these <em>also</em> complicates
+                your developer experience: the editing tool cannot fully simulate everything the blockchain does.
               </p>
 
               <h5>Time</h5>
@@ -463,22 +464,129 @@ function Reference() {
                 </p>
 
               <h5>Chain ID</h5>
+                <p>
+                  There are multiple versions of the Ethereum blockchain running.
+                  There's the real one, the <em>mainnet</em>, but there are also
+                  various testnets. This tool is deployed both to the mainnet
+                  and also to the Rinkeby testnet. Your code can detect
+                  which blockchain it's running on using the <InlineCode>&lt;ChainID&gt;</InlineCode> number,
+                  which will return <InlineCode number>4</InlineCode> on Rinkeby and <InlineCode number>1</InlineCode> on mainnet.
+                </p>
 
               <h5>SHA3</h5>
+                <p>
+                  Cryptographic hash functions are an essential part of Ethereum,
+                  the Keccak256 SHA-3 hash function particularly so. It is a core
+                  operation exposed by the Ethereum Virtual Machine and is available
+                  to use in your drawings via the <InlineCode>SHA3</InlineCode> number, which
+                  takes one parameter. It returns the hash of the number interpreted as a 32-byte
+                  two's complement big-endian integer.
+                </p>
+
+                <p>
+                  An interesting use for <InlineCode>SHA3</InlineCode> is as a source of pseudo-randomness.
+                  While true randomness is impossible to achieve using purely on-chain resources,
+                  cryptographic hash functions are, by definition, seemingly random for a given input.
+                  Try changing the input on line 8:
+                </p>
+
+                <InteractiveCodeAndImage example={Examples.sha3} />
 
               <h5>Call</h5>
+                <p>
+                  The final blockchain capability is one of the most powerful. Since your drawing will be deployed as a smart
+                  contract it will be capable of calling the code of <em>other</em> smart contracts. The original DBN book
+                  had the concept of <InlineCode>&lt;net&gt;</InlineCode> connectors, which this ability to is similar to in some ways.
+                </p>
+
+                <p>
+                  Access other contracts through the <InlineCode>Call</InlineCode> number. It takes between two and eight parameters:
+                </p>
+                <ul>
+                  <li>First, the address of the contract to call</li>
+                  <li>
+                    Second, the four byte <em>selector</em> of the function to call. The function selector is specified by Solidity to be the
+                    first four bytes of the Keccak256 hash of the function signature.
+                  </li>
+                  <li>
+                    Then up to six values can be passed
+                  </li>
+                </ul>
+
+                <p>
+                  Since DBN is not Solidity, there are clear limitations to this functionality. It only supports simple, 32-byte
+                  parameters and return values. Functions must be referred to by the hash of their selector rather than by their name.
+                  But it still offers a rudimentary way to build reactive drawings that change depending on the state of the blockchain.
+                </p>
 
             </ReferenceSection>
 
             <ReferenceSection registerRef={registerSection()} name="Extras">
-              <ul>
-                <li>token id</li>
-                <li>hex numbers</li>
-                <li>Modulo</li>
-                <li>Field</li>
-                <li>Log</li>
-                <li>Set Global</li>
-              </ul>
+              <p>
+                There's a few other extra / hidden features in this version of DBN.
+              </p>
+
+              <h5>Token ID</h5>
+              <p>The <InlineCode>&lt;TokenID&gt;</InlineCode> number will return the id of your DBNFT (from 0–10200). In development, it will be zero.</p>
+
+              <h5>Field</h5>
+              <p>
+                As a convenience (and to match capabilities in an existing reference DBN implementation), there is an additional command <InlineCode>Field</InlineCode>, that
+                takes five parameters: <InlineCode>&lt;Field x0 y0 x1 y1 color&gt;</InlineCode>. It will draw a filled in rectangle
+                of color <InlineCode>color</InlineCode> with one corner at <InlineCode>[x0 y0]</InlineCode> and
+                the opposite one at <InlineCode>[x1 y1]</InlineCode>.
+              </p>
+
+              <InteractiveCodeAndImage example={Examples.field} />
+
+              <h5>Hex Numbers</h5>
+              <p>
+                Most of the time, numbers are presented in base-10 form. <InlineCode number>64</InlineCode> means sixty-four. When dealing with large numbers
+                on the blockchain however—like addresses and function selectors—it is often more convenient to read / write them in <em>hexadecimal</em>,
+                or base-16, form. This version of DBN supports that via numbers prefixed with <InlineCode>0x</InlineCode>.
+                In this form, <InlineCode number>0x64</InlineCode> does not mean sixty-four, but
+                actually six-times-sixteen-plus-four, which is one hundred. Sixty-four would be represented by <InlineCode number>0x40</InlineCode>—four-times-sixteen.
+              </p>
+
+              <p>
+                There's no need to ever use hexadecimal if you don't want to, but for dealing with things on the blockchain is it often easier to do so.
+              </p>
+
+              <h5>Modulo</h5>
+              <p>
+                Another additional math capability this version of DBN supports is modulo via the <InlineCode>%</InlineCode> operator, which returns
+                what's left after division of the left and right values. For example, <InlineCode>(4 % 2)</InlineCode> is <InlineCode number>0</InlineCode>,
+                and <InlineCode>((0 - 10209) % 101)</InlineCode> is <InlineCode number>-8</InlineCode>
+              </p>
+
+              <h5>Set Global</h5>
+              <p>
+                The DBN book, reasonably, does not go into detail about how variable <em>scoping</em> works in the DBN language. This version
+                implements <em>dynamic scoping</em>. All variables have a default value of zero in a global environment. When trying to read a
+                variable within a command or number, DBN first looks for it having been set within the most recent command or number. If that variable
+                has not been set, DBN checks the caller, and so on recursively until the global environment is reached.
+              </p>
+
+              <p>
+                When setting a variable, the value is stored in the environment of the current command or number. This approach provides a reasonably non-surprising experience,
+                enables arbitrarily deep recursion, and unlocks optimizations (storing variables directly on the stack) when all variables are known to be local.
+                However, it makes <em>one</em> example from the DBN book not work. This example implements a pseudo-random generator
+                and expects a <InlineCode>Set</InlineCode> within a number to update the <em>global</em> value of that variable, not a value local to the number.
+              </p>
+
+              <p>
+                To enable this (uncommon) use-case, this version of DBN supports a modified version of set: <InlineCode>Set Global</InlineCode>.
+                This version of <InlineCode>Set</InlineCode> always updates the value of the variable in the global environment.
+                Compare the below examples:
+              </p>
+
+              <InteractiveCodeAndImage example={Examples.setGlobalNotGlobal} />
+              <InteractiveCodeAndImage example={Examples.setGlobalGlobal} />
+
+
+              <h5>Log</h5>
+              <p></p>
+
             </ReferenceSection>
 
           </div>

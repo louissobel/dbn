@@ -79,10 +79,12 @@ export function drawLine(ctx, dbnColor, x0, y0, x1, y1) {
   let y = y0
 
   for (let x = x0; x<x1+1; x++) {
-    if (steep) {
-      ctx.putImageData(p, y + 10, 10 + 100 - x)
-    } else {
-      ctx.putImageData(p, x + 10, 10 + 100 - y)
+    if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+      if (steep) {
+        ctx.putImageData(p, y + 10, 10 + 100 - x)
+      } else {
+        ctx.putImageData(p, x + 10, 10 + 100 - y)
+      }
     }
 
     error = error + deltay

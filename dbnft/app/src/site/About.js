@@ -50,24 +50,22 @@ function About() {
 
             <p>
               This tool enables you to create NFTs by compiling DBN code directly to a smart contract that
-              can render itself as a bitmap. There is no Solidity involved in this step, just DBN and raw EVM Opcodes.
+              can render itself as a bitmap. The art of the NFT is the <em>code itself</em> stored on the blockchain.
             </p>
 
-            <h6>The above code becomes:</h6>
-            <pre class="dbn-low-level-code" style={{height: "100px"}}>
-              {assemblyCode}
-            </pre>
-
-            <h6>Which is then turned into:</h6>
+            <h6>The above code is stored as:</h6>
             <pre class="dbn-low-level-code wordwrap" style={{height: "100px"}}>
               {bytecode}
             </pre>
 
             <p>
-              Minting a DBNFT involves <em>deploying</em> your drawing as a smart contract
+              Minting a DBNFT involves deploying your drawing as a smart contract
               to the Ethereum blockchain. When it's time to get the image for the NFT,
               that smart contract is called and a bitmap image is created and returned.
             </p>
+
+
+
           </div>
         </Col>
 
