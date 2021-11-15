@@ -90,7 +90,7 @@ function Index({ sectionList }) {
   const nodes = sectionList.map(({name, node}, i) => {
     let active = i === activeItem
     return (
-      <div className={classNames("p-1", "dbn-reference-index-item", {'active-section': active})}>
+      <div key={name} className={classNames("p-1", "dbn-reference-index-item", {'active-section': active})}>
         <h5 onClick={clickHandler(node, i)}>
           {name}
         </h5>
@@ -122,9 +122,6 @@ function CanvasReferenceSection({ registerRef }) {
 
     let y = 100 - Math.min(100, Math.max(0, Math.floor((e.clientY - canvasRect.y) - 10)))
     setYCoord(y)
-
-    // console.log(canvasRect, e.clientX, e.clientY)
-    // console.log(x)
   }
 
   function mouseLeave(e) {
@@ -292,7 +289,7 @@ function Reference() {
             <ReferenceSection registerRef={registerSection()} name="Comments">
               <p>
                 As your code get more complicated, you can use comments
-                (anything following a <InlineCode>//</InlineCode>) to make things
+                (anything following a <InlineCode>{"//"}</InlineCode>) to make things
                 more understandable.
               </p>
 

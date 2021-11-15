@@ -33,7 +33,7 @@ export default {
     let x = h * 4
 
     initCanvas(ctx)
-    drawPaper(ctx, now % 60)
+    drawPaper(ctx, s)
     drawLine(ctx, 60, x, 0, x, m)
   }
 }

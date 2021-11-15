@@ -4,8 +4,6 @@ import {keccak256} from "@ethersproject/keccak256"
 import { BN } from 'ethereumjs-util'
 
 import {
-  drawPaper,
-  drawLine,
   initCanvas,
   varsFromSpec,
 } from './helpers'

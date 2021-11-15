@@ -151,6 +151,7 @@ class Editor extends React.Component {
           this.setState({
             assemblyCode: data.result,
           })
+          break;
         case 'ASSEMBLE_START':
           break;
         case 'ASSEMBLE_END':

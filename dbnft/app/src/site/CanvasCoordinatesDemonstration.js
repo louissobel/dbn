@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useEffect} from 'react';
 
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
@@ -10,7 +10,6 @@ const GUIDEBAR_COLOR = [0x1b, 0x1b, 0xac]
 function CanvasCoordinatesDemonstration({ x, y, canvasRef }) {
 
   useEffect(() => {
-    console.log('drawing')
     let canvas = canvasRef.current;
     let ctx = canvas.getContext('2d')
 
@@ -53,23 +52,7 @@ function CanvasCoordinatesDemonstration({ x, y, canvasRef }) {
       }      
     }
 
-  }, [x, y])
-
-  // function canvasMouseOver(e) {
-  //   const canvasX = Math.min(120, Math.max(e.nativeEvent.offsetX, 0))
-  //   const canvasY = Math.min(120, Math.max(e.nativeEvent.offsetY, 0))
-
-  //   const offsetX = Math.min(100, Math.max(canvasX - 10, 0))
-  //   const offsetY = Math.min(100, Math.max((120 - canvasY) - 10, 0))
-
-  //   setXCoord(offsetX)
-  //   setYCoord(offsetY)
-  // }
-
-  // function canvasMouseOut(e) {
-  //   setXCoord(50)
-  //   setYCoord(50)
-  // }
+  }, [x, y, canvasRef])
 
   return (
 

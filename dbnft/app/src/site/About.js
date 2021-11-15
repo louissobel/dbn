@@ -9,7 +9,6 @@ import SampleCodeAndImage from './SampleCodeAndImage'
 
 function About() {
 
-  const [assemblyCode, setAssemblyCode] = useState(null)
   const [bytecode, setBytecode] = useState(null)
 
   const sampleCode = 
@@ -42,7 +41,6 @@ function About() {
 
             <SampleCodeAndImage
               code={sampleCode}
-              onAssemblyPresent={setAssemblyCode}
               onBytecodePresent={setBytecode}
             />
 

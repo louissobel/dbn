@@ -2,10 +2,6 @@
 
 // Uses window.hostname to determine environment
 
-const devAddress = [
-	'0x64486715303218136817354C3350f741Bb592c98',
-]
-
 const configForEnvironment = {
 	localhost: {
 		compileEndpoint: '/evm_compile',

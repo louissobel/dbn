@@ -4,7 +4,6 @@ import {
   varsFromSpec,
   initCanvas,
   drawLine,
-  drawTooltipGuide,
 } from './helpers'
 
 

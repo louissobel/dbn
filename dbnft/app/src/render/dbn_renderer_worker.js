@@ -77,7 +77,7 @@ const maybeReportStaticcall = function(step, opts) {
   }
   let addressStackSlot = step.stack[step.stack.length - 2];
   let address = addressStackSlot.and(MASK_160).toString(16)
-  if (address != opts.helperAddress) {
+  if (address !== opts.helperAddress) {
     postMessage({
       message: 'blockchain_data_needed',
       value: {

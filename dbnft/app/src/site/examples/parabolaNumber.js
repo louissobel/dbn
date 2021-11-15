@@ -1,12 +1,5 @@
 /* eslint import/no-anonymous-default-export: "off" */
 
-import {
-  varsFromSpec,
-  initCanvas,
-  drawLine,
-  drawTooltipGuide,
-} from './helpers'
-
 import {drawParabola} from './math'
 
 

@@ -6,7 +6,6 @@ import { Link } from "react-router-dom";
 
 function MintStatusAlert({ transactionHash, mintEventEmitter, onClose }) {
   const [mintState, setMintState] = useState('PENDING')
-  const [confirmations, setConfirmations] = useState(null)
   const [errorMessage, setErrorMessage] = useState(null)
   const [tokenID, setTokenID] = useState(null)
   const [dotCount, setDotCount] = useState(1)
@@ -42,12 +41,6 @@ function MintStatusAlert({ transactionHash, mintEventEmitter, onClose }) {
         <p className="dbn-mint-status-alert-fine-print">
           Transaction: {transactionHash}
         </p>
-
-        {confirmations !== null && 
-          <p className="dbn-mint-status-alert-fine-print">
-            Confirmations: {confirmations}
-          </p>
-        }
       </Alert>
     )
   } else if (mintState === 'ERROR') {

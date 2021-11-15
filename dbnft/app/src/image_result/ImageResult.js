@@ -43,7 +43,7 @@ function ImageResult(props) {
       )
 
     }
-  }, [darkmode, magnification])
+  }, [darkmode, magnification, storageKey])
 
   function toggleDarkmode() {
     setDarkmode(!darkmode)

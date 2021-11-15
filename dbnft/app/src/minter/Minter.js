@@ -81,7 +81,7 @@ function Minter(props) {
     if (onMintabilityStatusChange) {
       onMintabilityStatusChange(mintability)
     }
-  }, [mintability /*onMintabilityStatusChange*/])
+  }, [mintability, onMintabilityStatusChange])
 
 
   function getContractMode() {

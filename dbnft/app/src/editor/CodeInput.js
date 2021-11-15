@@ -303,7 +303,7 @@ export default function CodeInput(props) {
           <div className="code-input-codemirror-holder mt-3 mt-lg-0">
             <CodeMirror
                   ref={editor}
-                  value={code}
+                  value={props.initialCode}
                   height="350px"
                   extensions={codemirrorExtensions()}
                   onChange={(value, viewUpdate) => {

@@ -70,7 +70,7 @@ function Viewer() {
 
   const {tokenId} = useParams()
 
-  const onShowCode = useCallback(() => setShowCodeModal(true))
+  const onShowCode = useCallback(() => setShowCodeModal(true), [])
 
   async function loadMetadata(tokenId) {
     var metadata;
@@ -142,31 +142,29 @@ function Viewer() {
     setRenderState('DONE')
   }
 
-  async function loadAndRender(tokenId) {
-    const metadata = await loadMetadata(tokenId);
-    if (!metadata) {
-      return;
-    }
+  useEffect(() => {
+    (async function() {
+      const metadata = await loadMetadata(tokenId);
+      if (!metadata) {
+        return;
+      }
 
-    try {
-      await render(metadata)
-    } catch (error) {
-      if (error.type === 'blockchain_data_needed') {
-        try {
-          await renderOnChain(metadata)
-        } catch (error) {
-          console.error('error rendering on chain', error)
+      try {
+        await render(metadata)
+      } catch (error) {
+        if (error.type === 'blockchain_data_needed') {
+          try {
+            await renderOnChain(metadata)
+          } catch (error) {
+            console.error('error rendering on chain', error)
+            setRenderState('ERROR')
+          }
+        } else {
+          console.error('error rendering', error)
           setRenderState('ERROR')
         }
-      } else {
-        console.error('error rendering', error)
-        setRenderState('ERROR')
       }
-    }
-  }
-
-  useEffect(() => {
-    loadAndRender(tokenId)
+    })()
   }, [tokenId])
 
   useEffect(() => {

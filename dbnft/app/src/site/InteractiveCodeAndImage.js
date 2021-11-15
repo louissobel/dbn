@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
@@ -37,7 +37,7 @@ function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample
   const [tooltipItemName, setTooltipItemName] = useState(null)
 
   const code = useRef(null)
-  const [interacted, setInteracted] = useState(false)
+  const [, setInteracted] = useState(false)
 
   const uiEditableDispatchRef = useRef(null)
 
@@ -45,11 +45,9 @@ function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample
     linkageRef.current = {
       receivePropagatedChange(newSpec) {
         let actions = specDiff(spec, newSpec);
-        console.log(actions, example.name, !!uiEditableDispatchRef.current)
 
         if (uiEditableDispatchRef.current) {
           for (let a of actions) {
-            console.log(a)
             uiEditableDispatchRef.current(a)
           }
         }
@@ -57,13 +55,13 @@ function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample
     }
   }
 
-  function render() {
+  const render = useCallback(() => {
     let canvas = canvasRef.current;
     let ctx = canvas.getContext('2d')
     ctx.imageSmoothingEnabled = false
 
     example.draw(ctx, spec, tooltipItemName);
-  }
+  }, [example, spec, tooltipItemName])
 
   useEffect(() => {
     if (clock) {
@@ -73,9 +71,9 @@ function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample
         clearInterval(interval)
       }
     }
-  }, [clock])
+  }, [clock, render])
 
-  useEffect(render, [example, spec, tooltipItemName])
+  useEffect(render, [render])
 
   
   function onChange(spec) {

@@ -1,7 +1,6 @@
 /* eslint import/no-anonymous-default-export: "off" */
 
 import {
-  drawPaper,
   drawLine,
   initCanvas,
   varsFromSpec,
