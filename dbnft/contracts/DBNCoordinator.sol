@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./Base64.sol";
+import "./BitmapHeader.sol";
 
 contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
@@ -240,7 +241,6 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
         bytecode[bytecode.length - 32 - 2] = bytes1(uint8((tokenId & 0xFF00) >> 8));
         bytecode[bytecode.length - 32 - 1] = bytes1(uint8(tokenId & 0xFF));
 
-
         address addr;
         assembly {
             addr := create(0, add(bytecode, 0x20), mload(bytecode))
@@ -270,13 +270,32 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
     }
 
     function _render(address addr) internal view returns (uint256, bytes memory) {
+        uint bitmapLength = 10962;
+        bytes memory result = new bytes(bitmapLength);
+
         uint256 startGas = gasleft();
-        (bool success, bytes memory result) = addr.staticcall("");
+        BitmapHeader.writeTo(result);
+
+        uint resultOffset = 0x20 + 40 + 14 + 404; // after the header (and 0x20 for the dynamic byte length)
+        uint returnLength = 10504; // only allow up to a full bitmap back
+
+        bytes memory input = hex"BD";
+        bool success;
+        assembly {
+            success := staticcall(
+                gas(),
+                addr,
+                add(input, 0x20),
+                1,
+                add(result, resultOffset),
+                returnLength
+            )
+        }
 
         // this overestimates _some_, but that's fine
         uint256 endGas = gasleft();
 
-        require(success, "failure render call");
+        require(success, "RENDER_FAIL");
 
         return ((startGas - endGas), result);
     }

@@ -23,9 +23,11 @@ ISZERO(CALLDATASIZE)
 JUMPI($render, $$)
 
 SHR(0xF8, CALLDATALOAD(0))
-;; Jump table for non-render functions:
+;; Jump table for non-full-render functions:
+;;  0xBD: get just the _data_ of the bitmap
 ;;  0xDE: get description data
 ;;  0x33: get helper address
+JUMPI($bitmapData, EQ(0xBD, DUP1))
 JUMPI($loadDescription, EQ(0xDE, DUP1))
 JUMPI($helperAddress, EQ(0x33, DUP1))
 
@@ -44,7 +46,6 @@ REVERT(0x00, 1)
   ; so that we return an empty value if it's not set)
   RETURN(0x0C, #metadataHelperAddress)
 
-
 @render:
   ; Initialize the bitmap @ 0x0180
   $postDrawHarnessInitializeBitmap
@@ -57,8 +58,17 @@ REVERT(0x00, 1)
   ; (concretely, the editor web interface uses this)
   MSTORE8(0x0B, 1)
 
+  ; prepare input for "dbnDrawComplete"
+  ; (dbnDraw jumps back to it with clean stack)
+  10962  ; return length (full bitmap)
+  0x0180 ; bitmap location
   JUMP($dbnDraw)
-  @dbnDrawComplete:
 
-    ; return the blob at 0x0180, 10962 long (bitmap)
-    RETURN(0x0180, 10962)
+@bitmapData:
+  ; prepare input for "dbnDrawComplete"
+  10504  ; only the body of the bitmap is returned
+  0x034A ; from PIXEL_DATA_START
+  JUMP($dbnDraw)   
+
+@dbnDrawComplete:
+  RETURN($$, $$)

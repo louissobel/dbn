@@ -1,6 +1,7 @@
 const fs = require('fs')
-const asm = require("@ethersproject/asm");
+const util = require('util')
 
+const asm = require("@ethersproject/asm");
 import { task } from "hardhat/config";
 
 
@@ -28,6 +29,10 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
     const coordinatorDeployReceipt = await coordinator.deployTransaction.wait()
 
     console.log("Coordinator deployed to: ", coordinator.address, `(Gas used: ${coordinatorDeployReceipt.gasUsed.toString()})`);
+
+    // Open up minting
+    await coordinator.setContractOpen()
+    console.log("Opened up minting")
 
     const input = fs.readFileSync(file);
 
@@ -65,35 +70,34 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
     ])
     const mintInput = Buffer.concat([deployHeader, codeToDeploy])
 
-    const deployTxn =  await coordinator.deploy(mintInput)
-    const deployTxnReceipt = await deployTxn.wait()
+    const mintTxn =  await coordinator.mint(mintInput, {
+      value: hre.ethers.utils.parseEther('0.01', 'ethers'),
+    })
+    const mintTxnReceipt = await mintTxn.wait()
 
-    const transferEvent = deployTxnReceipt.events.find((e: any) =>
+    const transferEvent = mintTxnReceipt.events.find((e: any) =>
       e.event === 'Transfer'
     )
-    console.log("NFT created with id: ", transferEvent.args.tokenId._hex, `(Gas used: ${deployTxnReceipt.gasUsed.toString()})`)
+    console.log("NFT created with id: ", transferEvent.args.tokenId._hex, `(Gas used: ${mintTxnReceipt.gasUsed.toString()})`)
 
-    const deployEvent = deployTxnReceipt.events.find((e: any) =>
+    const deployEvent = mintTxnReceipt.events.find((e: any) =>
       e.event === 'DrawingDeployed'
     )
     console.log("Drawing Deployed to: ", deployEvent.args.addr)
 
     const tokenURI = await coordinator.tokenURI(transferEvent.args.tokenId)
-    console.log(tokenURI)
     const parsed = JSON.parse(tokenURI.split('data:application/json,')[1])
 
     console.log("Got Token Metadata")
-    console.log(" -> Name: ", parsed.name)
-    console.log(" -> Description: ", parsed.description)
-    console.log(" -> Drawing address: ", parsed.drawing_address)
-    console.log(" -> External URL: ", parsed.external_url)
+    console.log(util.inspect(parsed, {
+      maxStringLength: 255,
+      colors: true,
+    }))
 
     // const imageData = Buffer.from(parsed.image.split('data:image/bmp;base64,')[1], 'base64')
 
     console.log(` -> Writing image (SVG) to ${output}`)
     fs.writeFileSync(output, parsed.image_data)
   });
-
-
 
 

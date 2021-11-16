@@ -22,6 +22,7 @@ artifacts/intermediate_ethasm/inlineLinkArtifact.json : \
 .PRECIOUS : artifacts/drawings/%.helpers.ethasm
 artifacts/drawings/%.helpers.ethasm: \
 	artifacts/intermediate_ethasm/drawings/%.helpers.ethasm \
+	contracts/RenderDBN/drawHarness.ethasm \
 	artifacts/intermediate_ethasm/helpersLinkArtifact.json
 	python scripts/link.py \
 		--drawing $< \
@@ -32,6 +33,7 @@ artifacts/drawings/%.helpers.ethasm: \
 .PRECIOUS : artifacts/drawings/%.ethasm
 artifacts/drawings/%.ethasm : \
 	artifacts/intermediate_ethasm/drawings/%.ethasm \
+	contracts/RenderDBN/drawHarness.ethasm \
 	artifacts/intermediate_ethasm/inlineLinkArtifact.json
 	python scripts/link.py \
 		--drawing $< \
@@ -72,13 +74,13 @@ artifacts/intermediate_ethasm/drawings/scratch_drawings/%.ethasm : scratch_drawi
 
 artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm : \
 	contracts/RenderDBN/testHarness.ethasm \
-	contracts/RenderDBN/helpers/initializeBitmap.ethasm \
+	contracts/RenderDBN/helpers/impl/initializeBitmapImpl.ethasm \
 	contracts/RenderDBN/base64encode.ethasm \
-	contracts/RenderDBN/setCommand.ethasm \
-	contracts/RenderDBN/lineCommand.ethasm \
-	contracts/RenderDBN/helpers/linePixels.ethasm \
-	contracts/RenderDBN/helpers/paperCommand.ethasm \
-	contracts/RenderDBN/clampValue.ethasm
+	contracts/RenderDBN/inlined/setCommand.ethasm \
+	contracts/RenderDBN/inlined/lineCommand.ethasm \
+	contracts/RenderDBN/helpers/impl/linePixelsImpl.ethasm \
+	contracts/RenderDBN/helpers/impl/paperCommandImpl.ethasm \
+	contracts/RenderDBN/inlined/clampValue.ethasm
 	cat $^ > artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm
 
 artifacts/contracts/RenderDBNTestArtifact.eth : artifacts/intermediate_ethasm/RenderDBNTestArtifact.ethasm

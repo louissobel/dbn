@@ -21,8 +21,8 @@ JUMP($unknownTEST)
 
   @postTestInitializeBitmapCall:
 
-  ; get length on stack
-  10962
+  ; _only_ return the header (14 + 40 + 404)
+  458
   JUMP($testStringReturn)
 
 @testLineCommand:

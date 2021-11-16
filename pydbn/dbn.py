@@ -3,7 +3,7 @@ from optparse import OptionParser
 
 import parser
 from compiler import DBNCompiler, assemble
-from evm_compiler import DBNEVMCompiler, Metadata
+from evm_compiler import DBNEVMCompiler, Metadata, get_hash_of_ipfs_node
 from interpreter import DBNInterpreter, builtins
 
 import output
@@ -33,8 +33,11 @@ def compile_dbn(filename):
     assembly = assemble(compilation)
     return assembly
 
-def compile_dbn_evm(filename, metadata, verbose=False):
+def compile_dbn_evm(filename, helper_address=None, description=None, verbose=False):
     dbn_script = open(filename).read()
+    ipfs_hash = "0x" + get_hash_of_ipfs_node(dbn_script.encode('utf-8'))
+    metadata = Metadata(helper_address, description, ipfs_hash)
+
     compiler = DBNEVMCompiler(verbose=verbose)
 
     tokens = parser.tokenize(dbn_script)
@@ -54,8 +57,12 @@ if __name__ == "__main__":
 
     filename = args[0]
     if options.evm:
-        metadata = Metadata(options.evm_helper_address, options.evm_description, None)
-        print(compile_dbn_evm(filename, metadata, verbose=options.verbose))
+        print(compile_dbn_evm(
+            filename,
+            helper_address=options.evm_helper_address,
+            description=options.evm_description,
+            verbose=options.verbose,
+        ))
 
     else:
         bytecode = compile_dbn(filename)
