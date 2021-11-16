@@ -174,7 +174,7 @@ function Minter(props) {
     // (I feel like I am using two different eth libraries?
     // one for reads and one for metamask??)
     const metamaskDBNCoordinator = new web3.eth.Contract(
-      DBNCoordinator.abi,
+      DBNCoordinator,
       frontendEnvironment.config.coordinatorContractAddress,
     )
 
@@ -236,17 +236,18 @@ function Minter(props) {
     const deployEvent = mintResult.events.DrawingDeployed;
     const transferEvent = mintResult.events.Transfer;
 
+    const tokenId = transferEvent.returnValues.tokenId;
+    const externalURL = frontendEnvironment.config.externalBase + tokenId
+
     return (
       <div>
         <h5>NFT Minted!</h5>
-        {/* TODO: I probably should get this from tokenURI...?*/}
-
         <TokenMetadataTable
-          tokenId={deployEvent.returnValues.tokenId}
+          tokenId={tokenId}
           creator={transferEvent.returnValues.to}
           description={props.description}
           address={deployEvent.returnValues.addr}
-          externalURL={deployEvent.returnValues.externalURL}
+          externalURL={externalURL}
           ipfsCID={ipfsCID}
         />
       </div>

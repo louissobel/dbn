@@ -1,8 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
-
 library Base64 {
 
     function encode(bytes memory input) internal pure returns (bytes memory) {

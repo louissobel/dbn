@@ -41,7 +41,7 @@ const prependDeployHeader = function(bytecode) {
 const eth = new Eth(frontendEnvironment.config.ethNetwork)
 
 const dbnCoordinator = new eth.Contract(
-  DBNCoordinator.abi,
+  DBNCoordinator,
   frontendEnvironment.config.coordinatorContractAddress,
 )
 

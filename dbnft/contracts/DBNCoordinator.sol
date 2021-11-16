@@ -13,7 +13,7 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
     using Strings for uint256;
 
-    event DrawingDeployed(uint256 tokenId, address addr, string externalURL);
+    event DrawingDeployed(uint256 tokenId, address addr);
 
     // Config
     enum ContractMode { AllowlistOnly, Open }
@@ -234,6 +234,13 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
 
     // private one they both call into
     function _mintAtTokenId(bytes memory bytecode, uint256 tokenId) internal returns (address) {
+        // Inject the token id into the bytecode
+        // The end of the bytecode is [2 bytes token id][32 bytes ipfs hash]
+        // (and we get the tokenID in in bigendian)
+        bytecode[bytecode.length - 32 - 2] = bytes1(uint8((tokenId & 0xFF00) >> 8));
+        bytecode[bytecode.length - 32 - 1] = bytes1(uint8(tokenId & 0xFF));
+
+
         address addr;
         assembly {
             addr := create(0, add(bytecode, 0x20), mload(bytecode))
@@ -258,12 +265,11 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
         // sender gets the token
         _safeMint(msg.sender, tokenId);
 
-        emit DrawingDeployed(tokenId, addr, _externalURL(tokenId));
+        emit DrawingDeployed(tokenId, addr);
         return addr;
     }
 
     function _render(address addr) internal view returns (bytes memory) {
-        // TODO: use the openzeppelin wrapping helpers?
         (bool success, bytes memory result) = addr.staticcall("");
         require(success, "failure render call");
 
@@ -282,7 +288,6 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
     }
 
     function _getMetadata(uint256 tokenId, address addr) internal view returns (Metadata memory) {
-        // get description (todo: should we wrap this in some openzeppelin helper?)
         (bool success, bytes memory description) = addr.staticcall(hex"DE");
         require(success, "DESCRIPTION_FAIL");
 

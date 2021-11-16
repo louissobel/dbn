@@ -49,7 +49,7 @@ app/src/contracts/helpersLinkArtifact.json : artifacts/intermediate_ethasm/helpe
 	cp $^ $@
 
 app/src/contracts/DBNCoordinator.json : artifacts/contracts/DBNCoordinator.sol/DBNCoordinator.json
-	cp $^ $@
+	jq .abi $^ > $@
 
 artifacts/contracts/DBNCoordinator.sol/DBNCoordinator.json: FORCE
 	hh compile

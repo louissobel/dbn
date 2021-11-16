@@ -5,8 +5,8 @@
 const configForEnvironment = {
 	localhost: {
 		compileEndpoint: '/evm_compile',
-		coordinatorContractAddress: '0xFB04D45B68ce4d18324D228B1Ed8829C792Acb97',
-		expectedChainId: 5777,
+		coordinatorContractAddress: '0x748Eec85B61294c9e10Ed0488DDd159601515917',
+		expectedChainId: 1337,
 		mintPrice: 10000000000000000, // 0.01 ETH
 		ethNetwork: 'http://localhost:8545',
 		verbose: true,
@@ -15,6 +15,7 @@ const configForEnvironment = {
 		helperAddress: '0x19af9857f53675c17248113E2818eaBBEb8089DE',
 		interpreterChainId: 4,
 
+		externalBase: 'http://localhost:3000/dbnft/',
 		openSeaBase: 'https://testnets.opensea.io',
 		etherscanBase: 'https://rinkeby.etherscan.io',
 
@@ -50,6 +51,7 @@ const configForEnvironment = {
 		helperAddress: '0x5AA6e8F2962AB0A9B99f52F366eACaA8382721f5',
 		interpreterChainId: 4,
 
+		externalBase: 'https://testnet.dbnft.io/dbnft/',
 		openSeaBase: 'https://testnets.opensea.io',
 		etherscanBase: 'https://rinkeby.etherscan.io',
 

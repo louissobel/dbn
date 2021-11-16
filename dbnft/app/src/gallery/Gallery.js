@@ -25,8 +25,6 @@ class RenderJob {
   async run() {
     this._setRenderState('LOADING_BYTECODE')
 
-    // TODO: I think we need to grab the address too?
-    // (I think that can be done in same call or something?)
     const bytecode = await dbnCoordinator.methods.tokenCode(this.tokenId).call()
 
     this._setRenderState('INTERPRETING')
