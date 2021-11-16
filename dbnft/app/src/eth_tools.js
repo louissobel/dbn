@@ -47,6 +47,5 @@ const dbnCoordinator = new eth.Contract(
 
 export {
   prependDeployHeader,
-  eth,
   dbnCoordinator,
 }

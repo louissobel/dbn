@@ -11,7 +11,7 @@ import { binary_to_base58 } from 'base58-js'
 
 import frontendEnvironment from '../frontend_environment'
 import renderDBN from '../render'
-import {eth, dbnCoordinator} from '../eth_tools'
+import {dbnCoordinator} from '../eth_tools'
 import {ipfsClient} from '../ipfs_tools'
 import ImageResult from '../image_result/ImageResult'
 import TokenMetadataTable from '../shared/TokenMetadataTable'
@@ -95,8 +95,8 @@ function Viewer() {
   }
 
 
-  async function render(metadata) {
-    const bytecode = await eth.getCode(metadata.drawing_address)
+  async function render(metadata, tokenId) {
+    const bytecode = await dbnCoordinator.methods.tokenCode(tokenId).call()
     setBytecode(bytecode)
 
     const renderResult = await renderDBN(
@@ -120,19 +120,14 @@ function Viewer() {
     setRenderState('DONE')
   }
 
-  async function renderOnChain(metadata) {
+  async function renderOnChain(metadata, tokenId) {
     console.log('Rendering on chain')
     setOnChainRender(true)
 
-    // get the latest block number so the estimateGas / call
-    // happen at the same block...
-    const blockNumber = await eth.getBlockNumber()
+    const result = await dbnCoordinator.methods.renderToken(tokenId).call()
+    const gasEstimate = parseInt(result[0])
+    const hexResult = result[1]
 
-    // no input data to trigger render
-    const txn = {to: metadata.drawing_address}
-
-    const gasEstimate = await eth.estimateGas(txn, blockNumber)
-    const hexResult = await eth.call(txn, blockNumber)
     const data = new Blob(
       [Buffer.from(hexResult.slice(2), 'hex')],
       {type: 'image/bmp'},
@@ -150,11 +145,11 @@ function Viewer() {
       }
 
       try {
-        await render(metadata)
+        await render(metadata, tokenId)
       } catch (error) {
         if (error.type === 'blockchain_data_needed') {
           try {
-            await renderOnChain(metadata)
+            await renderOnChain(metadata, tokenId)
           } catch (error) {
             console.error('error rendering on chain', error)
             setRenderState('ERROR')

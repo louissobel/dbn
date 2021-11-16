@@ -15,7 +15,7 @@ function LoadingText() {
   }, [dotCount])
 
   return (
-    <span class="dbn-loading-text">
+    <span className="dbn-loading-text">
       Loading.{".".repeat(dotCount)}
     </span>
   )

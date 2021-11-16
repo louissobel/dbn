@@ -269,11 +269,16 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
         return addr;
     }
 
-    function _render(address addr) internal view returns (bytes memory) {
+    function _render(address addr) internal view returns (uint256, bytes memory) {
+        uint256 startGas = gasleft();
         (bool success, bytes memory result) = addr.staticcall("");
+
+        // this overestimates _some_, but that's fine
+        uint256 endGas = gasleft();
+
         require(success, "failure render call");
 
-        return result;
+        return ((startGas - endGas), result);
     }
 
     struct Metadata { 
@@ -309,7 +314,7 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         address addr = _addressForToken(tokenId);
-        bytes memory bitmapData = _render(addr);
+        (, bytes memory bitmapData) = _render(addr);
 
         Metadata memory metadata = _getMetadata(tokenId, addr);
         return _generateURI(bitmapData, metadata);
@@ -324,6 +329,11 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
     function tokenCode(uint256 tokenId) public view returns (bytes memory) {
         address addr = _addressForToken(tokenId);
         return addr.code;
+    }
+
+    function renderToken(uint256 tokenId) public view returns (uint256, bytes memory) {
+        address addr = _addressForToken(tokenId);
+        return _render(addr);
     }
 
     function allTokens() public view returns (uint256[] memory) {
