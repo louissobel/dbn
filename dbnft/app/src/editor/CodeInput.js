@@ -48,9 +48,7 @@ const baseExtensions = [
   autocompletion(),
   rectangularSelection(),
 
-  // TODO: add multiple highlights?
   dbnftHighlightStyle,
-
   dbnLanguage,
 ]
 const editableExtensions = baseExtensions.concat([

@@ -11,8 +11,6 @@ import {lineNumbers} from "@codemirror/gutter"
 import {dbnLanguage, dbnftHighlightStyle} from '../lang-dbn/dbn'
 
 function SampleCodeAndImage({ className, code, noheaders, onAssemblyPresent, onBytecodePresent}) {
-  //TODO: handle errors in here
-
   const [imageData, setImageData] = useState(null)
 
   useEffect(() => {
@@ -32,7 +30,7 @@ function SampleCodeAndImage({ className, code, noheaders, onAssemblyPresent, onB
       }
     })
     .then((r) => setImageData(r.imageData))
-    .catch(error => console.error('', error))
+    .catch(error => console.error('error rendering sample: ', error))
   }, [code, onAssemblyPresent, onBytecodePresent]);
   
 
