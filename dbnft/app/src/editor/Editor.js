@@ -209,7 +209,7 @@ class Editor extends React.Component {
     this.renderCancelTrigger()
   }
 
-  onCodeChange(code) {
+  onCodeChange = (code) => {
     this.saveCodeToSessionStorageIfEnabled(code)
   }
 
@@ -354,7 +354,7 @@ class Editor extends React.Component {
               initialCode={this.initialCode}
               disabled={this.state.renderState === 'RENDERING'}
               onRun={this.dbnRender.bind(this)}
-              onChange={this.onCodeChange.bind(this)}
+              onChange={this.onCodeChange}
               errorLines={this.errorLines()}
             />
           </Col>

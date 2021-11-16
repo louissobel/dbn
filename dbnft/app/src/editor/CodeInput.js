@@ -88,9 +88,7 @@ function LinkCopiedNotification({copiedAt}) {
     <div className={"code-input-share-status " + (show ? '' : 'hidden')}>
       Link copied
     </div>
-  )    
-  
-
+  )
 }
 
 export default function CodeInput(props) {
@@ -104,7 +102,7 @@ export default function CodeInput(props) {
   const [shareLinkLastCopiedAt, setShareLinkLastCopiedAt] = useState(null)
 
   const [editedAfterRun, setEditedAfterRun] = useState(false)
-  const lastRunViaKeyboard = useRef(false)
+  const refocusAfterRun = useRef(false)
 
   const onChangeCallback = props.onChange;
   useEffect(() => {
@@ -124,13 +122,13 @@ export default function CodeInput(props) {
       return;
     }
 
-    lastRunViaKeyboard.current = true;
+    refocusAfterRun.current = true;
     props.onRun(code);
     return true;
   }
 
   function onRunPress() {
-    lastRunViaKeyboard.current = false;
+    refocusAfterRun.current = false;
     props.onRun(code)
   }
 
@@ -183,7 +181,15 @@ export default function CodeInput(props) {
     file.text()
     .then((code) => {
       setCode(code);
-      lastRunViaKeyboard.current = false;
+
+      if (editor.current) {
+        const currentValue = editor.current.view.state.doc.toString();
+        editor.current.view.dispatch({
+          changes: { from: 0, to: currentValue.length, insert: code },
+        });
+      }
+
+      refocusAfterRun.current = true;
       props.onRun(code)
     })
 
@@ -192,7 +198,7 @@ export default function CodeInput(props) {
 
   useEffect(() => {
     if (!props.disabled) {
-      if (lastRunViaKeyboard.current) {
+      if (refocusAfterRun.current) {
         if (editor.current) {
           editor.current.view.focus()
         }
