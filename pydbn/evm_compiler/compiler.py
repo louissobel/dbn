@@ -190,6 +190,9 @@ class DBNEVMCompiler(DBNAstVisitor):
             'Call': builtins.Call,
             'call': builtins.Call,
 
+            'TokenID': builtins.TokenID,
+            'tokenID': builtins.TokenID,
+
             'Log': builtins.Log,
             'DEBUGGER': debugger,
         }
@@ -384,6 +387,11 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.emit_raw("@metadataDescription [!%s]" % metadata.description)
         else:
             self.emit_raw("@metadataDescription []")
+
+
+        # leave two bytes for the token ID
+        # (deploy contract will inject it directly)
+        self.emit_raw("@metadataTokenID [!0x0000] ")
 
         # ipfs hash
         if metadata.ipfs_hash:

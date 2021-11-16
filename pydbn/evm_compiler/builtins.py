@@ -108,6 +108,15 @@ def ChainID(compiler, node):
     compiler.update_stack(1, 'Chain ID left on stack')
 
 
+@builtin('number', 0)
+def TokenID(compiler, node):
+    # clear out 0x80, codecopy it in, then mload
+    compiler.emit_raw('MSTORE(0x80, 0)')
+    compiler.emit_raw('CODECOPY(0x9E, $metadataTokenID, 2)')
+    compiler.emit_raw('MLOAD(0x80)')
+    compiler.update_stack(1, 'Token ID left on stack')
+
+
 @builtin('number', 1)
 def Balance(compiler, node):
     compiler.visit(node.args[0])
