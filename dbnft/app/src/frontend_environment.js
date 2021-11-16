@@ -41,7 +41,7 @@ const configForEnvironment = {
 
 	testnet: {
 		compileEndpoint: 'https://1ard2p8bka.execute-api.us-east-1.amazonaws.com/evm_compile',
-		coordinatorContractAddress: "0xF58eCE1a86A64B12CecAeb0A8EcfF600B8158e5f",
+		coordinatorContractAddress: "0xb9566c09b4CE32E9297f8A2601FB30ea58EcDeb3",
 		expectedChainId: 4,
 		mintPrice: 10000000000000000, // 0.01 ETH
 		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',

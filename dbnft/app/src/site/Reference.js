@@ -582,7 +582,15 @@ function Reference() {
 
 
               <h5>Log</h5>
-              <p></p>
+              <p>
+                Debugging DBN programs can be challenging, as there are limited options
+                for output other than lines and dots.
+                To make things a little easier, there is a <InlineCode>Log</InlineCode> command
+                that expects one parameter. Each time the command runs, the value of that
+                parameter will be written to the browser devtools javascript console.
+                Under the hood, this does actually use an EVM "Log" opcode that is caught
+                and transformed into a log to the console.
+              </p>
 
             </ReferenceSection>
 
