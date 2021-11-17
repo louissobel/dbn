@@ -9,12 +9,13 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./ERC721Allowlistable.sol";
 import "./DBNERC721Enumerable.sol"; 
+import "./OpenSeaTradable.sol"; 
 
 import "./Drawing.sol";
 import "./Token.sol";
 import "./Serialize.sol";
 
-contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable {
+contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable, OpenSeaTradable {
     using Counters for Counters.Counter;
     using Strings for uint256;
 
@@ -30,7 +31,7 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable {
     Counters.Counter private _tokenIds;
     mapping (uint256 => address) private _drawingAddressForTokenId;
 
-    constructor(string memory baseExternalURI) ERC721("Design By Numbers NFT", "DBNFT") {
+    constructor(string memory baseExternalURI, address openSeaProxyRegistry) ERC721("Design By Numbers NFT", "DBNFT") {
         _baseExternalURI = baseExternalURI;
         _contractMode = ContractMode.AllowlistOnly;
 
@@ -51,6 +52,9 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable {
 
         // initial mint price
         _mintPrice = 10000000 gwei; // 0.01 eth
+
+        // set up the opensea proxy registry
+        _setOpenSeaRegistry(openSeaProxyRegistry);
     }
 
     /*********
@@ -128,6 +132,15 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable {
         super._beforeTokenTransfer(from, to, tokenId);
     }
 
+    // Override isApprovedForAll to include check for operator being
+    // operator is owner's OpenSea proxy (for gasless trading)
+    function isApprovedForAll(
+        address owner,
+        address operator
+    ) public view override returns (bool) {
+        return super.isApprovedForAll(owner, operator) || _isOwnersOpenSeaProxy(owner, operator);
+    }
+
     /*********
      * Token Readers
      */
@@ -137,7 +150,7 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable {
 
         return addr;
     }
-    
+
     function _externalURL(uint256 tokenId) internal view returns (string memory) {
         return string(abi.encodePacked(_baseExternalURI, tokenId.toString()));
     }
