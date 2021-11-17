@@ -60,8 +60,8 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable {
         return _contractMode;
     }
 
-    function setContractOpen() public onlyOwner {
-        _contractMode = ContractMode.Open;
+    function setContractMode(ContractMode mode) public onlyOwner {
+        _contractMode = mode;
     }
 
     function setMintPrice(uint256 price) public onlyOwner {
@@ -82,23 +82,24 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable {
     /*********
      * Minting
      */
-    function mint(bytes memory bytecode) payable public returns (address) {
+    function mint(bytes memory bytecode) payable public {
         require(_contractMode == ContractMode.Open, "NOT_OPEN");
-        require(msg.value == _mintPrice, "WRONG_PRICE");
+        require(msg.value >= _mintPrice, "WRONG_PRICE");
 
         uint256 tokenId = _tokenIds.current();
         require(tokenId < 10201, 'SOLD_OUT');
-
         _tokenIds.increment();
 
-        return _mintAtTokenId(bytecode, tokenId);
+        _mintAtTokenId(bytecode, tokenId);
     }
 
     function mintTokenId(
         bytes memory bytecode,
         uint256 tokenId
-    ) public onlyAllowlistedFor(tokenId) returns (address) {
-        return _mintAtTokenId(bytecode, tokenId);
+    ) public onlyAllowlistedFor(tokenId) {
+        require(tokenId < 10201, 'SOLD_OUT');
+
+        _mintAtTokenId(bytecode, tokenId);
     }
 
     // private one they both call into
@@ -106,31 +107,7 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable {
         bytes memory bytecode,
         uint256 tokenId
     ) internal returns (address) {
-        // Inject the token id into the bytecode
-        // The end of the bytecode is [2 bytes token id][32 bytes ipfs hash]
-        // (and we get the tokenID in in bigendian)
-        bytecode[bytecode.length - 32 - 2] = bytes1(uint8((tokenId & 0xFF00) >> 8));
-        bytecode[bytecode.length - 32 - 1] = bytes1(uint8(tokenId & 0xFF));
-
-        address addr;
-        assembly {
-            addr := create(0, add(bytecode, 0x20), mload(bytecode))
-        }
-        /*
-        if addr is zero, a few things could have happened:
-            a) out-of-gas in the create (which gets forwarded [current*(63/64) - 32000])
-            b) other exceptional halt (call stack too deep, invalid jump, etc)
-            c) revert from the create
-
-        in a): we should drain all existing gas and effectively bubble up the out of gas.
-               this makes sure that gas estimators do the right thing
-        in b): this is a nasty situation, so let's just drain away our gas anyway (true assert)
-        in c): pretty much same as b) — this is a bug in the passed bytecode, and we should fail.
-               that said, we _could_ check the μo return buffer for REVERT data, but no need for now. 
-
-        So no matter what, we want to "assert" the addr is not zero
-        */
-        assert(addr != address(0));
+        address addr = Drawing.deploy(bytecode, tokenId);
 
         _drawingAddressForTokenId[tokenId] = addr;
 

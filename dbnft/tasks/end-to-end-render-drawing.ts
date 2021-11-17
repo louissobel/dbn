@@ -31,7 +31,7 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
     console.log("Coordinator deployed to: ", coordinator.address, `(Gas used: ${coordinatorDeployReceipt.gasUsed.toString()})`);
 
     // Open up minting
-    await coordinator.setContractOpen()
+    await coordinator.setContractMode(1) // open
     console.log("Opened up minting")
 
     const input = fs.readFileSync(file);
@@ -106,18 +106,22 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
       console.log(` -> Writing raw .image datauri to ${rawFilename}`)
       fs.writeFileSync(rawFilename, parsed.image)
 
-      const [contentType, base64data] = parsed.image.split(',')
+      // just split at first comma
+      const parts = parsed.image.split(',')
+      const contentType = parts.shift();
+      const data = parts.join(',')
 
       if (contentType === 'data:image/bmp;base64') {
         const filename = output + '.bmp'
         console.log(` -> Writing image (BMP from image) to ${filename}`)
-        fs.writeFileSync(filename, Buffer.from(base64data, 'base64'))
+        fs.writeFileSync(filename, Buffer.from(data, 'base64'))
 
-      } else {
+      } else if (contentType === 'data:image/svg+xml') {
         const filename = output + '.svg'
         console.log(` -> Writing image (SVG from image) to ${filename}`)
-        fs.writeFileSync(filename, Buffer.from(base64data, 'base64'))
-
+        fs.writeFileSync(filename, data)
+      } else {
+        throw new Error('unknown content type')
       }
     } else {
       throw new Error('no image or image_data!')

@@ -13,6 +13,6 @@ task("open-contract", "Set the contract state to open")
     const DBNCoordinator = await hre.ethers.getContractFactory("DBNCoordinator");
     const coordinator = DBNCoordinator.attach(params.coordinator)
 
-    await coordinator.setContractOpen()
+    await coordinator.setContractMode(1)
     console.log("Contract is now open!")
   });
