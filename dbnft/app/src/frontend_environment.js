@@ -5,7 +5,7 @@
 const configForEnvironment = {
 	localhost: {
 		compileEndpoint: '/evm_compile',
-		coordinatorContractAddress: '0x9366Fc343CB8432aB4ec8E82178568CBF93B2e09',
+		coordinatorContractAddress: '0xb40D969040Fc7684a2a1E13D75fB8B602a93420B',
 		expectedChainId: 1337,
 		mintPrice: 10000000000000000, // 0.01 ETH
 		ethNetwork: 'http://localhost:8545',
@@ -24,11 +24,25 @@ const configForEnvironment = {
 	},
 
 	localhost_rinkeby: {
-		compileEndpoint: '/evm_compile',
-		coordinatorContractAddress: process.env.REACT_APP_DBN_COORDINATOR_CONTRACT_ADDRESS_RINKEBY,
+		coordinatorContractAddress: '0xc3D8F3cFE4628feBa2208fB1CE2d479a3A81037f',
 		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',
-		verbose: true,
 		testnetBanner: true,
+		helperAddress: '0x5AA6e8F2962AB0A9B99f52F366eACaA8382721f5',
+
+		compileEndpoint: '/evm_compile',
+		expectedChainId: 4,
+		mintPrice: 10000000000000000, // 0.01 ETH
+		verbose: true,
+
+		useHelpers: true,
+		interpreterChainId: 4,
+
+		externalBase: 'http://localhost:3000/dbnft/',
+		openSeaBase: 'https://testnets.opensea.io',
+		etherscanBase: 'https://rinkeby.etherscan.io',
+
+		ipfsGateway: 'http://localhost:8080/ipfs/',
+		ipfsClient: 'local',
 	},
 
 	// should this be testnet?

@@ -33,7 +33,33 @@ task("get-token-uri", "Fetches / pretty prints token URI")
     console.log(output)
 
     if (params.saveImageDataTo) {
-      console.log("writing raw image_data to", params.saveImageDataTo)
-      fs.writeFileSync(params.saveImageDataTo, parsed.image_data)
+      // OK, find the image data
+      // (this is annoyingly duplicated with end-to-end...)
+      if (parsed.image_data) {
+        const filename = params.saveImageDataTo + '.svg';
+        console.log(` -> Writing image (raw SVG from image_data) to ${filename}`)
+        fs.writeFileSync(filename, parsed.image_data)
+
+      } else if (parsed.image) {
+        const rawFilename = params.saveImageDataTo + '.datauri'
+        console.log(` -> Writing raw .image datauri to ${rawFilename}`)
+        fs.writeFileSync(rawFilename, parsed.image)
+
+        const [contentType, base64data] = parsed.image.split(',')
+
+        if (contentType === 'data:image/bmp;base64') {
+          const filename = params.saveImageDataTo + '.bmp'
+          console.log(` -> Writing image (BMP from image) to ${filename}`)
+          fs.writeFileSync(filename, Buffer.from(base64data, 'base64'))
+
+        } else if (contentType === 'data:image/svg;base64') {
+          const filename = params.saveImageDataTo + '.svg'
+          console.log(` -> Writing image (SVG from image) to ${filename}`)
+          fs.writeFileSync(filename, Buffer.from(base64data, 'base64'))
+
+        }
+      } else {
+        throw new Error('no image or image_data!')
+      }
     }
   });

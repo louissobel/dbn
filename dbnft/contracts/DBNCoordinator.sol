@@ -271,15 +271,17 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
 
     function _render(address addr) internal view returns (uint256, bytes memory) {
         uint bitmapLength = 10962;
+        uint headerLength = 40 + 14 + 404;
+        uint pixelDataLength = (10962 - headerLength);
+
         bytes memory result = new bytes(bitmapLength);
+        bytes memory input = hex"BD";
 
         uint256 startGas = gasleft();
+
         BitmapHeader.writeTo(result);
+        uint resultOffset = 0x20 + headerLength; // after the header (and 0x20 for the dynamic byte length)
 
-        uint resultOffset = 0x20 + 40 + 14 + 404; // after the header (and 0x20 for the dynamic byte length)
-        uint returnLength = 10504; // only allow up to a full bitmap back
-
-        bytes memory input = hex"BD";
         bool success;
         assembly {
             success := staticcall(
@@ -288,7 +290,7 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
                 add(input, 0x20),
                 1,
                 add(result, resultOffset),
-                returnLength
+                pixelDataLength // only allow up to a full bitmap back
             )
         }
 
@@ -382,18 +384,49 @@ contract DBNCoordinator is ERC721, IERC721Enumerable, Ownable {
     }
 
 
+    // Ok, so there's a few ways we could embed the image:
+    // - raw data URL base64-encoded bitmap in `image`
+    // - bitmap embedded in SVG in `image_data`
+    // - SVG data URL in `image` (base64 encoded)
+    function _base64BMP(bytes memory bitmapData) internal pure returns (bytes memory) {
+        return abi.encodePacked(
+            "data:image/bmp;base64,",
+            Base64.encode(bitmapData)
+        );
+    }
+
+    function _imageEmbeddedInSVG(bytes memory bitmapData) internal pure returns (bytes memory) {
+        return abi.encodePacked(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='303' height='303'><image width='303' height='303' style='image-rendering: pixelated' href='",
+            _base64BMP(bitmapData),
+            "'/></svg>"
+        );
+    }
+
+    function _base64SVG(bytes memory bitmapData) internal pure returns (bytes memory) {
+        return abi.encodePacked(
+            "data:image/svg+xml;base64,",
+            Base64.encode(_imageEmbeddedInSVG(bitmapData))
+        );
+    }
+
+    function _svgDataURI(bytes memory bitmapData) internal pure returns (bytes memory) {
+        return abi.encodePacked(
+            "data:image/svg+xml,",
+            _imageEmbeddedInSVG(bitmapData)
+        );
+    }
+
     function _generateURI(bytes memory bitmapData, Metadata memory metadata) internal pure returns (string memory) {
+        string memory imageKey = "image";
+        bytes memory imageData = _svgDataURI(bitmapData);
+
         string memory fragment = _metadataJSONFragmentWithoutImage(metadata);
         return string(abi.encodePacked(
             'data:application/json,',
             fragment,
             // image data :)
-            '","image_data":"',
-                "<svg xmlns='http://www.w3.org/2000/svg' width='303' height='303'><image width='303' height='303' style='image-rendering: pixelated' href='"
-                "data:image/bmp;base64,",
-                string(Base64.encode(bitmapData)),
-                "'/></svg>"
-            '"}'
+            '","', imageKey, '":"', imageData, '"}'
         ));
     }
 

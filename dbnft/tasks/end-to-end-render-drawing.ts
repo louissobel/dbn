@@ -94,10 +94,35 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
       colors: true,
     }))
 
-    // const imageData = Buffer.from(parsed.image.split('data:image/bmp;base64,')[1], 'base64')
 
-    console.log(` -> Writing image (SVG) to ${output}`)
-    fs.writeFileSync(output, parsed.image_data)
+    // OK, find the image data
+    if (parsed.image_data) {
+      const filename = output + '.svg';
+      console.log(` -> Writing image (raw SVG from image_data) to ${filename}`)
+      fs.writeFileSync(filename, parsed.image_data)
+
+    } else if (parsed.image) {
+      const rawFilename = output + '.datauri'
+      console.log(` -> Writing raw .image datauri to ${rawFilename}`)
+      fs.writeFileSync(rawFilename, parsed.image)
+
+      const [contentType, base64data] = parsed.image.split(',')
+
+      if (contentType === 'data:image/bmp;base64') {
+        const filename = output + '.bmp'
+        console.log(` -> Writing image (BMP from image) to ${filename}`)
+        fs.writeFileSync(filename, Buffer.from(base64data, 'base64'))
+
+      } else {
+        const filename = output + '.svg'
+        console.log(` -> Writing image (SVG from image) to ${filename}`)
+        fs.writeFileSync(filename, Buffer.from(base64data, 'base64'))
+
+      }
+    } else {
+      throw new Error('no image or image_data!')
+    }
+
   });
 
 
