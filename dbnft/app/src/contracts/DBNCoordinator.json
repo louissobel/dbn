@@ -671,7 +671,7 @@
             "type": "address"
           }
         ],
-        "internalType": "struct DBNCoordinator.AllowlistUpdate[]",
+        "internalType": "struct ERC721Allowlistable.AllowlistUpdate[]",
         "name": "input",
         "type": "tuple[]"
       }
