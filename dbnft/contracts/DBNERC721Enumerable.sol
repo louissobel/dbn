@@ -49,9 +49,11 @@ abstract contract DBNERC721Enumerable is ERC721, IERC721Enumerable {
         return _allTokens[index];
     }
 
+    // Custom addition to facilitate easily showing all the tokens
     function allTokens() public view returns (uint256[] memory) {
         return _allTokens;
     }
+
 
     /**
      * @dev Hook that is called before any token transfer. This includes minting

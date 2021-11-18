@@ -130,13 +130,13 @@ function Item({ id, present }) {
         }
 
        {(renderState === 'LOADING_BYTECODE' || renderState === 'INTERPRETING') &&
-         <div class="dbn-nft-gallery-item-status dbn-nft-gallery-item-loader">
+         <div className="dbn-nft-gallery-item-status dbn-nft-gallery-item-loader">
            <Icon icon="mdi:ethereum" inline={true} />
          </div>
         }
 
        {(renderState === 'ERROR') &&
-         <div class="dbn-nft-gallery-item-status dbn-nft-gallery-item-error">
+         <div className="dbn-nft-gallery-item-status dbn-nft-gallery-item-error">
            <Icon icon="oi:warning" inline={true} />
          </div>
         }
@@ -174,7 +174,7 @@ function Gallery() {
 
   function makeList() {
     return (
-      <div class="dbn-nft-gallery-items-holder">
+      <div className="dbn-nft-gallery-items-holder">
         <WindowScroller>
           {({ height, isScrolling, onChildScroll, scrollTop }) => (
             <AutoSizer disableHeight>

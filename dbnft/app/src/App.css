@@ -471,6 +471,16 @@ body {
   overflow:  scroll;
 }
 
+textarea.dbn-nft-mint-ticket-entry {
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+
+p.dbn-nft-mint-ticket-error {
+  color: var(--bs-red);
+  margin-bottom: 0px;
+}
+
 .dbn-nft-minter-transaction-hash {
   font-style: italic;
   font-size: 0.7rem;

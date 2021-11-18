@@ -5,7 +5,6 @@ import { useWeb3React } from '@web3-react/core'
 import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
-import Form from 'react-bootstrap/Form';
 import { Icon } from '@iconify/react';
 
 
@@ -13,18 +12,19 @@ import frontendEnvironment from '../frontend_environment'
 import ImageViewer from '../shared/ImageViewer'
 import TokenMetadataTable from '../shared/TokenMetadataTable'
 import DBNCoordinator from '../contracts/DBNCoordinator'
-
-import {prependDeployHeader, dbnCoordinator} from '../eth_tools'
+import {prependDeployHeader, dbnCoordinator, modeStringForContractMode} from '../eth_tools'
 import {ipfsClient} from '../ipfs_tools'
 
-const ALLOWLIST_FINISHED = frontendEnvironment.config.allowlistFinished;
+import Allowlist, {Ticket} from '../allowlist'
 
 function Minter(props) {
   const web3React = useWeb3React()
 
   const [contractMode, setContractMode] = useState(null)
   const [mintableTokenIds, setMintableTokenIds] = useState(null)
-  const [selectedTokenId, setSelectedTokenId] = useState(null)
+  const [allowlistTicketText, setAllowlistTicketText] = useState("")
+  const [allowlistTicketError, setAllowlistTicketError] = useState(null)
+  const [allowlistTicket, setAllowlistTicket] = useState(null)
 
   const [isMinting, setIsMinting] = useState(false)
   const mintEventEmitter = useRef(null)
@@ -85,21 +85,12 @@ function Minter(props) {
 
 
   function getContractMode() {
-    if (ALLOWLIST_FINISHED) {
+    if (Allowlist.FINISHED) {
       setContractMode('Open')
     } else {
       dbnCoordinator.methods.getContractMode().call()
       .then((mode) => {
-        switch (mode) {
-          case '0':
-            setContractMode('AllowlistOnly')
-            break;
-          case '1':
-            setContractMode('Open')
-            break;
-          default:
-            throw new Error('unknown contract mode: ' + mode)
-        }
+        setContractMode(modeStringForContractMode(mode))
       })
       .catch((e) => {
         console.error('error setting up mint: getting contract mode:', e)
@@ -113,10 +104,10 @@ function Minter(props) {
 
   useEffect(() => {
     if (web3React.account && contractMode) {
-      if (ALLOWLIST_FINISHED) {
+      if (Allowlist.FINISHED) {
         setMintableTokenIds([])
       } else {
-        dbnCoordinator.methods.getAllowedTokenIds(web3React.account).call()
+        Allowlist.getMintableTokenIds(web3React.account)
         .then((allowed) => {
           setMintableTokenIds(allowed)
         })
@@ -147,7 +138,7 @@ function Minter(props) {
   }
 
   // if we justed minted a token, remove it from the "mintable" allowlist
-  function maybeClearMintableTokenId(mintedTokenId) {
+  function clearMintableTokenId(mintedTokenId) {
     let newTokenIds = []
     for (let id of mintableTokenIds) {
       if (id !== mintedTokenId) {
@@ -183,9 +174,14 @@ function Minter(props) {
 
     let value = frontendEnvironment.config.mintPrice;
     let deployMethod = metamaskDBNCoordinator.methods.mint(deployBytecode);
-    if (selectedTokenId !== null) {
+    if (allowlistTicket !== null) {
       value = 0; // allowlisted minting is free
-      deployMethod = metamaskDBNCoordinator.methods.mintTokenId(deployBytecode, selectedTokenId);
+      deployMethod = metamaskDBNCoordinator.methods.mintTokenId(
+        deployBytecode,
+        allowlistTicket.tokenId,
+        allowlistTicket.ticketId,
+        allowlistTicket.signature,
+      );
     }
 
     // TODO: how do we want to think about error handling here?
@@ -206,7 +202,9 @@ function Minter(props) {
         mintEventEmitter.current = null;
 
         setErrorMessage(null)
-        maybeClearMintableTokenId(selectedTokenId)
+        if (allowlistTicket) {
+          clearMintableTokenId(allowlistTicket.tokenId)
+        }
         setMintResult(receipt)
       })
       .catch((error) => {
@@ -223,7 +221,9 @@ function Minter(props) {
   const handleModalClose = () => setShowModal(false);
   const handleModalShow = () => {
     setShowModal(true);
-    setSelectedTokenId(null);
+    setAllowlistTicket(null);
+    setAllowlistTicketText("");
+    setAllowlistTicketError(null);
     setMintResult(null);
     setMintTransactionHash(null)
     setErrorMessage(null);
@@ -255,11 +255,11 @@ function Minter(props) {
   }
 
   function renderFooterButtons() {
-    const mintDisabled = isMinting || (contractMode === 'AllowlistOnly' && !selectedTokenId)
+    const mintDisabled = isMinting || (contractMode === 'AllowlistOnly' && !allowlistTicket)
 
     let mintText = "Mint"
-    if (selectedTokenId) {
-      mintText += ` #${selectedTokenId}`
+    if (allowlistTicket) {
+      mintText += ` #${allowlistTicket.tokenId}`
     } else {
       // if the user _has_ the choice, make it clear this would be arbitrary
       if (contractMode === 'Open' && mintableTokenIds !== null && mintableTokenIds.length > 0) {
@@ -295,12 +295,33 @@ function Minter(props) {
     )
   }
 
-  function toggleSelectedTokenId(id) {
-    if (selectedTokenId !== id) {
-      setSelectedTokenId(id)
-    } else {
-      setSelectedTokenId(null)
+  async function parseAllowlistTicket(value) {
+    if (value === "") {
+      setAllowlistTicketError(null)
+      setAllowlistTicket(null)
+      return
     }
+
+    try {
+      var ticket = Ticket.fromString(value.trim())
+      await ticket.verify(web3React.library, {
+        signer: frontendEnvironment.config.coordinatorOwner,
+        coordinator: frontendEnvironment.config.coordinatorContractAddress,
+        minter: web3React.account,
+      })
+
+      // Final check that the ticket is actually for one of our mintable token ids
+      if (!mintableTokenIds.includes(ticket.tokenId)) {
+        throw new Error("Ticket is for a token id not in your allowlist: " + ticket.tokenId)
+      }
+    } catch (e) {
+      setAllowlistTicket(null)
+      setAllowlistTicketError(e)
+      return
+    }
+    setAllowlistTicketError(null)
+    setAllowlistTicket(ticket)
+    console.log(ticket)    
   }
 
   function tokenIdSelector() {
@@ -312,31 +333,37 @@ function Minter(props) {
       return null
     }
 
-    let tokenIdRadios = mintableTokenIds.map((id) => {
-      return <Form.Check 
-        key={`token-id-${id}'`}
-        type='radio'
-        id={`token-id-${id}`}
-        name={`token-id`}
-        label={`#${id}`}
-        checked={selectedTokenId === id}
-        disabled={isMinting}
-        onClick={() => toggleSelectedTokenId(id)}
-        onChange={() => {}} // silence react warning
-      />
-    })
+    const plural = (mintableTokenIds.length > 1)
 
     return (
       <div className="dbn-mint-modal-tokenid-selector mt-3">
-        <h6>Choose from your allowlisted token ids:</h6>
+        <h6>You're allowlisted for the following token {plural ? "ids" : "id"}:</h6>
+        <p>
+          {mintableTokenIds.map((t) => "#" + t).join(", ")}
+        </p>
 
+        <h6>Enter provided allowlist ticket to use {plural ? "one" : "it"}:</h6>
         {contractMode === 'Open' &&
           <p>
-            <em>Don't select any of them to mint an arbitrary token id</em>
+            <em>(leave blank to mint an arbitrary token)</em>
           </p>
         }
 
-        {tokenIdRadios}
+        <textarea
+          className="form-control dbn-nft-mint-ticket-entry"
+          rows="6"
+          onChange={(e) => {
+            setAllowlistTicketText(e.target.value)
+            parseAllowlistTicket(e.target.value)
+          }}
+          value={allowlistTicketText}
+        />
+        {allowlistTicketError &&
+          <p className="dbn-nft-mint-ticket-error">
+            {allowlistTicketError.message}
+          </p>
+        }
+
       </div>
     )
   }

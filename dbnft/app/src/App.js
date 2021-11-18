@@ -13,6 +13,7 @@ import Nav from 'react-bootstrap/Nav';
 import Container from 'react-bootstrap/Container';
 
 import frontendEnvironment from './frontend_environment'
+import Admin from './Admin'
 import About from './site/About'
 import Editor from './editor/Editor'
 import Viewer from './gallery/Viewer'
@@ -115,6 +116,12 @@ function App() {
             <Route path='/reference'>
               <DBNFTNavbar active="reference" />
               <Reference />
+            </Route>
+
+            <Route path='/admin'>
+              <DBNFTNavbar active="" />
+              <WrongEthereumNetworkWarning />
+              <Admin />
             </Route>
 
             <Route path="*">

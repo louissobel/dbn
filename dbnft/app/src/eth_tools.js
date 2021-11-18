@@ -40,12 +40,24 @@ const prependDeployHeader = function(bytecode) {
 
 const eth = new Eth(frontendEnvironment.config.ethNetwork)
 
+const modeStringForContractMode = function(mode) {
+  switch (mode) {
+    case '0':
+      return 'AllowlistOnly'
+    case '1':
+      return 'Open'
+    default:
+      throw new Error('unknown contract mode: ' + mode)
+  }
+}
+
 const dbnCoordinator = new eth.Contract(
   DBNCoordinator,
   frontendEnvironment.config.coordinatorContractAddress,
 )
 
 export {
+  modeStringForContractMode,
   prependDeployHeader,
   dbnCoordinator,
 }

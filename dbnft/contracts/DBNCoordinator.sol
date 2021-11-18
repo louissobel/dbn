@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import "./ERC721Allowlistable.sol";
 import "./DBNERC721Enumerable.sol"; 
 import "./OpenSeaTradable.sol"; 
 import "./OwnerSignedTicketRestrictable.sol"; 
@@ -17,7 +16,7 @@ import "./Drawing.sol";
 import "./Token.sol";
 import "./Serialize.sol";
 
-contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable, OpenSeaTradable, OwnerSignedTicketRestrictable {
+contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerSignedTicketRestrictable {
     using Counters for Counters.Counter;
     using Strings for uint256;
 
@@ -29,6 +28,14 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable, Op
     uint256 private _mintPrice;
     string private _baseExternalURI;
 
+    // There's two ~types of tokenId:
+    //  - 101 "allowlisted ones" <= 100
+    //  - And "Open" ones > 100 (<= 10200)
+    // Minting of the allowlisted ones is through mintTokenId
+    // Minting of the Open ones is through plain mint
+    uint256 private lastAllowlistedTokenId = 100;
+    uint256 private lastTokenId = 10200;
+
     // Minting
     Counters.Counter private _tokenIds;
     mapping (uint256 => address) private _drawingAddressForTokenId;
@@ -37,20 +44,8 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable, Op
         _baseExternalURI = baseExternalURI;
         _contractMode = ContractMode.AllowlistOnly;
 
-        // Initialize this...
-        _setAllowedMinter(0, _msgSender());
-        _setAllowedMinter(1, _msgSender());
-        _setAllowedMinter(2, _msgSender());
-        _setAllowedMinter(3, _msgSender());
-        _setAllowedMinter(4, _msgSender());
-        _setAllowedMinter(5, _msgSender());
-        _setAllowedMinter(6, _msgSender());
-        _setAllowedMinter(7, _msgSender());
-        _setAllowedMinter(8, _msgSender());
-        _setAllowedMinter(9, _msgSender());
-
-        // first open token id is 101
-        _tokenIds._value = 101;
+        // first open token id is lastAllowlistedTokenId + 1
+        _tokenIds._value = lastAllowlistedTokenId + 1;
 
         // initial mint price
         _mintPrice = 10000000 gwei; // 0.01 eth
@@ -79,12 +74,6 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable, Op
         to.transfer(address(this).balance);
     }
 
-    // This needs to be defined as an override to
-    // explicitly resolve the inheritence ¯\_(ツ)_/¯
-    function supportsInterface(bytes4 interfaceId) public view override(DBNERC721Enumerable, ERC721) returns (bool) {
-        return super.supportsInterface(interfaceId);
-    }
-
     /*********
      * Minting
      */
@@ -93,7 +82,7 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable, Op
         require(msg.value >= _mintPrice, "WRONG_PRICE");
 
         uint256 tokenId = _tokenIds.current();
-        require(tokenId < 10201, 'SOLD_OUT');
+        require(tokenId <= lastTokenId, 'SOLD_OUT');
         _tokenIds.increment();
 
         _mintAtTokenId(bytecode, tokenId);
@@ -101,9 +90,11 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable, Op
 
     function mintTokenId(
         bytes memory bytecode,
-        uint256 tokenId
-    ) public onlyAllowlistedFor(tokenId) {
-        require(tokenId < 10201, 'SOLD_OUT');
+        uint256 tokenId,
+        uint256 ticketId,
+        bytes memory signature
+    ) public onlyWithTicketFor(tokenId, ticketId, signature) {
+        require(tokenId <= lastAllowlistedTokenId, 'WRONG_TOKENID_RANGE');
 
         _mintAtTokenId(bytecode, tokenId);
     }
@@ -122,16 +113,6 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable, Op
 
         emit DrawingDeployed(tokenId, addr);
         return addr;
-    }
-
-    // This needs to be defined as an override to
-    // explicitly resolve the inheritence ¯\_(ツ)_/¯
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal override(DBNERC721Enumerable, ERC721Allowlistable) {
-        super._beforeTokenTransfer(from, to, tokenId);
     }
 
     // Override isApprovedForAll to include check for operator being
@@ -190,5 +171,26 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable, Op
     function renderToken(uint256 tokenId) public view returns (uint256, bytes memory) {
         address addr = _addressForToken(tokenId);
         return Drawing.render(addr);
+    }
+
+
+    function mintedAllowlistedTokens() public view returns (uint256[] memory) {
+        uint8 count = 0;
+        for (uint8 i = 0; i <= lastAllowlistedTokenId; i++) {
+            if (_exists(i)) {
+                count++;
+            }
+        }
+
+        uint256[] memory result = new uint256[](count);
+        count = 0;
+        for (uint8 i = 0; i <= lastAllowlistedTokenId; i++) {
+            if (_exists(i)) {
+                result[count] = i;
+                count++;
+            }
+        }
+
+        return result;
     }
 }

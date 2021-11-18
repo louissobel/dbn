@@ -12,22 +12,22 @@ abstract contract OwnerSignedTicketRestrictable is Ownable {
     */
     mapping (uint256 => bool) private _revokedTickets;
 
-    modifier onlyWithTicketFor(uint256 tokenId, uint256 nonce, bytes memory signature) {
-        checkTicket(msg.sender, tokenId, nonce, signature);
+    modifier onlyWithTicketFor(uint256 tokenId, uint256 ticketId, bytes memory signature) {
+        checkTicket(msg.sender, tokenId, ticketId, signature);
         _;
     }
 
     function checkTicket(
         address minter,
         uint256 tokenId,
-        uint256 nonce,
+        uint256 ticketId,
         bytes memory signature
     ) public view {
         bytes memory params = abi.encode(
             address(this),
             minter,
             tokenId,
-            nonce
+            ticketId
         );
         address addr = ECDSA.recover(
             ECDSA.toEthSignedMessageHash(keccak256(params)),
@@ -35,11 +35,11 @@ abstract contract OwnerSignedTicketRestrictable is Ownable {
         );
 
         require(addr == owner(), "BAD_SIGNATURE");
-        require(!_revokedTickets[nonce], "TICKET_REVOKED");
+        require(!_revokedTickets[ticketId], "TICKET_REVOKED");
     }
 
-    function revokeTicket(uint256 nonce) public onlyOwner {
-        _revokedTickets[nonce] = true;
+    function revokeTicket(uint256 ticketId) public onlyOwner {
+        _revokedTickets[ticketId] = true;
     }
 
 }
