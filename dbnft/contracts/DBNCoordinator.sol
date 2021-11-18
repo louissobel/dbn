@@ -6,16 +6,18 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import "./ERC721Allowlistable.sol";
 import "./DBNERC721Enumerable.sol"; 
 import "./OpenSeaTradable.sol"; 
+import "./OwnerSignedTicketRestrictable.sol"; 
 
 import "./Drawing.sol";
 import "./Token.sol";
 import "./Serialize.sol";
 
-contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable, OpenSeaTradable {
+contract DBNCoordinator is Ownable, DBNERC721Enumerable, ERC721Allowlistable, OpenSeaTradable, OwnerSignedTicketRestrictable {
     using Counters for Counters.Counter;
     using Strings for uint256;
 
