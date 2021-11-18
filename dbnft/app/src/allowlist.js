@@ -39,7 +39,19 @@ class Ticket {
 
   static async generate(web3, signer, opts) {
     const data = this.signingData(web3, opts)
-    const signature = await web3.eth.personal.sign(data, signer)
+    let signature = await web3.eth.personal.sign(data, signer)
+
+    // work around ledger passing bad v...
+    let everythingExceptLastByte = signature.slice(0, signature.length - 2)
+    let lastByte = signature.slice(signature.length - 2, signature.length)
+
+    // if it's zero or one add 27
+    if (lastByte === '00') {
+      lastByte = '1b'
+    } else if (lastByte === '01') {
+      lastByte = '1c'
+    }
+    signature = everythingExceptLastByte + lastByte;
 
     return new Ticket({
       tokenId: opts.tokenId,

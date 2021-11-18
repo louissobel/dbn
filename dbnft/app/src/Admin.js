@@ -135,7 +135,7 @@ function Opener({ onOpen }) {
       </Button>
 
       {error &&
-        <Alert variant="danger">
+        <Alert variant="danger" onClose={() => setError(null)} dismissible>
           {error.message}
         </Alert>
       }
@@ -144,11 +144,61 @@ function Opener({ onOpen }) {
   )
 }
 
+function Withdrawer({ onWithdraw }) {
+  const [withdrawing, setWithdrawing] = useState(false)
+  const [error, setError] = useState(null)
+
+  const web3React = useWeb3React()
+  const web3 = web3React.library;
+  const metamaskDBNCoordinator = new web3.eth.Contract(
+    DBNCoordinator,
+    frontendEnvironment.config.coordinatorContractAddress,
+  )
+
+  function doWithdraw() {
+    setWithdrawing(true)
+
+    metamaskDBNCoordinator.methods.withdraw().send({
+      from: web3React.account,
+    })
+    .then(() => {
+      onWithdraw()
+      setWithdrawing(false)
+    })
+    .catch((e) => {
+      setError(e)
+      setWithdrawing(false)
+    })
+  }
+
+  return (
+    <>
+      <Button
+        className="ms-3"
+        size="sm"
+        variant="success"
+        onClick={doWithdraw}
+        disabled={withdrawing}
+      >
+        Withdraw
+      </Button>
+      {error &&
+        <Alert variant="danger" onClose={() => setError(null)} dismissible>
+          {error.message}
+        </Alert>
+      }
+    </>
+  )
+}
+
 function Admin() {
   const [contractMode, setContractMode] = useState(null)
   const [totalSupply, setTotalSupply] = useState(null)
+  const [mintPrice, setMintPrice] = useState(null)
+  const [balance, setBalance] = useState(null)
 
   const web3React = useWeb3React()
+  const web3 = web3React.library;
 
   async function loadContractMode() {
     const mode = await dbnCoordinator.methods.getContractMode().call();
@@ -159,11 +209,22 @@ function Admin() {
     setTotalSupply(await dbnCoordinator.methods.totalSupply().call());
   }
 
+  async function loadMintPrice() {
+    setMintPrice(await dbnCoordinator.methods.getMintPrice().call())
+  }
+
+  async function loadBalance() {
+    setBalance(await web3.eth.getBalance(frontendEnvironment.config.coordinatorContractAddress))
+  }
 
   useEffect(() => {
-    loadContractMode()
-    loadTotalSupply()
-  }, [])
+    if (web3React.active) {
+      loadContractMode()
+      loadTotalSupply()
+      loadMintPrice()
+      loadBalance()
+    }
+  }, [web3React.active])
 
   function loadingIfNull(v) {
     if (v === null) {
@@ -171,6 +232,14 @@ function Admin() {
     } else {
       return v
     }
+  }
+
+  function maybeFormatWei(v) {
+    if (v === null) {
+      return null
+    }
+
+    return "Ξ" + web3.utils.fromWei(v)
   }
 
   function content() {
@@ -214,6 +283,19 @@ function Admin() {
             <tr>
               <th scope="row">Minted Tokens</th>
               <td><code>{loadingIfNull(totalSupply)}</code></td>
+            </tr>
+
+            <tr>
+              <th scope="row">Mint Price</th>
+              <td><code>{loadingIfNull(maybeFormatWei(mintPrice))}</code></td>
+            </tr>
+
+            <tr>
+              <th scope="row">Balance</th>
+              <td>
+                <code>{loadingIfNull(maybeFormatWei(balance))}</code>
+                <Withdrawer onWithdraw={() => setBalance('0')} />
+              </td>
             </tr>
           </tbody>
         </table>

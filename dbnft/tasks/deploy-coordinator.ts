@@ -7,9 +7,15 @@ const ethers = require('ethers')
 import { task } from "hardhat/config";
 
 task("deploy-coordinator", "Deploys the DBN coordinator")
-  .setAction(async ({ file, output }) => {
+  .addOptionalParam(
+    "owner",
+    "Address to set as owner. If not set will be the deployer",
+  )
+  .setAction(async ({ owner }) => {
     const hre = require("hardhat");
     await hre.run("compile");
+
+    const defaultOwner = (await hre.ethers.getSigners())[0].address
 
     var baseExternalURL;
     var openSeaProxyRegistry;
@@ -31,10 +37,16 @@ task("deploy-coordinator", "Deploys the DBN coordinator")
     }
 
     const DBNCoordinator = await hre.ethers.getContractFactory("DBNCoordinator");
-    const coordinator = await DBNCoordinator.deploy(baseExternalURL, openSeaProxyRegistry);
+    const coordinator = await DBNCoordinator.deploy(
+      owner || defaultOwner,
+      baseExternalURL,
+      openSeaProxyRegistry,
+    );
     await coordinator.deployed();
     const coordinatorDeployReceipt = await coordinator.deployTransaction.wait()
 
-    console.log("Coordinator deployed to: ", coordinator.address, `(Gas used: ${coordinatorDeployReceipt.gasUsed.toString()})`);
+    console.log("Coordinator deployed to: ", coordinator.address)
+    console.log("Owner set to: ", owner || defaultOwner)
+    console.log(`Gas used: ${coordinatorDeployReceipt.gasUsed.toString()}`);
     return coordinator.address
   });

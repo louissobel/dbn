@@ -40,7 +40,13 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerS
     Counters.Counter private _tokenIds;
     mapping (uint256 => address) private _drawingAddressForTokenId;
 
-    constructor(string memory baseExternalURI, address openSeaProxyRegistry) ERC721("Design By Numbers NFT", "DBNFT") {
+    constructor(
+        address owner,
+        string memory baseExternalURI,
+        address openSeaProxyRegistry
+    ) ERC721("Design By Numbers NFT", "DBNFT") {
+        transferOwnership(owner);
+
         _baseExternalURI = baseExternalURI;
         _contractMode = ContractMode.AllowlistOnly;
 
@@ -63,6 +69,10 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerS
 
     function setContractMode(ContractMode mode) public onlyOwner {
         _contractMode = mode;
+    }
+
+    function getMintPrice() public view returns (uint256) {
+        return _mintPrice;
     }
 
     function setMintPrice(uint256 price) public onlyOwner {
