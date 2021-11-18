@@ -332,7 +332,7 @@ function Minter(props) {
 
         {contractMode === 'Open' &&
           <p>
-            <em>Don't select any of them to mint at an arbitrary token id</em>
+            <em>Don't select any of them to mint an arbitrary token id</em>
           </p>
         }
 

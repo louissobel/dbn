@@ -5,7 +5,7 @@
 const configForEnvironment = {
 	localhost: {
 		compileEndpoint: '/evm_compile',
-		coordinatorContractAddress: '0x43d671bc68ac891DF4D8d356586CbC7cb9FF3729',
+		coordinatorContractAddress: '0xB80451635D64585424bd18daCC9116DadD77d44D',
 		expectedChainId: 1337,
 		mintPrice: 10000000000000000, // 0.01 ETH
 		ethNetwork: 'http://localhost:8545',

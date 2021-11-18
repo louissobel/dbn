@@ -537,8 +537,14 @@ body {
   color: rgba(0, 0, 0, .5);
 }
 
-.dbn-nft-gallery-item.present {
-  cursor: pointer;
+.dbn-nft-gallery-item-link {
+  height: 101px;
+  width:  101px;
+  z-index: 9;
+  display: inline-block;
+  position: absolute;
+  top: -1px;
+  left: -1px;
 }
 
 .dbn-nft-gallery-item.image-viewer-present {

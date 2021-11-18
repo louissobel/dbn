@@ -156,6 +156,7 @@ export default function CodeInput(props) {
   function onSharePress(e) {
     setShareLinkLastCopiedAt(Date.now())
     e.preventDefault()
+    e.stopPropagation()
     let el = document.createElement('input')
     document.body.appendChild(el)
     el.type = 'text'

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-import { useHistory } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Icon } from '@iconify/react'
 import { AutoSizer, List, WindowScroller } from 'react-virtualized'
 import Alert from 'react-bootstrap/Alert';
@@ -71,8 +71,6 @@ function Item({ id, present }) {
   const [renderState, setRenderState] = useState(null)
   const [imageData, setImageData] = useState(null)
 
-  const history = useHistory();
-
   useEffect(() => {
     if (!present) {
       return;
@@ -110,16 +108,10 @@ function Item({ id, present }) {
 
   }, [present, id])
 
-
-  function goToDetail() {
-    history.push("/dbnft/" + id)
-  }
-
   const showImageViewer = (renderState === 'INTERPRETING' || renderState === 'DONE' || renderState === 'ERROR')
   return (
     <div
       key={id}
-      onClick={present ? goToDetail : null}
       className={classNames(
         "dbn-nft-gallery-item",
         {
@@ -130,6 +122,9 @@ function Item({ id, present }) {
     >
        #{id}
 
+        {present &&
+          <Link to={"/dbnft/" + id} className="dbn-nft-gallery-item-link"></Link>
+        }
         {showImageViewer &&
           <ImageViewer imageData={imageData} magnify={1}/>
         }
