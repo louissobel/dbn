@@ -173,12 +173,19 @@ function Admin() {
     }
   }
 
-  // TODO: fail if not owner
   function content() {
     if (!web3React.active) {
       return (
         <Alert variant="warning" >
           Not connected to metamask
+        </Alert>
+      )
+    }
+
+    if (web3React.account !== frontendEnvironment.config.coordinatorOwner) {
+      return (
+        <Alert variant="warning" >
+          Not owner
         </Alert>
       )
     }
