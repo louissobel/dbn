@@ -86,7 +86,7 @@ function Item({ id, present }) {
         // reattach this element as the listener
         renderJob.onRenderStateChange = setRenderState
         renderJob.onNewImage = setImageData
-        setRenderState(renderJob.renderState)        
+        setRenderState(renderJob.renderState)
       }
 
     } else {
@@ -211,6 +211,10 @@ function Gallery() {
                     tabIndex={null} // we don't want the whole list to be focusable
                     className='List'
                     width={width}
+                    // low overscanRowCount is _fine_ — the initial empty
+                    // box is very quick to render, and we want the render jobs
+                    // to not kick off too quickly
+                    overscanRowCount={1}
                     autoHeight
                     height={height}
                     isScrolling={isScrolling}
