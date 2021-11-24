@@ -67,8 +67,8 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerS
         return _contractMode;
     }
 
-    function setContractMode(ContractMode mode) public onlyOwner {
-        _contractMode = mode;
+    function openMinting() public onlyOwner {
+        _contractMode = ContractMode.Open;
     }
 
     function getMintPrice() public view returns (uint256) {
@@ -182,7 +182,6 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerS
         address addr = _addressForToken(tokenId);
         return Drawing.render(addr);
     }
-
 
     function mintedAllowlistedTokens() public view returns (uint256[] memory) {
         uint8 count = 0;

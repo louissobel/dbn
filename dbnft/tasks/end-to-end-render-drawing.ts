@@ -17,6 +17,7 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
   .setAction(async ({ file, output }) => {
     const hre = require("hardhat");
     await hre.run("compile");
+    const defaultOwner = (await hre.ethers.getSigners())[0].address
 
     // Deploy the DBNCoordinator contract
     // Deploy Base64?
@@ -24,14 +25,18 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
     // Ask the coordinator to render that drawing for us
 
     const DBNCoordinator = await hre.ethers.getContractFactory("DBNCoordinator");
-    const coordinator = await DBNCoordinator.deploy("http://localhost:3000/dbnft/");
+    const coordinator = await DBNCoordinator.deploy(
+      defaultOwner,
+      "http://localhost:3000/dbnft/",
+      "0x0000000000000000000000000000000000000000",
+    );
     await coordinator.deployed();
     const coordinatorDeployReceipt = await coordinator.deployTransaction.wait()
 
     console.log("Coordinator deployed to: ", coordinator.address, `(Gas used: ${coordinatorDeployReceipt.gasUsed.toString()})`);
 
     // Open up minting
-    await coordinator.setContractMode(1) // open
+    await coordinator.openMinting()
     console.log("Opened up minting")
 
     const input = fs.readFileSync(file);

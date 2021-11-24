@@ -3,14 +3,13 @@ pragma solidity ^0.8.0;
 
 library Base64 {
 
+    uint256 internal constant alpha1 = 0x4142434445464748494a4b4c4d4e4f505152535455565758595a616263646566;
+    uint256 internal constant alpha2 = 0x6768696a6b6c6d6e6f707172737475767778797a303132333435363738392b2f;
+
     function encode(bytes memory input) internal pure returns (bytes memory) {
         if (input.length == 0) {
             return input;
         }
-
-        uint256 alpha1 = 0x4142434445464748494a4b4c4d4e4f505152535455565758595a616263646566;
-        uint256 alpha2 = 0x6768696a6b6c6d6e6f707172737475767778797a303132333435363738392b2f;
-
 
         bytes memory output = new bytes(_encodedLength(input.length));
 

@@ -7,6 +7,8 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
+import InputGroup from 'react-bootstrap/InputGroup';
+import FormControl from 'react-bootstrap/FormControl';
 import Form from 'react-bootstrap/Form';
 
 import frontendEnvironment from './frontend_environment'
@@ -15,6 +17,13 @@ import {dbnCoordinator, modeStringForContractMode} from './eth_tools'
 import DBNCoordinator from './contracts/DBNCoordinator'
 import LoadingText from './shared/LoadingText'
 
+
+function getMetamaskDBNCoordinator(web3) {
+  return new web3.eth.Contract(
+    DBNCoordinator,
+    frontendEnvironment.config.coordinatorContractAddress,
+  )
+}
 
 function Signer() {
   const [tokenId, setTokenId] = useState("")
@@ -104,15 +113,12 @@ function Opener({ onOpen }) {
 
   const web3React = useWeb3React()
   const web3 = web3React.library;
-  const metamaskDBNCoordinator = new web3.eth.Contract(
-    DBNCoordinator,
-    frontendEnvironment.config.coordinatorContractAddress,
-  )
+  const metamaskDBNCoordinator = getMetamaskDBNCoordinator(web3)
 
   function doOpen() {
     setOpening(true)
 
-    metamaskDBNCoordinator.methods.setContractMode(1).send({
+    metamaskDBNCoordinator.methods.openMinting().send({
       from: web3React.account,
     })
     .then(() => {
@@ -144,16 +150,104 @@ function Opener({ onOpen }) {
   )
 }
 
+function MintPriceUpdater({ onMintPriceUpdate }) {
+  const [updating, setUpdating] = useState(false)
+  const [error, setError] = useState(null)
+  const [input, setInput] = useState("")
+  const [inputAsEth, setInputAsEth] = useState(null)
+  const [invalidInput, setInvalidInput] = useState(false)
+
+  const web3React = useWeb3React()
+  const web3 = web3React.library;
+  const metamaskDBNCoordinator = getMetamaskDBNCoordinator(web3)
+
+  function handleInputChange(e) {
+    const nextInput = e.target.value;
+
+    setInput(nextInput)
+
+    if (nextInput === "") {
+      setInvalidInput(false)
+      setInputAsEth(null)
+    } else {
+      let formatted;
+      try {
+        formatted = maybeFormatWei(web3, nextInput)
+      } catch (e) {
+        setInvalidInput(true)
+        setInputAsEth(null)
+        return;
+      }
+
+      setInputAsEth(formatted)
+      setInvalidInput(false)
+    }
+  }
+
+  function doUpdate() {
+    setUpdating(true)
+    setError(null)
+
+    let result;
+    try {
+      result = metamaskDBNCoordinator.methods.setMintPrice(input).send({
+        from: web3React.account,
+      })
+    } catch (e) {
+      setError(e);
+      setUpdating(false);
+      return;
+    }
+
+    result.then(() => {
+      onMintPriceUpdate(input)
+      setUpdating(false)
+      setInput("")
+      setInputAsEth(null)
+    })
+    .catch((e) => {
+      setError(e)
+      setUpdating(false)
+    })
+  }
+
+  return (
+    <Col sm="9">
+      <InputGroup size="sm" className="mb-2">
+        <InputGroup.Text>
+          {inputAsEth}
+        </InputGroup.Text>
+        <FormControl
+          className={invalidInput ? "border-danger" : ""}
+          placeholder="(in wei)"
+          value={input}
+          onChange={handleInputChange}
+        />
+        <Button
+          variant="warning"
+          onClick={doUpdate}
+          disabled={updating}
+        >
+          Update
+        </Button>
+      </InputGroup>
+
+      {error &&
+        <Alert variant="danger" onClose={() => setError(null)} dismissible>
+          {error.message}
+        </Alert>
+      }
+    </Col>
+  )
+}
+
 function Withdrawer({ onWithdraw }) {
   const [withdrawing, setWithdrawing] = useState(false)
   const [error, setError] = useState(null)
 
   const web3React = useWeb3React()
   const web3 = web3React.library;
-  const metamaskDBNCoordinator = new web3.eth.Contract(
-    DBNCoordinator,
-    frontendEnvironment.config.coordinatorContractAddress,
-  )
+  const metamaskDBNCoordinator = getMetamaskDBNCoordinator(web3)
 
   function doWithdraw() {
     setWithdrawing(true)
@@ -190,6 +284,15 @@ function Withdrawer({ onWithdraw }) {
     </>
   )
 }
+
+function maybeFormatWei(web3, v) {
+  if (v === null) {
+    return null
+  }
+
+  return "Ξ" + web3.utils.fromWei(v)
+}
+
 
 function Admin() {
   const [contractMode, setContractMode] = useState(null)
@@ -232,14 +335,6 @@ function Admin() {
     } else {
       return v
     }
-  }
-
-  function maybeFormatWei(v) {
-    if (v === null) {
-      return null
-    }
-
-    return "Ξ" + web3.utils.fromWei(v)
   }
 
   function content() {
@@ -287,13 +382,16 @@ function Admin() {
 
             <tr>
               <th scope="row">Mint Price</th>
-              <td><code>{loadingIfNull(maybeFormatWei(mintPrice))}</code></td>
+              <td>
+                <code>{loadingIfNull(maybeFormatWei(web3, mintPrice))}</code>
+                <MintPriceUpdater onMintPriceUpdate={setMintPrice} />
+              </td>
             </tr>
 
             <tr>
               <th scope="row">Balance</th>
               <td>
-                <code>{loadingIfNull(maybeFormatWei(balance))}</code>
+                <code>{loadingIfNull(maybeFormatWei(web3, balance))}</code>
                 <Withdrawer onWithdraw={() => setBalance('0')} />
               </td>
             </tr>

@@ -2,6 +2,11 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
         "internalType": "string",
         "name": "baseExternalURI",
         "type": "string"
@@ -344,6 +349,13 @@
   },
   {
     "inputs": [],
+    "name": "openMinting",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "openSeaProxyRegistry",
     "outputs": [
       {
@@ -496,19 +508,6 @@
       }
     ],
     "name": "setApprovalForAll",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "enum DBNCoordinator.ContractMode",
-        "name": "mode",
-        "type": "uint8"
-      }
-    ],
-    "name": "setContractMode",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
