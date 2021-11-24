@@ -87,7 +87,7 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerS
     /*********
      * Minting
      */
-    function mint(bytes memory bytecode) payable public {
+    function mint(bytes memory bytecode) public payable {
         require(_contractMode == ContractMode.Open, "NOT_OPEN");
         require(msg.value >= _mintPrice, "WRONG_PRICE");
 
@@ -103,7 +103,7 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerS
         uint256 tokenId,
         uint256 ticketId,
         bytes memory signature
-    ) payable public onlyWithTicketFor(tokenId, ticketId, signature) {
+    ) public payable onlyWithTicketFor(tokenId, ticketId, signature) {
         require(tokenId <= lastAllowlistedTokenId, 'WRONG_TOKENID_RANGE');
         require(msg.value >= _mintPrice, "WRONG_PRICE");
 

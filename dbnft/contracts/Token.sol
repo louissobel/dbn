@@ -1,14 +1,14 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./BitmapHeader.sol";
-
-// Factor out drawing reads / writes
+/**
+ * @dev Namespace to encapsulate a "Metadata" struct for a drawing
+ */
 library Token {
     struct Metadata { 
        string name;
        string description;
-       string external_url;
-       string drawing_address;
+       string externalUrl;
+       string drawingAddress;
     }
 }

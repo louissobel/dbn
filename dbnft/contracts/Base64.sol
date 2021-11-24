@@ -1,11 +1,19 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+/**
+ * @dev Helper library for base64-encoding bytes
+ */
 library Base64 {
 
-    uint256 internal constant alpha1 = 0x4142434445464748494a4b4c4d4e4f505152535455565758595a616263646566;
-    uint256 internal constant alpha2 = 0x6768696a6b6c6d6e6f707172737475767778797a303132333435363738392b2f;
+    uint256 internal constant ALPHA1 = 0x4142434445464748494a4b4c4d4e4f505152535455565758595a616263646566;
+    uint256 internal constant ALPHA2 = 0x6768696a6b6c6d6e6f707172737475767778797a303132333435363738392b2f;
 
+    /**
+     * @dev Encodes the given bytearray to base64
+     * @param input The input data
+     * @return the output data
+     */
     function encode(bytes memory input) internal pure returns (bytes memory) {
         if (input.length == 0) {
             return input;
@@ -54,9 +62,9 @@ library Base64 {
                     sixtetCounter := sub(sixtetCounter, 6)
                     let val := shr(sixtetCounter, and(shl(sixtetCounter, 0x3F), chunk))
 
-                    let alpha := alpha1
+                    let alpha := ALPHA1
                     if gt(val, 0x1F) {
-                        alpha := alpha2
+                        alpha := ALPHA2
                         val := sub(val, 0x20)
                     }
                     let char := byte(val, alpha)
@@ -81,11 +89,12 @@ library Base64 {
         return output;
     }
 
+    /**
+     * @dev Helper to get the length of the output data
+     * 
+     * Implements Ceil(inputLength / 3) * 4
+     */
     function _encodedLength(uint inputLength) internal pure returns (uint) {
         return ((inputLength + 2) / 3) * 4;
-    }
-
-    function encodeString(string memory input) public pure returns (string memory) {
-        return string(encode(bytes(input)));
     }
 }

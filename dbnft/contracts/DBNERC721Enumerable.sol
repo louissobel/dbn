@@ -5,7 +5,9 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 /**
- * Copies OpenZeppelin ERC721 Enumerable but with a few changes:
+ * @dev Modified copy of OpenZeppelin ERC721 Enumerable.
+ * 
+ * Changes:
  *  - gets rid of _removeTokenFromAllTokensEnumeration: no burns (saves space)
  *  - adds public accessor for the allTokens array
  */
@@ -49,7 +51,10 @@ abstract contract DBNERC721Enumerable is ERC721, IERC721Enumerable {
         return _allTokens[index];
     }
 
-    // Custom addition to facilitate easily showing all the tokens
+    /**
+     * @notice Get a list of all minted tokens.
+     * @dev No guarantee of order.
+     */
     function allTokens() public view returns (uint256[] memory) {
         return _allTokens;
     }

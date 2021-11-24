@@ -29,15 +29,8 @@ abstract contract OpenSeaTradable {
 
         // if we have a proxy registry
         if (proxyRegistry_ != address(0)) {
-            // on ethereum mainnet or rinkeby use "ProxyRegistry" to get owner's proxy
-            if (block.chainid == 1 || block.chainid == 4) {
-                address ownerProxy = ProxyRegistry(proxyRegistry_).proxies(owner);
-                return ownerProxy == operator;
-            } else if (block.chainid == 137 || block.chainid == 80001) {
-                // on Polygon and Mumbai just try with OpenSea's proxy contract
-                // https://docs.opensea.io/docs/polygon-basic-integration
-                return proxyRegistry_ == operator;
-            }
+            address ownerProxy = ProxyRegistry(proxyRegistry_).proxies(owner);
+            return ownerProxy == operator;
         }
 
         return false;

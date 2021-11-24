@@ -1,13 +1,33 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "./Token.sol";
 import "./Base64.sol";
 
-// Factor out drawing reads / writes
+/**
+ * @dev Internal library encapsulating JSON / Token URI serialization
+ */
 library Serialize {
+    /**
+     * @dev Generates a ERC721 TokenURI for the given data
+     * @param bitmapData The raw bytes of the drawing's bitmap
+     * @param metadata The struct holding information about the drawing
+     * @return a string application/json data URI containing the token information
+     * 
+     * We do _not_ base64 encode the JSON. This results in a slightly non-compliant
+     * data URI, because of the commas (and potential non-URL-safe characters).
+     * Empirically, this is fine: and re-base64-encoding everything would use
+     * gas and time and is not worth it.
+     * 
+     * There's also a few ways we could encode the image in the metadata JSON:
+     *  1. image/bmp data url in the `image` field (base64-encoded given binary data)
+     *  2. raw svg data in the `image_data` field
+     *  3. image/svg data url in the `image` field (containing a base64-encoded image, but not itself base64-encoded)
+     *  4. (3), but with another layer of base64 encoding
+     * Through some trial and error, (1) does not work with Rarible or OpenSea. The rest do. (4) would be yet another
+     * layer of base64 (taking time, so is not desirable), (2) uses a potentially non-standard field, so we use (3).
+     */
     function tokenURI(bytes memory bitmapData, Token.Metadata memory metadata) internal pure returns (string memory) {
-        // Use the "SVG DataURI not-base64-encoded" approach
         string memory imageKey = "image";
         bytes memory imageData = _svgDataURI(bitmapData);
 
@@ -20,6 +40,10 @@ library Serialize {
         ));
     }
 
+    /**
+     * @dev Returns just the metadata of the image (no bitmap data) as a JSON string
+     * @param metadata The struct holding information about the drawing
+     */
     function metadataAsJSON(Token.Metadata memory metadata) internal pure returns (string memory) {
         string memory fragment = _metadataJSONFragmentWithoutImage(metadata);
         return string(abi.encodePacked(
@@ -28,6 +52,11 @@ library Serialize {
         ));
     }
 
+    /**
+     * @dev Returns a partial JSON string with the metadata of the image.
+     *      Used by both the full tokenURI and the plain-metadata serializers.
+     * @param metadata The struct holding information about the drawing
+     */
     function _metadataJSONFragmentWithoutImage(Token.Metadata memory metadata) internal pure returns (string memory) {
         return string(abi.encodePacked(
             // name
@@ -40,18 +69,19 @@ library Serialize {
 
             // external_url
             '","external_url":"',
-                metadata.external_url,
+                metadata.externalUrl,
 
             // code address
             '","drawing_address":"',
-                metadata.drawing_address
+                metadata.drawingAddress
         ));
     }
 
-    // Ok, so there's a few ways we could embed the image:
-    // - raw data URL base64-encoded bitmap in `image`
-    // - bitmap embedded in SVG in `image_data`
-    // - SVG data URL in `image` (base64 encoded)
+
+    /**
+     * @dev Serializes the given bitmapData as a image/bmp data URL
+     * @param bitmapData The raw bytes of the drawing's bitmap
+     */
     function _base64BMP(bytes memory bitmapData) internal pure returns (bytes memory) {
         return abi.encodePacked(
             "data:image/bmp;base64,",
@@ -59,6 +89,10 @@ library Serialize {
         );
     }
 
+    /**
+     * @dev Generates an SVG containing an <image> tag containing the given bitmapData
+     * @param bitmapData The raw bytes of the drawing's bitmap
+     */
     function _imageEmbeddedInSVG(bytes memory bitmapData) internal pure returns (bytes memory) {
         return abi.encodePacked(
             "<svg xmlns='http://www.w3.org/2000/svg' width='303' height='303'><image width='303' height='303' style='image-rendering: pixelated' href='",
@@ -67,13 +101,10 @@ library Serialize {
         );
     }
 
-    function _base64SVG(bytes memory bitmapData) internal pure returns (bytes memory) {
-        return abi.encodePacked(
-            "data:image/svg+xml;base64,",
-            Base64.encode(_imageEmbeddedInSVG(bitmapData))
-        );
-    }
-
+   /**
+     * @dev Generates a data URI of an SVG containing an <image> tag containing the given bitmapData
+     * @param bitmapData The raw bytes of the drawing's bitmap
+     */
     function _svgDataURI(bytes memory bitmapData) internal pure returns (bytes memory) {
         return abi.encodePacked(
             "data:image/svg+xml,",
