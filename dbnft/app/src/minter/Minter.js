@@ -22,6 +22,8 @@ function Minter(props) {
 
   const [contractMode, setContractMode] = useState(null)
   const [mintableTokenIds, setMintableTokenIds] = useState(null)
+  const [mintPrice, setMintPrice] = useState(null)
+
   const [allowlistTicketText, setAllowlistTicketText] = useState("")
   const [allowlistTicketError, setAllowlistTicketError] = useState(null)
   const [allowlistTicket, setAllowlistTicket] = useState(null)
@@ -49,7 +51,7 @@ function Minter(props) {
 
 
   function getMintabilityStatus() {
-    if (mintableTokenIds === null || contractMode === null) {
+    if (mintableTokenIds === null || contractMode === null || mintPrice === null) {
       return 'PENDING'
     }
 
@@ -98,8 +100,20 @@ function Minter(props) {
     }
   }
 
+  function getMintPrice() {
+    dbnCoordinator.methods.getMintPrice().call()
+    .then((v) => {
+      setMintPrice(v)
+    })
+    .catch((e) => {
+      console.error('error setting up mint: getting mint price:', e)
+    })
+  }
+
+
   useEffect(() => {
     getContractMode()
+    getMintPrice()
   }, [])
 
   useEffect(() => {
@@ -172,10 +186,8 @@ function Minter(props) {
     const deployBytecode = prependDeployHeader(props.bytecode)
     console.log(deployBytecode)
 
-    let value = frontendEnvironment.config.mintPrice;
     let deployMethod = metamaskDBNCoordinator.methods.mint(deployBytecode);
     if (allowlistTicket !== null) {
-      value = 0; // allowlisted minting is free
       deployMethod = metamaskDBNCoordinator.methods.mintTokenId(
         deployBytecode,
         allowlistTicket.tokenId,
@@ -187,7 +199,7 @@ function Minter(props) {
     // TODO: how do we want to think about error handling here?
     let mintPromiEmitter = deployMethod.send({
       from: web3React.account,
-      value: value,
+      value: mintPrice,
     })
     mintEventEmitter.current = mintPromiEmitter;
 

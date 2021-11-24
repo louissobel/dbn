@@ -54,7 +54,7 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerS
         _tokenIds._value = lastAllowlistedTokenId + 1;
 
         // initial mint price
-        _mintPrice = 10000000 gwei; // 0.01 eth
+        _mintPrice = 0;
 
         // set up the opensea proxy registry
         _setOpenSeaRegistry(openSeaProxyRegistry);
@@ -103,8 +103,9 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerS
         uint256 tokenId,
         uint256 ticketId,
         bytes memory signature
-    ) public onlyWithTicketFor(tokenId, ticketId, signature) {
+    ) payable public onlyWithTicketFor(tokenId, ticketId, signature) {
         require(tokenId <= lastAllowlistedTokenId, 'WRONG_TOKENID_RANGE');
+        require(msg.value >= _mintPrice, "WRONG_PRICE");
 
         _mintAtTokenId(bytecode, tokenId);
     }

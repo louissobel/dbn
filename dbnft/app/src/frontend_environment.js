@@ -5,12 +5,11 @@
 const configForEnvironment = {
 	localhost: {
 		compileEndpoint: '/evm_compile',
-		coordinatorContractAddress: '0x065d33c7d1B5E31a96BF19d787BD389cE8DeFaB1',
+		coordinatorContractAddress: '0x384BA139698b7610F09205c17C62c7B5b4366827',
 
 		// we _could_ look this up, but simplifies things to hardcode
 		coordinatorOwner: '0x64486715303218136817354C3350f741Bb592c98',
 		expectedChainId: 1337,
-		mintPrice: 10000000000000000, // 0.01 ETH
 		ethNetwork: 'http://localhost:8545',
 		verbose: true,
 
@@ -34,7 +33,6 @@ const configForEnvironment = {
 
 		compileEndpoint: '/evm_compile',
 		expectedChainId: 4,
-		mintPrice: 10000000000000000, // 0.01 ETH
 		verbose: true,
 
 		useHelpers: true,
@@ -61,7 +59,6 @@ const configForEnvironment = {
 		coordinatorContractAddress: "0xAE4AB04EF112AF11A726Ee87b08C781084a17eE9",
 		coordinatorOwner: '0x64486715303218136817354C3350f741Bb592c98',
 		expectedChainId: 4,
-		mintPrice: 10000000000000000, // 0.01 ETH
 		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',
 		testnetBanner: true,
 
