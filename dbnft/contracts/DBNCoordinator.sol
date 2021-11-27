@@ -92,6 +92,9 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerS
     uint256 private _mintPrice;
     string private _baseExternalURI;
 
+    address payable public recipient;
+    bool public recipientLocked;
+
     // Minting
     Counters.Counter private _tokenIds;
     mapping (uint256 => address) private _drawingAddressForTokenId;
@@ -169,11 +172,31 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerS
     }
 
     /**
-     * @notice Sends the contract balance to the caller. Only the owner can call this.
+     * @notice Sets the recipient. Cannot be called after the recipient is locked.
+     *         Only the owner can call this.
      */
-    function withdraw() public onlyOwner {
-        address payable to = payable(msg.sender);
-        to.transfer(address(this).balance);
+    function setRecipient(address payable to) public onlyOwner {
+        require(!recipientLocked, "RECIPIENT_LOCKED");
+        recipient = to;
+    }
+
+    /**
+     * @notice Prevents any future changes to the recipient.
+     *         Only the owner can call this.
+     * @dev This enables post-deploy configurability of the recipient,
+     *      combined with the ability to lock it in to facilitate
+     *      confidence as to where the funds will be able to go.
+     */
+    function lockRecipient() public onlyOwner {
+        recipientLocked = true;
+    }
+
+    /**
+     * @notice Disburses the contract balance to the stored recipient.
+     *         Only the owner can call this.
+     */
+    function disburse() public onlyOwner {
+        recipient.transfer(address(this).balance);
     }
 
 

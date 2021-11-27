@@ -212,6 +212,13 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "disburse",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -278,6 +285,13 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lockRecipient",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -400,6 +414,32 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "recipient",
+    "outputs": [
+      {
+        "internalType": "address payable",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "recipientLocked",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -433,12 +473,12 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "ticketId",
-        "type": "uint256"
+        "internalType": "uint256[]",
+        "name": "ticketIds",
+        "type": "uint256[]"
       }
     ],
-    "name": "revokeTicket",
+    "name": "revokeTickets",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -521,6 +561,19 @@
       }
     ],
     "name": "setMintPrice",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address payable",
+        "name": "to",
+        "type": "address"
+      }
+    ],
+    "name": "setRecipient",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -702,13 +755,6 @@
       }
     ],
     "name": "transferOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "withdraw",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

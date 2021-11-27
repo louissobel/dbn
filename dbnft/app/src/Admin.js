@@ -133,7 +133,7 @@ function Opener({ onOpen }) {
   return (
     <>
       <Button
-        variant="warning"
+        variant="danger"
         onClick={doOpen}
         disabled={opening}
       >
@@ -241,27 +241,137 @@ function MintPriceUpdater({ onMintPriceUpdate }) {
   )
 }
 
-function Withdrawer({ onWithdraw }) {
-  const [withdrawing, setWithdrawing] = useState(false)
+function RecipientSetter({ onRecipientUpdate }) {
+  const [updating, setUpdating] = useState(false)
+  const [error, setError] = useState(null)
+  const [input, setInput] = useState("")
+
+  const web3React = useWeb3React()
+  const web3 = web3React.library;
+  const metamaskDBNCoordinator = getMetamaskDBNCoordinator(web3)
+
+  function handleInputChange(e) {
+    setInput(e.target.value)
+  }
+
+  function doUpdate() {
+    setUpdating(true)
+    setError(null)
+
+    let result;
+    try {
+      result = metamaskDBNCoordinator.methods.setRecipient(input).send({
+        from: web3React.account,
+      })
+    } catch (e) {
+      setError(e);
+      setUpdating(false);
+      return;
+    }
+
+    result.then(() => {
+      onRecipientUpdate(input)
+      setUpdating(false)
+      setInput("")
+    })
+    .catch((e) => {
+      setError(e)
+      setUpdating(false)
+    })
+  }
+
+  return (
+    <Col>
+      <InputGroup size="sm" className="mb-2">
+        <FormControl
+          value={input}
+          onChange={handleInputChange}
+        />
+        <Button
+          variant="warning"
+          onClick={doUpdate}
+          disabled={updating}
+        >
+          Update
+        </Button>
+      </InputGroup>
+
+      {error &&
+        <Alert variant="danger" onClose={() => setError(null)} dismissible>
+          {error.message}
+        </Alert>
+      }
+    </Col>
+  )
+}
+
+function RecipientLocker({ onRecipientLocked }) {
+  const [locking, setLocking] = useState(false)
   const [error, setError] = useState(null)
 
   const web3React = useWeb3React()
   const web3 = web3React.library;
   const metamaskDBNCoordinator = getMetamaskDBNCoordinator(web3)
 
-  function doWithdraw() {
-    setWithdrawing(true)
+  function doLock() {
+    setLocking(true)
 
-    metamaskDBNCoordinator.methods.withdraw().send({
+    metamaskDBNCoordinator.methods.lockRecipient().send({
       from: web3React.account,
     })
     .then(() => {
-      onWithdraw()
-      setWithdrawing(false)
+      onRecipientLocked()
     })
     .catch((e) => {
       setError(e)
-      setWithdrawing(false)
+      setLocking(false)
+    })
+  }
+
+  return (
+    <>
+      <Button
+        variant="danger"
+        className="ms-3"
+        onClick={doLock}
+        size="sm"
+        disabled={locking}
+      >
+        Lock
+      </Button>
+
+      {error &&
+        <Alert variant="danger" onClose={() => setError(null)} dismissible>
+          {error.message}
+        </Alert>
+      }
+    </>
+
+  )
+}
+
+
+function Disburser({ onDisburse }) {
+  const [disbursing, setDisbursing] = useState(false)
+  const [error, setError] = useState(null)
+
+  const web3React = useWeb3React()
+  const web3 = web3React.library;
+  const metamaskDBNCoordinator = getMetamaskDBNCoordinator(web3)
+
+  function doDisburse() {
+    setDisbursing(true)
+
+    metamaskDBNCoordinator.methods.disburse().send({
+      from: web3React.account,
+    })
+    .then(() => {
+      onDisburse()
+      setDisbursing(false)
+    })
+    .catch((e) => {
+      setError(e)
+      setDisbursing(false)
     })
   }
 
@@ -271,10 +381,10 @@ function Withdrawer({ onWithdraw }) {
         className="ms-3"
         size="sm"
         variant="success"
-        onClick={doWithdraw}
-        disabled={withdrawing}
+        onClick={doDisburse}
+        disabled={disbursing}
       >
-        Withdraw
+        Disburse
       </Button>
       {error &&
         <Alert variant="danger" onClose={() => setError(null)} dismissible>
@@ -298,6 +408,8 @@ function Admin() {
   const [contractMode, setContractMode] = useState(null)
   const [totalSupply, setTotalSupply] = useState(null)
   const [mintPrice, setMintPrice] = useState(null)
+  const [recipient, setRecipient] = useState(null)
+  const [recipientLocked, setRecipientLocked] = useState(null)
   const [balance, setBalance] = useState(null)
 
   const web3React = useWeb3React()
@@ -316,6 +428,14 @@ function Admin() {
     setMintPrice(await dbnCoordinator.methods.getMintPrice().call())
   }
 
+  async function loadRecipient() {
+    setRecipient(await dbnCoordinator.methods.recipient().call());
+  }
+
+  async function loadRecipientLocked() {
+    setRecipientLocked(await dbnCoordinator.methods.recipientLocked().call());
+  }
+
   async function loadBalance() {
     setBalance(await web3.eth.getBalance(frontendEnvironment.config.coordinatorContractAddress))
   }
@@ -325,6 +445,8 @@ function Admin() {
       loadContractMode()
       loadTotalSupply()
       loadMintPrice()
+      loadRecipient()
+      loadRecipientLocked()
       loadBalance()
     }
   }, [web3React.active])
@@ -389,10 +511,30 @@ function Admin() {
             </tr>
 
             <tr>
+              <th scope="row">Recipient</th>
+              <td>
+                <code>{loadingIfNull(recipient)}</code>
+                {!recipientLocked &&
+                  <RecipientSetter onRecipientUpdate={setRecipient} />
+                }
+              </td>
+            </tr>
+
+            <tr>
+              <th scope="row">Recipient Locked</th>
+              <td>
+                <code>{loadingIfNull(recipientLocked === null ? recipientLocked : recipientLocked.toString())}</code>
+                {!recipientLocked && 
+                  <RecipientLocker onRecipientLocked={() => setRecipientLocked(true)} />
+                }
+              </td>
+            </tr>
+
+            <tr>
               <th scope="row">Balance</th>
               <td>
                 <code>{loadingIfNull(maybeFormatWei(web3, balance))}</code>
-                <Withdrawer onWithdraw={() => setBalance('0')} />
+                <Disburser onDisburse={() => setBalance('0')} />
               </td>
             </tr>
           </tbody>
