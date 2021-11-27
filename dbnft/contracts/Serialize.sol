@@ -78,29 +78,6 @@ library Serialize {
     }
 
 
-    /**
-     * @dev Serializes the given bitmapData as a image/bmp data URL
-     * @param bitmapData The raw bytes of the drawing's bitmap
-     */
-    function _base64BMP(bytes memory bitmapData) internal pure returns (bytes memory) {
-        return abi.encodePacked(
-            "data:image/bmp;base64,",
-            Base64.encode(bitmapData)
-        );
-    }
-
-    /**
-     * @dev Generates an SVG containing an <image> tag containing the given bitmapData
-     * @param bitmapData The raw bytes of the drawing's bitmap
-     */
-    function _imageEmbeddedInSVG(bytes memory bitmapData) internal pure returns (bytes memory) {
-        return abi.encodePacked(
-            "<svg xmlns='http://www.w3.org/2000/svg' width='303' height='303'><image width='303' height='303' style='image-rendering: pixelated' href='",
-            _base64BMP(bitmapData),
-            "'/></svg>"
-        );
-    }
-
    /**
      * @dev Generates a data URI of an SVG containing an <image> tag containing the given bitmapData
      * @param bitmapData The raw bytes of the drawing's bitmap
@@ -108,7 +85,10 @@ library Serialize {
     function _svgDataURI(bytes memory bitmapData) internal pure returns (bytes memory) {
         return abi.encodePacked(
             "data:image/svg+xml,",
-            _imageEmbeddedInSVG(bitmapData)
+            "<svg xmlns='http://www.w3.org/2000/svg' width='303' height='303'><image width='303' height='303' style='image-rendering: pixelated' href='",
+            "data:image/bmp;base64,",
+            Base64.encode(bitmapData),
+            "'/></svg>"
         );
     }
 }
