@@ -20,21 +20,6 @@ Generate NFTs by compiling the DBN language to EVM opcodes, then
 deploying a contract that can render your art as a bitmap.
 
 > Line 0 0 100 100
-                        ╱
-                       ╱ 
-                      ╱  
-                     ╱   
-                    ╱    
-                   ╱     
-                  ╱      
-                 ╱       
-                ╱        
-               ╱         
-              ╱          
-             ╱           
-            ╱            
-           ╱             
-          ╱              
          ╱               
         ╱                
        ╱                 
@@ -110,6 +95,7 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerS
     constructor(
         address owner,
         string memory baseExternalURI,
+        address payable _recipient,
         address openSeaProxyRegistry
     ) ERC721("Design By Numbers NFT", "DBNFT") {
         transferOwnership(owner);
@@ -122,6 +108,9 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerS
 
         // initial mint price
         _mintPrice = 0;
+
+        // initial recipient
+        recipient = _recipient;
 
         // set up the opensea proxy registry
         _setOpenSeaRegistry(openSeaProxyRegistry);
@@ -314,7 +303,6 @@ contract DBNCoordinator is Ownable, DBNERC721Enumerable, OpenSeaTradable, OwnerS
 
         return addr;
     }
-
 
     /**
      * @dev Helper that pulls together the metadata struct for a given token

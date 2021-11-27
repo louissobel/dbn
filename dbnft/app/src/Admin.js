@@ -135,6 +135,8 @@ function Opener({ onOpen }) {
       <Button
         variant="danger"
         onClick={doOpen}
+        size="sm"
+        className="ms-3"
         disabled={opening}
       >
         Open Contract
@@ -494,7 +496,12 @@ function Admin() {
 
             <tr>
               <th scope="row">Contract Mode</th>
-              <td><code>{loadingIfNull(contractMode)}</code></td>
+              <td>
+                <code>{loadingIfNull(contractMode)}</code>
+                {contractMode !== 'Open' &&
+                  <Opener onOpen={() => setContractMode('Open')} />
+                }
+              </td>
             </tr>
 
             <tr>
@@ -539,11 +546,6 @@ function Admin() {
             </tr>
           </tbody>
         </table>
-
-        {contractMode !== 'Open' &&
-          <Opener onOpen={() => setContractMode('Open')} />
-        }
-
 
         <h3 className="mt-5">Signing</h3>
         <Signer />

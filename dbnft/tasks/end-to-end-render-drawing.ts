@@ -28,6 +28,7 @@ task("end-to-end-render-drawing", "Assembles given file and evals with debugger 
     const coordinator = await DBNCoordinator.deploy(
       defaultOwner,
       "http://localhost:3000/dbnft/",
+      defaultOwner,
       "0x0000000000000000000000000000000000000000",
     );
     await coordinator.deployed();
