@@ -75,6 +75,27 @@ const configForEnvironment = {
 		pinataJWT: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI1NzY4MmRiYy1kZWQ3LTQzOTEtODFjOC05NGYyNWY3NGI3MzEiLCJlbWFpbCI6ImxvdWlzLmEuc29iZWxAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siaWQiOiJOWUMxIiwiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjF9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZX0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjQxYmI4OTY0NGRiOTQ0NWRhZTI1Iiwic2NvcGVkS2V5U2VjcmV0IjoiMzJiZjk1MDhhZTc0Y2I0MTkxMTYzNjlkNWQ0OTM4NDA2N2Y3YzU4NGZhMjUyM2Q5N2VjMDllM2IyZmJiM2Q4ZSIsImlhdCI6MTYzNjc0MzA0MH0.DPp_EznnjBQFkluj08HLJulV19amqm1Ft4NSua6Hy2I',
 		ipfsClient: 'pinata',
 	},
+
+	mainnet: {
+		compileEndpoint: 'https://1ard2p8bka.execute-api.us-east-1.amazonaws.com/evm_compile',
+		coordinatorContractAddress: "0x8922A71214BACa269Ac7cdB455e8570fB75235Ca",
+		coordinatorOwner: '0xD48DB54EAFD7D529865ACa71419506eC5fbeD4AB',
+		expectedChainId: 1,
+		ethNetwork: 'https://eth-mainnet.alchemyapi.io/v2/_4223fENskrfn54r3E5OVS1c6E5FXSYA',
+
+		useHelpers: true,
+		helperAddress: '0x31b3D54e7Ef57709ef809e5749E9840cd9BC45Cc',
+		interpreterChainId: 1,
+
+		externalBase: 'https://dbnft.io/dbnft/',
+		openSeaBase: 'https://opensea.io',
+		etherscanBase: 'https://etherscan.io',
+
+		ipfsGateway: 'https://cloudflare-ipfs.com/ipfs/',
+		pinataBase: 'https://api.pinata.cloud/',
+		pinataJWT: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI1NzY4MmRiYy1kZWQ3LTQzOTEtODFjOC05NGYyNWY3NGI3MzEiLCJlbWFpbCI6ImxvdWlzLmEuc29iZWxAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siaWQiOiJOWUMxIiwiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjF9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZX0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjQxYmI4OTY0NGRiOTQ0NWRhZTI1Iiwic2NvcGVkS2V5U2VjcmV0IjoiMzJiZjk1MDhhZTc0Y2I0MTkxMTYzNjlkNWQ0OTM4NDA2N2Y3YzU4NGZhMjUyM2Q5N2VjMDllM2IyZmJiM2Q4ZSIsImlhdCI6MTYzNjc0MzA0MH0.DPp_EznnjBQFkluj08HLJulV19amqm1Ft4NSua6Hy2I',
+		ipfsClient: 'pinata',
+	},
 }
 
 const UNKNOWN_CONFIG = {environment: 'unknown'}
@@ -89,6 +110,8 @@ const environmentFromHostname = function (hostname) {
 		return 'cloudflareStaging'
 	} else if (hostname === 'testnet.dbnft.io') {
 		return 'testnet'
+	} else if (hostname === 'dbnft.io') {
+		return 'mainnet'
 	} else {
 		return null
 	}
