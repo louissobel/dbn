@@ -105,22 +105,26 @@ class Ticket {
 }
 
 
-class Allowlist {
-  static FINISHED = frontendEnvironment.config.allowlistFinished;
-
-  // TODO: get this somewhere more easily configurable
-  static _allowlistHints = {
-    '0': '0xD48DB54EAFD7D529865ACa71419506eC5fbeD4AB',
-  }
-
+async function getAllowlistHints() {
   // Note: this is _just a hint_ for the frontend to provide better user-experience
   // The actual validation occurs via the "ticket", a signed tuple of
   // the minter, the coordinator, a ticketId, and the token id
+  const response =  await fetch(frontendEnvironment.config.allowlistHintURL)
+  if (!response.ok) {
+    throw new Error('Unexpected result: ' + response.status)
+  }
+  return response.json()
+}
+
+class Allowlist {
+  static FINISHED = frontendEnvironment.config.allowlistFinished;
+
   static async getMintableTokenIds(account) {
+    const allowlistHints = await getAllowlistHints();
     const alreadyMinted = await dbnCoordinator.methods.mintedAllowlistedTokens().call()
 
     let allowed = []
-    for (let e of Object.entries(this._allowlistHints)) {
+    for (let e of Object.entries(allowlistHints)) {
       if (e[1] === account && !alreadyMinted.includes(e[0])) {
         allowed.push(e[0])
       }
@@ -129,5 +133,5 @@ class Allowlist {
   }
 }
 
-export {Ticket}
+export {Ticket, getAllowlistHints}
 export default Allowlist

@@ -12,7 +12,7 @@ import FormControl from 'react-bootstrap/FormControl';
 import Form from 'react-bootstrap/Form';
 
 import frontendEnvironment from './frontend_environment'
-import {Ticket} from './allowlist'
+import {Ticket, getAllowlistHints} from './allowlist'
 import {dbnCoordinator, modeStringForContractMode} from './eth_tools'
 import DBNCoordinator from './contracts/DBNCoordinator'
 import LoadingText from './shared/LoadingText'
@@ -23,6 +23,11 @@ function getMetamaskDBNCoordinator(web3) {
     DBNCoordinator,
     frontendEnvironment.config.coordinatorContractAddress,
   )
+}
+
+function Address({value}) {
+  const link = frontendEnvironment.config.etherscanBase + "/address/" + value;
+  return <a href={link}><code>{value}</code></a>
 }
 
 function Signer() {
@@ -174,7 +179,7 @@ function MintPriceUpdater({ onMintPriceUpdate }) {
     } else {
       let formatted;
       try {
-        formatted = maybeFormatWei(web3, nextInput)
+        formatted = formatWei(web3, nextInput)
       } catch (e) {
         setInvalidInput(true)
         setInputAsEth(null)
@@ -397,12 +402,31 @@ function Disburser({ onDisburse }) {
   )
 }
 
-function maybeFormatWei(web3, v) {
-  if (v === null) {
-    return null
+function formatWei(web3, v) {
+  return "Ξ" + web3.utils.fromWei(v)
+}
+
+function AllowlistHints({ data }) {
+  let rows = []
+  for (let e of Object.entries(data)) {
+    rows.push(
+      <tr><td>{e[0]}</td><td><Address value={e[1]} /></td></tr>
+    )
   }
 
-  return "Ξ" + web3.utils.fromWei(v)
+  return (
+    <table className="mb-5 table border-dark">
+      <thead>
+        <tr>
+          <td>Token ID</td>
+          <td>Minter</td>
+        </tr>
+      </thead>
+      <tbody>
+        {rows}
+      </tbody>
+    </table>
+  )
 }
 
 
@@ -413,6 +437,8 @@ function Admin() {
   const [recipient, setRecipient] = useState(null)
   const [recipientLocked, setRecipientLocked] = useState(null)
   const [balance, setBalance] = useState(null)
+
+  const [allowlistHints, setAllowlistHints] = useState(null)
 
   const web3React = useWeb3React()
   const web3 = web3React.library;
@@ -442,6 +468,10 @@ function Admin() {
     setBalance(await web3.eth.getBalance(frontendEnvironment.config.coordinatorContractAddress))
   }
 
+  async function loadAllowlistHints() {
+    setAllowlistHints(await getAllowlistHints())
+  }
+
   useEffect(() => {
     if (web3React.active) {
       loadContractMode()
@@ -450,14 +480,19 @@ function Admin() {
       loadRecipient()
       loadRecipientLocked()
       loadBalance()
+      loadAllowlistHints()
     }
   }, [web3React.active])
 
-  function loadingIfNull(v) {
+  function loadingIfNull(v, f) {
     if (v === null) {
       return <LoadingText />
     } else {
-      return v
+      if (f === undefined) {
+        return v
+      } else {
+        return f(v)
+      }
     }
   }
 
@@ -491,7 +526,9 @@ function Admin() {
 
             <tr>
               <th scope="row">Coordinator</th>
-              <td><code>{frontendEnvironment.config.coordinatorContractAddress}</code></td>
+              <td>
+                <Address value={frontendEnvironment.config.coordinatorContractAddress} />
+              </td>
             </tr>
 
             <tr>
@@ -512,7 +549,7 @@ function Admin() {
             <tr>
               <th scope="row">Mint Price</th>
               <td>
-                <code>{loadingIfNull(maybeFormatWei(web3, mintPrice))}</code>
+                <code>{loadingIfNull(mintPrice, (p) => formatWei(web3, mintPrice))}</code>
                 <MintPriceUpdater onMintPriceUpdate={setMintPrice} />
               </td>
             </tr>
@@ -520,7 +557,7 @@ function Admin() {
             <tr>
               <th scope="row">Recipient</th>
               <td>
-                <code>{loadingIfNull(recipient)}</code>
+                {loadingIfNull(recipient, (r) => <Address value={r} />)}
                 {!recipientLocked &&
                   <RecipientSetter onRecipientUpdate={setRecipient} />
                 }
@@ -540,7 +577,7 @@ function Admin() {
             <tr>
               <th scope="row">Balance</th>
               <td>
-                <code>{loadingIfNull(maybeFormatWei(web3, balance))}</code>
+                <code>{loadingIfNull(balance, (b) => formatWei(web3, b))}</code>
                 <Disburser onDisburse={() => setBalance('0')} />
               </td>
             </tr>
@@ -549,6 +586,10 @@ function Admin() {
 
         <h3 className="mt-5">Signing</h3>
         <Signer />
+
+        <h3 className="mt-5">Allowlist Hints</h3>
+        {allowlistHints === null && <LoadingText />}
+        {allowlistHints && <AllowlistHints data={allowlistHints} />}
 
       </>
 
