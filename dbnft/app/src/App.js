@@ -2,6 +2,7 @@ import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 import React from 'react';
+import {Helmet} from "react-helmet";
 import { BrowserRouter, Switch, Route, Link } from "react-router-dom";
 
 
@@ -82,6 +83,10 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Helmet>
+        <title>DBNFT</title>
+      </Helmet>
+
       <Web3ReactProvider getLibrary={(p) => new Web3(p)}>
           {frontendEnvironment.config.testnetBanner &&
             <div className='dbn-testnet-banner'>
@@ -93,6 +98,9 @@ function App() {
 
           <Switch>
             <Route exact path="/create">
+              <Helmet>
+                <title>DBNFT — Create</title>
+              </Helmet>
               <DBNFTNavbar active="create"/>
               <WrongEthereumNetworkWarning />
               <Editor />
@@ -104,6 +112,9 @@ function App() {
             </Route>
 
             <Route path='/gallery'>
+              <Helmet>
+                <title>DBNFT — Gallery</title>
+              </Helmet>
               <DBNFTNavbar active="gallery" />
               <Gallery />
             </Route>
@@ -114,6 +125,9 @@ function App() {
             </Route>
 
             <Route path='/reference'>
+              <Helmet>
+                <title>DBNFT — Reference</title>
+              </Helmet>
               <DBNFTNavbar active="reference" />
               <Reference />
             </Route>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-
+import {Helmet} from "react-helmet";
 import { useParams } from 'react-router-dom'
 
 import Container from 'react-bootstrap/Container';
@@ -228,6 +228,10 @@ function Viewer() {
 
   return (
     <Container>
+      <Helmet>
+        <title>DBNFT #{tokenId}</title>
+      </Helmet>
+
       <Row className="pt-3 justify-content-md-center">
         <Col sm={12} md={9} lg={8} xl={6}>
           <div className="dbn-nft-viewer">
