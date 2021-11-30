@@ -25,6 +25,7 @@ const configForEnvironment = {
 		ipfsClient: 'local',
 
 		allowlistHintURL: 'https://dbnft.s3.amazonaws.com/localhost/allowlist_hints.json',
+		discordInvite: 'https://discord.gg/84EzJ35H',
 	},
 
 	localhost_rinkeby: {
@@ -58,7 +59,7 @@ const configForEnvironment = {
 
 	testnet: {
 		compileEndpoint: 'https://1ard2p8bka.execute-api.us-east-1.amazonaws.com/evm_compile',
-		coordinatorContractAddress: "0xAE4AB04EF112AF11A726Ee87b08C781084a17eE9",
+		coordinatorContractAddress: "0x1114A0Cccdb691F23B44e708Ff72a38b9bd88A6d",
 		coordinatorOwner: '0x64486715303218136817354C3350f741Bb592c98',
 		expectedChainId: 4,
 		ethNetwork: 'https://eth-rinkeby.alchemyapi.io/v2/qR_K_URkIpNbjY0HlvWACZIao-tEdX94',
@@ -78,6 +79,7 @@ const configForEnvironment = {
 		ipfsClient: 'pinata',
 
 		allowlistHintURL: 'https://dbnft.s3.amazonaws.com/testnet/allowlist_hints.json',
+		discordInvite: 'https://discord.gg/84EzJ35H',
 	},
 
 	mainnet: {
@@ -101,6 +103,7 @@ const configForEnvironment = {
 		ipfsClient: 'pinata',
 
 		allowlistHintURL: 'https://dbnft.s3.amazonaws.com/mainnet/allowlist_hints.json',
+		discordInvite: 'https://discord.gg/84EzJ35H',
 	},
 }
 

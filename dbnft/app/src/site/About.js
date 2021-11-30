@@ -5,6 +5,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import { Link } from "react-router-dom";
 
+import frontendEnvironment from '../frontend_environment'
 import SampleCodeAndImage from './SampleCodeAndImage'
 
 function About() {
@@ -63,6 +64,31 @@ function About() {
             </p>
 
 
+            <h4>Minting</h4>
+
+            <p>
+              The first 101 DBNFTs will be minted based off an allowlist. After that,
+              minting will be open to anyone! There will be a Ξ0.01 fee, all of which
+              will be donated to the <a href="https://processing.org/">Processing org</a>.
+            </p>
+
+            <p>
+              Get started by reading the <Link to="/reference">reference</Link>,
+              starting to <Link to="/create">create</Link>, or joining
+              the <a href={frontendEnvironment.config.discordInvite}>Discord</a> to
+              ask questions, share drawings, or stay up to date. You can
+              also examine
+              the <a
+                href={
+                  frontendEnvironment.config.etherscanBase +
+                  "/address/" +
+                  frontendEnvironment.config.coordinatorContractAddress +
+                  "#code"
+                }
+              >
+                token contract on Etherscan.
+              </a>
+            </p>
 
           </div>
         </Col>
