@@ -33,6 +33,7 @@
     "react-router-dom": "^5.3.0",
     "react-scripts": "4.0.3",
     "react-virtualized": "^9.22.3",
+    "rollbar": "^2.24.0",
     "web-vitals": "^1.1.2",
     "web3": "^1.6.0",
     "worker-loader": "^3.0.8"
