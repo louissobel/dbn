@@ -92,7 +92,7 @@ function App() {
   }
 
   const rollbarConfig = {
-    accessToken: frontendEnvironment.config.accessToken,
+    accessToken: frontendEnvironment.config.rollbarAccessToken,
     environment: frontendEnvironment.environment,
   };
 
