@@ -1,4 +1,5 @@
 import React, {useState, useRef, useEffect} from 'react';
+import { ErrorBoundary } from '@rollbar/react'
 
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
@@ -87,6 +88,16 @@ function LinkCopiedNotification({copiedAt}) {
   return (
     <div className={"code-input-share-status " + (show ? '' : 'hidden')}>
       Link copied
+    </div>
+  )
+}
+
+function CodemirrorCrashed() {
+  return (
+    <div className="code-input-codemirror-crashed">
+      Oh no! The editor crashed. Your code is saved in
+      the browser's local session storage so refreshing the
+      page should get things working again.
     </div>
   )
 }
@@ -306,7 +317,11 @@ export default function CodeInput(props) {
       <Row>
         <Col>
           <div className="code-input-codemirror-holder mt-3 mt-lg-0">
-            <CodeMirror
+            <ErrorBoundary
+              logMessage="Primary codemirror crash"
+              fallbackUI={CodemirrorCrashed}
+            >
+              <CodeMirror
                   ref={editor}
                   value={props.initialCode}
                   height="350px"
@@ -317,7 +332,8 @@ export default function CodeInput(props) {
                   editable={!props.disabled}
                   readOnly={props.disabled}
                   basicSetup={false}
-            />
+              />
+            </ErrorBoundary>
           </div>
         </Col>
       </Row>

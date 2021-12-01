@@ -26,6 +26,7 @@ const configForEnvironment = {
 
 		allowlistHintURL: 'https://dbnft.s3.amazonaws.com/localhost/allowlist_hints.json',
 		discordInvite: 'https://discord.gg/84EzJ35H',
+		rollbarAccessToken: 'f6874bdd824644738c553f205fdd7ec3',
 	},
 
 	localhost_rinkeby: {
@@ -80,6 +81,7 @@ const configForEnvironment = {
 
 		allowlistHintURL: 'https://dbnft.s3.amazonaws.com/testnet/allowlist_hints.json',
 		discordInvite: 'https://discord.gg/84EzJ35H',
+		rollbarAccessToken: 'f6874bdd824644738c553f205fdd7ec3',
 	},
 
 	mainnet: {
@@ -104,6 +106,7 @@ const configForEnvironment = {
 
 		allowlistHintURL: 'https://dbnft.s3.amazonaws.com/mainnet/allowlist_hints.json',
 		discordInvite: 'https://discord.gg/84EzJ35H',
+		rollbarAccessToken: 'f6874bdd824644738c553f205fdd7ec3',
 	},
 }
 

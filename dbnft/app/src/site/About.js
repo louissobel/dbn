@@ -22,7 +22,7 @@ function About() {
     <Container>
       <Row className="pt-2 dbn-about-body" >
         <Col sm={12} md={9} lg={8} xl={7}>
-          <div class="p-3 dbn-about-content">
+          <div className="p-3 dbn-about-content">
             <h2>Design By Numbers NFT</h2>
             <h6><em>Create on-chain NFTs by deploying smart contracts that render images</em></h6>
 
@@ -53,7 +53,7 @@ function About() {
             </p>
 
             <h6>The above code is stored as:</h6>
-            <pre class="dbn-low-level-code wordwrap" style={{height: "100px"}}>
+            <pre className="dbn-low-level-code wordwrap" style={{height: "100px"}}>
               {bytecode}
             </pre>
 
@@ -97,7 +97,7 @@ function About() {
           <Row className="p-3">
             <div className="mt-3 p-3 dbn-about-get-started text-white">
                 <h4>Start Creating:</h4>
-                <p>
+                
                   <ul>
                     <li>
                       <Link className="text-white" to="/create">Editor</Link>
@@ -110,7 +110,6 @@ function About() {
                     </li>
                   </ul>
 
-                </p>
             </div>
           </Row>
           <Row className="p-3">

@@ -2,9 +2,10 @@ import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 import React from 'react';
+import { ErrorBoundary } from '@rollbar/react'
 import {Helmet} from "react-helmet";
 import { BrowserRouter, Switch, Route, Link } from "react-router-dom";
-
+import { Provider as RollbarProvider } from '@rollbar/react'
 
 import { Web3ReactProvider, useWeb3React } from '@web3-react/core'
 import Web3 from 'web3'
@@ -74,6 +75,15 @@ function WrongEthereumNetworkWarning() {
   )
 }
 
+function UnhandledError() {
+  return (
+    <div className="dbn-top-level-unexpected-error">
+      Unexpected error. This has been logged, but in the meantime
+      try refreshing the page. Sorry!
+    </div>
+  )
+}
+
 
 function App() {
   if (frontendEnvironment.environment === 'unknown') {
@@ -81,13 +91,21 @@ function App() {
     return null
   }
 
+  const rollbarConfig = {
+    accessToken: frontendEnvironment.config.accessToken,
+    environment: frontendEnvironment.environment,
+  };
+
   return (
+    <RollbarProvider config={rollbarConfig}>
     <BrowserRouter>
       <Helmet>
         <title>DBNFT</title>
       </Helmet>
 
       <Web3ReactProvider getLibrary={(p) => new Web3(p)}>
+        <ErrorBoundary fallbackUI={UnhandledError}>
+
           {frontendEnvironment.config.testnetBanner &&
             <div className='dbn-testnet-banner'>
               This site is a work in progress, and
@@ -139,13 +157,16 @@ function App() {
             </Route>
 
             <Route path="*">
-              {/* TODO: better 404!!!! */}
-              Not Found
+              <div className="dbn-top-level-unexpected-error">
+                URL not found!
+              </div>
             </Route>
           </Switch>
 
+        </ErrorBoundary>
       </Web3ReactProvider>
     </BrowserRouter>
+    </RollbarProvider>
   );
 }
 

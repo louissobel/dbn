@@ -33,6 +33,11 @@
   background-color: #ffb819;
 }
 
+.dbn-top-level-unexpected-error {
+  padding: 3rem;
+  color: var(--bs-red);
+}
+
 .dbn-wrong-chain {
   text-align: center;
   background-color: #ff4319;
@@ -159,6 +164,12 @@
   border-radius: 8px;
   overflow: hidden;
   -webkit-mask-image: -webkit-radial-gradient(white, black);
+}
+
+.code-input-codemirror-crashed {
+  padding: 2em;
+  color: var(--bs-red);
+  font-style: italic;
 }
 
 .code-error-underline {
@@ -318,6 +329,12 @@ body {
 
 .dbn-ui-editable-code-wrapper {
   position: relative;
+}
+
+.dbn-ui-editable-code-wrapper.crashed {
+  padding: 1rem;
+  color: var(--bs-red);
+  font-style: italic;
 }
 
 

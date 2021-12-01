@@ -1,4 +1,5 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
+import { ErrorBoundary } from '@rollbar/react'
 
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
@@ -132,13 +133,23 @@ function InteractiveCodeAndImage({ linkageRef, example, noheaders, linkedExample
           }
           {!noheaders && <h6>Input:</h6>}
         </div>
-        <UIEditableCodeMirror
-          initialSpec={example.initialSpec}
-          dispatchRef={uiEditableDispatchRef}
-          onChange={onChange}
-          onCodeChange={onCodeChange}
-          onVisibleTooltipChange={setTooltipItemName}
-        />
+        <ErrorBoundary
+          logMessage="UIEditableCodeMirror crash"
+          fallbackUI={() => (
+            <div className="dbn-ui-editable-code-wrapper crashed">
+              Interactive example crashed! This is unexpected,
+              but reloading the page should fix it.
+            </div>
+          )}
+        >
+          <UIEditableCodeMirror
+            initialSpec={example.initialSpec}
+            dispatchRef={uiEditableDispatchRef}
+            onChange={onChange}
+            onCodeChange={onCodeChange}
+            onVisibleTooltipChange={setTooltipItemName}
+          />
+        </ErrorBoundary>
 
       </Col>
 
