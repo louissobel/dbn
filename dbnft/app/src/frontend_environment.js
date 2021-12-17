@@ -25,7 +25,7 @@ const configForEnvironment = {
 		ipfsClient: 'local',
 
 		allowlistHintURL: 'https://dbnft.s3.amazonaws.com/localhost/allowlist_hints.json',
-		discordInvite: 'https://discord.gg/84EzJ35H',
+		discordInvite: 'https://discord.gg/bSGsYHkMCG',
 		rollbarAccessToken: 'f6874bdd824644738c553f205fdd7ec3',
 	},
 
@@ -80,7 +80,7 @@ const configForEnvironment = {
 		ipfsClient: 'pinata',
 
 		allowlistHintURL: 'https://dbnft.s3.amazonaws.com/testnet/allowlist_hints.json',
-		discordInvite: 'https://discord.gg/84EzJ35H',
+		discordInvite: 'https://discord.gg/bSGsYHkMCG',
 		rollbarAccessToken: 'f6874bdd824644738c553f205fdd7ec3',
 	},
 
@@ -105,7 +105,7 @@ const configForEnvironment = {
 		ipfsClient: 'pinata',
 
 		allowlistHintURL: 'https://dbnft.s3.amazonaws.com/mainnet/allowlist_hints.json',
-		discordInvite: 'https://discord.gg/84EzJ35H',
+		discordInvite: 'https://discord.gg/bSGsYHkMCG',
 		rollbarAccessToken: 'f6874bdd824644738c553f205fdd7ec3',
 	},
 }
