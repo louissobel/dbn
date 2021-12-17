@@ -518,6 +518,10 @@ class DBNEVMCompiler(DBNAstVisitor):
             # Peer inside the bracket
             bracket_left, bracket_right = left.children
 
+            hotpath_used = self.maybe_visit_set_dot_constant(bracket_left, bracket_right, node.right)
+            if hotpath_used:
+                return
+
             label = self.generate_label("postSetCommand")
             self.emit_push_label(label) # return
             self.update_stack(1, "Set command internal (Return)")
@@ -588,6 +592,33 @@ class DBNEVMCompiler(DBNAstVisitor):
             self.emit_opcode(MSTORE)
 
             self.update_stack(-1, 'set global variable')
+
+    def maybe_visit_set_dot_constant(self, bracket_left_node, bracket_right_node, color_node):
+        if not isinstance(bracket_left_node, DBNNumberNode):
+            return False
+
+        if not isinstance(bracket_right_node, DBNNumberNode):
+            return False
+
+        if not isinstance(color_node, DBNNumberNode):
+            return False
+
+        bracket_left = self.value_for_number_node(bracket_left_node)
+        bracket_right = self.value_for_number_node(bracket_right_node)
+        color = self.value_for_number_node(color_node)
+
+        # noop if out of bounds
+        if not ((0 <= bracket_left <= 100) and (0<= bracket_right <= 100)):
+            self.emit_comment('noop constant dot set')
+            return True
+
+        # clamp it to [0, 100]
+        color = max(0, min(color, 100))
+
+        address = self.PIXEL_DATA_START + bracket_right*104 + bracket_left
+        self.emit_comment('constant dot set')
+        self.emit_raw("MSTORE8(%d, %d)" % (address, color))
+        return True
 
     def visit_word_node(self, node):
         symbol = node.value
@@ -1293,14 +1324,17 @@ class DBNEVMCompiler(DBNAstVisitor):
         self.update_stack(-1, 'binary op')
 
     def visit_number_node(self, node):
-        if node.value.startswith('0x'):
-            value = int(node.value, base=16)
-        else:
-            value = int(node.value, base=10)
+        value = self.value_for_number_node(node)
 
         self.emit_push(str(value))
 
         self.update_stack(1, 'push number literal')
+
+    def value_for_number_node(self, node):
+        if node.value.startswith('0x'):
+            return int(node.value, base=16)
+        else:
+            return int(node.value, base=10)
 
     def visit_noop_node(self, node):
         pass #NOOP
