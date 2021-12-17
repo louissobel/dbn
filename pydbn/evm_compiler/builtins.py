@@ -95,6 +95,15 @@ def Time(compiler, node):
 
     compiler.update_stack(-1, 'Time (leaving return value on stack)')
 
+@builtin('number', 0)
+def BlockTimestamp(compiler, node):
+    compiler.emit_opcode(opcodes.TIMESTAMP)
+    compiler.update_stack(1, 'Timestamp left on stack')
+
+@builtin('number', 0)
+def BlockNumber(compiler, node):
+    compiler.emit_opcode(opcodes.NUMBER)
+    compiler.update_stack(1, 'Blocknumber left on stack')
 
 @builtin('number', 0)
 def Address(compiler, node):

@@ -175,6 +175,12 @@ class DBNEVMCompiler(DBNAstVisitor):
             'Time': builtins.Time,
             'time': builtins.Time,
 
+            'BlockTimestamp': builtins.BlockTimestamp,
+            'blocktimestamp': builtins.BlockTimestamp,
+
+            'BlockNumber': builtins.BlockNumber,
+            'blocknumber': builtins.BlockNumber,
+
             'Address': builtins.Address,
             'address': builtins.Address,
 

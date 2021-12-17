@@ -436,7 +436,25 @@ function Reference() {
                   your contract to re-render it to see it at a diffferent time.
                 </p>
 
+                <p>
+                  In addition to the hour, minute, and seconds that <InlineCode>Time</InlineCode> makes
+                  available, the raw timestamp (as seconds-since January 1, 1970), is available
+                  using the <InlineCode>&lt;BlockTimestamp&gt;</InlineCode> number.
+                </p>
+
                 {/*TODO: a way to simulate this in the editor? */}
+
+              <h5>Block Number</h5>
+                <p>
+                  A key aspect of the blockchain is, unsuprisingly,
+                  the <a href="https://ethereum.org/en/developers/docs/blocks/">block</a>.
+                  Each block contains multiple ethereum transactions and is identified a number
+                  which will always be one more than the number of the previous block,
+                  stretching all the way back to
+                  the <a href="https://etherscan.io/block/0">first block</a> (which was number 0).
+                  You can access the current block number in your drawing using
+                  the <InlineCode>&lt;BlockNumber&gt;</InlineCode> number.
+                </p>
 
               <h5>Address</h5>
                 <p>
