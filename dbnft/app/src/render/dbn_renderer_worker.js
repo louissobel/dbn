@@ -70,13 +70,16 @@ onmessage = ({ data }) => {
   }
 };
 
+const callAddressFromStackValue = function(value) {
+  return value.and(MASK_160).toString(16);
+}
+
 const maybeReportStaticcall = function(step, opts) {
   if (step.stack.length < 2) {
     // let the EVM throw the underflow...
     return
   }
-  let addressStackSlot = step.stack[step.stack.length - 2];
-  let address = addressStackSlot.and(MASK_160).toString(16)
+  let address = callAddressFromStackValue(step.stack[step.stack.length - 2]);
   if (address !== opts.helperAddress) {
     postMessage({
       message: 'blockchain_data_needed',
@@ -86,6 +89,15 @@ const maybeReportStaticcall = function(step, opts) {
       }
     })
   }
+}
+
+const isPaperStaticcall = function(step, opts) {
+  return (
+    step.opcode.name === 'STATICCALL' &&
+    step.memory[0x80] == 0xAE &&
+    step.stack.length >= 2 &&
+    callAddressFromStackValue(step.stack[step.stack.length - 2]) === opts.helperAddress
+  )
 }
 
 const maybeReportBalance = function(step) {
@@ -147,8 +159,12 @@ const makeStepListener = function(throttleInterval, opts) {
       maybeReportLog1(step)
     }
 
+    // Force a INTERPRET_PROGRESS update if we're about to call paper —
+    // this is because paper is a quite good indicator of a "new frame"
+    let forceRender = isPaperStaticcall(step, opts);
+
     const now = Date.now();
-    if (now - lastCalled > throttleInterval) {
+    if (now - lastCalled > throttleInterval || forceRender) {
 
       // We KNOW the Bitmap lives at 0x0180....
       // And that it's 10962 long...
