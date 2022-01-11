@@ -94,7 +94,7 @@ const maybeReportStaticcall = function(step, opts) {
 const isPaperStaticcall = function(step, opts) {
   return (
     step.opcode.name === 'STATICCALL' &&
-    step.memory[0x80] == 0xAE &&
+    step.memory[0x80] === 0xAE &&
     step.stack.length >= 2 &&
     callAddressFromStackValue(step.stack[step.stack.length - 2]) === opts.helperAddress
   )

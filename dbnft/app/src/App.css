@@ -130,6 +130,7 @@
 
 .dbn-image-render-status-stats {
   font-style: italic;
+  font-size: 0.75rem;
 }
 
 .dbn-image-render-status-stats.examinable {
@@ -139,23 +140,40 @@
   text-decoration: underline;
 }
 
-.dbn-image-render-status-cancel button {
+.dbn-image-render-status-render-gas-stat.changing {
+  display: inline-block;
+  min-width: 13ex;
+}
+
+.dbn-image-render-status-action button {
   font-size: 0.8rem;
   padding: 3px;
-  color: var(--bs-red);
   line-height: 0.8rem;
   background: none;
   border: none;
 }
 
+.dbn-image-render-status-action button:hover {
+  background-color: rgba(0,0,0,.1);
+}
+.dbn-image-render-status-action.darkmode button:hover {
+  background-color: rgba(255,255,255,.2);
+}
+
+.dbn-image-render-status-cancel button {
+  color: var(--bs-red);
+}
 
 .dbn-image-render-status-cancel button:hover {
-  background-color: rgba(0,0,0,.1);
   color: var(--bs-red);
 }
 
 .dbn-image-render-status-cancel button:focus {
   color: var(--bs-red);
+}
+
+.dbn-image-render-status-rerun.darkmode button {
+  color: white;
 }
 
 .code-input-codemirror-holder {

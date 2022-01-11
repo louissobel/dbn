@@ -95,10 +95,7 @@ function Viewer() {
   }
 
 
-  async function render(metadata, tokenId) {
-    const bytecode = await dbnCoordinator.methods.tokenCode(tokenId).call()
-    setBytecode(bytecode)
-
+  async function render(metadata, bytecode) {
     const renderResult = await renderDBN(
       {
         bytecode: bytecode,
@@ -137,6 +134,31 @@ function Viewer() {
     setRenderState('DONE')
   }
 
+  const doRender = useCallback(async function(tokenId, metadata, bytecode) {
+    try {
+      await render(metadata, bytecode)
+    } catch (error) {
+      if (error.type === 'blockchain_data_needed') {
+        try {
+          await renderOnChain(metadata, tokenId)
+        } catch (error) {
+          console.error('error rendering on chain', error)
+          setRenderState('ERROR')
+        }
+      } else {
+        console.error('error rendering', error)
+        setRenderState('ERROR')
+      }
+    }
+  }, [])
+
+  const onRerender = useCallback(function() {
+    setRenderState('RENDERING')
+    setGasUsed(null)
+    setImageData(null)
+    doRender(tokenId, tokenMetadata, bytecode)
+  }, [doRender, tokenId, tokenMetadata, bytecode])
+
   useEffect(() => {
     (async function() {
       const metadata = await loadMetadata(tokenId);
@@ -144,23 +166,13 @@ function Viewer() {
         return;
       }
 
-      try {
-        await render(metadata, tokenId)
-      } catch (error) {
-        if (error.type === 'blockchain_data_needed') {
-          try {
-            await renderOnChain(metadata, tokenId)
-          } catch (error) {
-            console.error('error rendering on chain', error)
-            setRenderState('ERROR')
-          }
-        } else {
-          console.error('error rendering', error)
-          setRenderState('ERROR')
-        }
-      }
+      const bytecode = await dbnCoordinator.methods.tokenCode(tokenId).call()
+      setBytecode(bytecode)
+
+      await doRender(tokenId, metadata, bytecode)
+
     })()
-  }, [tokenId])
+  }, [doRender, tokenId])
 
   useEffect(() => {
     if (bytecode) {
@@ -255,6 +267,8 @@ function Viewer() {
                   onShowCode={onShowCode}
                   gasUsed={gasUsed}
                   imageData={imageData}
+
+                  onRerun={onRerender}
                 />
 
                 <TokenMetadataTable

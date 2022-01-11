@@ -104,11 +104,13 @@ function ImageResult(props) {
         renderState={props.renderState}
         renderingOnChain={props.renderingOnChain}
         renderError={props.renderError}
+        showMintGasEstimate={props.showMintGasEstimate}
         codeSize={props.bytecode ? (props.bytecode.length - 2)/2 : null}
         onBytecodeSizeClick={props.onShowCode}
         gasUsed={props.gasUsed}
         darkmode={darkmode}
         onCancel={props.onCancel}
+        onRerun={props.onRerun}
       />
 
     </div>

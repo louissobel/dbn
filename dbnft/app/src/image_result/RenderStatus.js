@@ -7,14 +7,41 @@ import {Icon} from '@iconify/react'
 
 import StatusDot from '../shared/StatusDot'
 
-function GasStats({gasUsed, estimated}) {
+function RenderGasStats({inProgress, gasUsed, estimated}) {
+  return (
+    <div className="d-inline dbn-image-render-status-stats">
+      {!inProgress && <span className="ms-2">Render: </span>}
+      <span className={classNames(
+        "dbn-image-render-status-render-gas-stat",
+        {changing: inProgress}
+      )}>
+        {estimated ? '~' : ''}<NumberFormat
+          value={gasUsed}
+          displayType={'text'}
+          thousandSeparator={true}
+        />gas
+      </span>
+    </div>
+  )
+}
+
+// This is rough linear regression; reflecting that
+// cost will be dominated by linear-with-bytecode gas
+function linearGasEstimate(codeSize) {
+  return 1000 * Math.ceil(
+    (183000 + codeSize*220) / 1000
+  )
+}
+
+function MintGasEstimate({codeSize}) {
+  let estimate = linearGasEstimate(codeSize)
   return (
     <div className="d-inline ms-2 dbn-image-render-status-stats">
-      Gas: {estimated ? '~' : ''}<NumberFormat
-        value={gasUsed}
-        displayType={'text'}
+      Mint: ~<NumberFormat
+        value={estimate}
+        displayType="text"
         thousandSeparator={true}
-      />
+      />gas
     </div>
   )
 }
@@ -60,9 +87,11 @@ function RenderStatus({
     renderState,
     renderingOnChain,
     renderError,
+    showMintGasEstimate,
     codeSize,
     gasUsed,
     onCancel,
+    onRerun,
     darkmode,
     onBytecodeSizeClick
   }) {
@@ -90,12 +119,16 @@ function RenderStatus({
             Rendering... {renderingOnChain && '(on chain)'}
           </span>
 
-          {codeSize && <BytecodeStats codeSize={codeSize} onClick={onBytecodeSizeClick} />}
-          {gasUsed && <GasStats estimated={renderingOnChain} gasUsed={gasUsed} />}
+          {gasUsed && <RenderGasStats inProgress estimated={renderingOnChain} gasUsed={gasUsed} />}
+          {codeSize && <>
+            <BytecodeStats codeSize={codeSize} onClick={onBytecodeSizeClick} />
+            {showMintGasEstimate && <MintGasEstimate codeSize={codeSize} />}
+          </>}
 
           {onCancel &&
             <div className={classNames(
               "float-end",
+              "dbn-image-render-status-action",
               "dbn-image-render-status-cancel",
               {'darkmode': darkmode}
             )}>
@@ -118,8 +151,22 @@ function RenderStatus({
             OK! {renderingOnChain && '(on chain)'}
           </span>
 
+          <RenderGasStats estimated={renderingOnChain} gasUsed={gasUsed} />
           <BytecodeStats codeSize={codeSize} onClick={onBytecodeSizeClick} />
-          <GasStats estimated={renderingOnChain} gasUsed={gasUsed} />
+          {showMintGasEstimate && <MintGasEstimate codeSize={codeSize} />}
+
+          {onRerun &&
+            <div className={classNames(
+              "float-end",
+              "dbn-image-render-status-action",
+              "dbn-image-render-status-rerun",
+              {'darkmode': darkmode}
+            )}>
+              <Button size="sm" variant="light" onClick={onRerun}>
+                <Icon icon="oi:reload" inline={true} />
+              </Button>
+            </div>
+          }
 
         </>
       );

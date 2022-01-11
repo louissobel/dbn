@@ -5,7 +5,7 @@
 const configForEnvironment = {
 	localhost: {
 		compileEndpoint: '/evm_compile',
-		coordinatorContractAddress: '0x42e4d2525C8a83a30367fba8412874f37bfCc0EC',
+		coordinatorContractAddress: '0x6d9E73de674Bc41Af73b845Ada53B37F8e361f50',
 
 		// we _could_ look this up, but simplifies things to hardcode
 		coordinatorOwner: '0x64486715303218136817354C3350f741Bb592c98',
