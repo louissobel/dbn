@@ -1,13 +1,34 @@
 import React from 'react';
 
 import { Link } from "react-router-dom";
+import { Icon } from '@iconify/react';
 
 import frontendEnvironment from '../frontend_environment'
+import twitterHandleForAddress from './twitterHandleForAddress'
+
+function EtherscanLinkedAddress({address}) {
+  const etherscanURL = frontendEnvironment.config.etherscanBase + "/address/" + address;
+
+  return (
+    <a href={etherscanURL}>{address}</a>
+  )
+}
+
+function MaybeTwitterHandleLinkForAddress({address}) {
+  const handle = twitterHandleForAddress[address];
+  if (!handle) {
+    return null;
+  }
+
+  return (
+    <div>
+      <Icon icon="mdi:twitter" />
+      <a href={`https://twitter.com/${handle}`}>@{handle}</a>
+    </div>
+  )
+}
 
 function TokenMetadataTable(props) {
-
-  const etherscanURL = frontendEnvironment.config.etherscanBase + "/address/" + props.address;
-
   return(
     <table className="table dbn-token-metadata-table border-dark">
       <tbody>
@@ -17,7 +38,10 @@ function TokenMetadataTable(props) {
         </tr>
         <tr>
           <th scope="row">Creator</th>
-          <td>{props.creator}</td>
+          <td>
+            <MaybeTwitterHandleLinkForAddress address={props.creator} />
+            <EtherscanLinkedAddress address={props.creator} />
+          </td>
         </tr>
         <tr>
           <th scope="row">Description</th>
@@ -25,11 +49,7 @@ function TokenMetadataTable(props) {
         </tr>
         <tr>
           <th scope="row">Drawing Address</th>
-          <td>
-            <a href={etherscanURL}>
-              {props.address}
-            </a>
-          </td>
+          <td><EtherscanLinkedAddress address={props.address} /></td>
         </tr>
         <tr>
           <th scope="row">URL</th>

@@ -1,0 +1,4 @@
+export default {
+  '0x64486715303218136817354C3350f741Bb592c98': 'dbn_nft',
+  '0x4AAEc0ac944d04256E57eF02e0E9E7A9d633CDAC': 'johnmaeda',
+}
